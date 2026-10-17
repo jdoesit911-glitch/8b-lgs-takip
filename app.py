@@ -334,21 +334,11 @@ if not exams or selected_exam_name == "Kayıtlı Sınav Yok":
 results = get_exam_results(selected_exam_id)
 comps = get_class_comparison(selected_exam_id)
 
-# ===================== BAŞLIK VE HIZLI ÇIKIŞ =====================
-col_header_title, col_header_logout = st.columns([4.2, 1.3])
-with col_header_title:
-    st.markdown(f"<div class='main-title'>🎓 8/B SINIFI AKADEMİK BAŞARI VE LGS TAKİP SİSTEMİ</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='sub-title'>Aktif Sınav: <b>{selected_exam_name}</b> | "
-                f"Örneklem: <b>{len(results)} Öğrenci</b> | "
-                f"Rol: <b>{role_info['icon']} {role_info['label']}</b></div>", unsafe_allow_html=True)
-with col_header_logout:
-    st.markdown("<div class='main-logout-wrapper' style='margin-top: 6px;'>", unsafe_allow_html=True)
-    if st.button("🚪 Oturumu Kapat", key="btn_main_header_logout", use_container_width=True):
-        st.session_state.role = None
-        st.session_state.student_name = None
-        st.session_state.student_no = None
-        st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
+# ===================== BAŞLIK =====================
+st.markdown(f"<div class='main-title'>🎓 8/B SINIFI AKADEMİK BAŞARI VE LGS TAKİP SİSTEMİ</div>", unsafe_allow_html=True)
+st.markdown(f"<div class='sub-title'>Aktif Sınav: <b>{selected_exam_name}</b> | "
+            f"Örneklem: <b>{len(results)} Öğrenci</b> | "
+            f"Rol: <b>{role_info['icon']} {role_info['label']}</b></div>", unsafe_allow_html=True)
 
 
 # ╔══════════════════════════════════════════════════════════╗
