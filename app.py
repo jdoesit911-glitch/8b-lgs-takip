@@ -501,7 +501,7 @@ if current_role == "student":
             yt = s_info.get('youtube', {})
             yt_tag = f" 📺 {yt.get('channel', '')}" if yt else ""
             with sub_cols[idx_c % 2]:
-                with st.expander(f"{s_info['title']} (Net: {s_info['net']:.2f}){yt_tag}", expanded=True):
+                with st.expander(f"{s_info['title']} (Net: {s_info['net']:.2f}){yt_tag}", expanded=False):
                     st.markdown(f"**📊 Kazanım Başarı Dökümü:** {s_info['summary']}")
                     if s_info.get('zero'):
                         st.error(f"**🔴 Sıfır Çekilenler (%0):** {', '.join(s_info['zero'])}")
@@ -747,7 +747,7 @@ with tab3:
                 yt = s_info.get('youtube', {})
                 yt_tag = f" 📺 {yt.get('channel', '')}" if yt else ""
                 with sub_cols[idx_c % 2]:
-                    with st.expander(f"{s_info['title']} (Net: {s_info['net']:.2f}){yt_tag}", expanded=True):
+                    with st.expander(f"{s_info['title']} (Net: {s_info['net']:.2f}){yt_tag}", expanded=False):
                         st.markdown(f"**📊 Kazanım Başarı Dökümü:** {s_info['summary']}")
                         if s_info.get('zero'):
                             st.error(f"**🔴 Sıfır Çekilenler:** {', '.join(s_info['zero'])}")
