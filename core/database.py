@@ -27,9 +27,16 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         school_no TEXT,
         name TEXT UNIQUE,
-        class_name TEXT DEFAULT '8/B'
+        class_name TEXT DEFAULT '8/B',
+        pin TEXT
     )
     ''')
+    
+    # Migration: add pin column if it does not yet exist (for existing DBs)
+    try:
+        c.execute("ALTER TABLE students ADD COLUMN pin TEXT")
+    except Exception:
+        pass  # Column already exists
     
     c.execute('''
     CREATE TABLE IF NOT EXISTS exam_results (

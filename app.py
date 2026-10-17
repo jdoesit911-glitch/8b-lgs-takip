@@ -375,8 +375,10 @@ if current_role == "student":
         st.success(f"**28. Gün (2. Deneme) Hedefi:** {diag['target_28d']} Net")
         st.warning(f"**Haftalık Soru Çözüm Kotası:** {diag['weekly_quota']} Soru + Yanlış Defteri")
 
-        # Karne indirme
-        safe_name = student_name.replace(' ', '_')
+        # Karne indirme — Türkçe karakterleri ASCII'ye dönüştür (generate_all_student_cards ile tutarlı)
+        def _tr_safe(s):
+            return s.replace(' ','_').replace('ç','c').replace('Ç','C').replace('ğ','g').replace('Ğ','G').replace('ı','i').replace('İ','I').replace('ö','o').replace('Ö','O').replace('ş','s').replace('Ş','S').replace('ü','u').replace('Ü','U')
+        safe_name = _tr_safe(student_name)
         single_card_path = os.path.join(EXPORTS_DIR, "karneler",
                                          f"{st_data.get('school_no', '000')}_{safe_name}_Karne.docx")
         if not os.path.exists(single_card_path):
@@ -564,8 +566,10 @@ with tab3:
             st.success(f"**28. Gün (2. Deneme) Hedefi:** {diag['target_28d']} Net")
             st.warning(f"**Haftalık Soru Çözüm Kotası:** {diag['weekly_quota']} Soru + Yanlış Defteri")
 
-            # Download
-            safe_name = selected_student.replace(' ', '_')
+            # Download — Türkçe karakterleri ASCII'ye dönüştür (generate_all_student_cards ile tutarlı)
+            def _tr_safe2(s):
+                return s.replace(' ','_').replace('ç','c').replace('Ç','C').replace('ğ','g').replace('Ğ','G').replace('ı','i').replace('İ','I').replace('ö','o').replace('Ö','O').replace('ş','s').replace('Ş','S').replace('ü','u').replace('Ü','U')
+            safe_name = _tr_safe2(selected_student)
             single_card_path = os.path.join(EXPORTS_DIR, "karneler",
                                              f"{st_data.get('school_no', '000')}_{safe_name}_Karne.docx")
             if not os.path.exists(single_card_path):
