@@ -524,55 +524,62 @@ def render_lgs_youtube_table_html():
 def render_yt_buttons_html(buttons):
     """
     Renders one or multiple stylish buttons for YouTube channels.
-    If multiple options exist, renders distinct buttons side-by-side with distinct themes.
+    Uses double-quoted HTML attributes so Streamlit markdown parser renders them correctly.
     """
     if not buttons:
         return ""
     if len(buttons) == 1:
         b = buttons[0]
-        return f"""
-        <div style='margin-top:8px;'>
-            <a href='{b['url']}' target='_blank' style='display:block; text-align:center; background:linear-gradient(135deg, #DC2626 0%, #991B1B 100%); color:white; padding:8px 12px; border-radius:6px; text-decoration:none; font-size:12px; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.15);'>
-                {b['action_text']} ↗
-            </a>
-        </div>
-        """
+        url = b['url']
+        txt = b['action_text']
+        return (
+            '<div style="margin-top:8px;">'
+            f'<a href="{url}" target="_blank" style="display:block; text-align:center;'
+            ' background:linear-gradient(135deg,#DC2626 0%,#991B1B 100%);'
+            ' color:white; padding:8px 12px; border-radius:6px; text-decoration:none;'
+            ' font-size:12px; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.15);">'
+            f'{txt} ↗'
+            '</a>'
+            '</div>'
+        )
     else:
-        # Multiple distinct buttons with contrasting, vibrant colors
         palette = {
-            "red": ("linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)", "#FFFFFF", "#991B1B"),
-            "amber": ("linear-gradient(135deg, #F59E0B 0%, #B45309 100%)", "#FFFFFF", "#78350F"),
-            "orange": ("linear-gradient(135deg, #F97316 0%, #C2410C 100%)", "#FFFFFF", "#7C2D12"),
-            "blue": ("linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)", "#FFFFFF", "#1E3A8A"),
-            "green": ("linear-gradient(135deg, #10B981 0%, #047857 100%)", "#FFFFFF", "#064E3B"),
-            "purple": ("linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)", "#FFFFFF", "#4C1D95"),
-            "primary": ("linear-gradient(135deg, #DC2626 0%, #991B1B 100%)", "#FFFFFF", "#7F1D1D")
+            "red":    ("linear-gradient(135deg,#EF4444 0%,#B91C1C 100%)", "#FFFFFF", "#991B1B"),
+            "amber":  ("linear-gradient(135deg,#F59E0B 0%,#B45309 100%)", "#FFFFFF", "#78350F"),
+            "orange": ("linear-gradient(135deg,#F97316 0%,#C2410C 100%)", "#FFFFFF", "#7C2D12"),
+            "blue":   ("linear-gradient(135deg,#3B82F6 0%,#1D4ED8 100%)", "#FFFFFF", "#1E3A8A"),
+            "green":  ("linear-gradient(135deg,#10B981 0%,#047857 100%)", "#FFFFFF", "#064E3B"),
+            "purple": ("linear-gradient(135deg,#8B5CF6 0%,#6D28D9 100%)", "#FFFFFF", "#4C1D95"),
+            "primary":("linear-gradient(135deg,#DC2626 0%,#991B1B 100%)", "#FFFFFF", "#7F1D1D"),
         }
-        fallback_colors = [
-            ("linear-gradient(135deg, #F59E0B 0%, #B45309 100%)", "#FFFFFF", "#78350F"),
-            ("linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)", "#FFFFFF", "#1E3A8A")
+        fallback = [
+            ("linear-gradient(135deg,#F59E0B 0%,#B45309 100%)", "#FFFFFF", "#78350F"),
+            ("linear-gradient(135deg,#3B82F6 0%,#1D4ED8 100%)", "#FFFFFF", "#1E3A8A"),
         ]
-        btn_htmls = []
+        btn_parts = []
         for i, b in enumerate(buttons):
-            theme = b.get("theme", "")
-            if theme in palette:
-                bg, fg, border_c = palette[theme]
-            else:
-                bg, fg, border_c = fallback_colors[i % len(fallback_colors)]
-            
-            btn_htmls.append(f"""
-            <a href='{b['url']}' target='_blank' style='flex:1; display:flex; align-items:center; justify-content:center; text-align:center; min-height:36px; background:{bg}; color:{fg}; padding:6px 6px; border-radius:6px; text-decoration:none; font-size:11px; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.15); border:1px solid {border_c}; line-height:1.2;'>
-                {b['action_text']} ↗
-            </a>
-            """)
-        return f"""
-        <div style='margin-top:8px;'>
-            <div style='display:flex; gap:6px; align-items:center;'>
-                {''.join(btn_htmls)}
-            </div>
-            <div style='text-align:center; font-size:10px; color:#6B7280; font-weight:600; margin-top:4px;'>
-                (İki hocadan dilediğini seçip izleyebilirsin)
-            </div>
-        </div>
-        """
+            bg, fg, bc = palette.get(b.get("theme", ""), fallback[i % len(fallback)])
+            url = b['url']
+            txt = b['action_text']
+            btn_parts.append(
+                f'<a href="{url}" target="_blank"'
+                f' style="flex:1; display:flex; align-items:center; justify-content:center;'
+                f' text-align:center; min-height:36px; background:{bg}; color:{fg};'
+                f' padding:6px; border-radius:6px; text-decoration:none; font-size:11px;'
+                f' font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.15);'
+                f' border:1px solid {bc}; line-height:1.2;">'
+                f'{txt} ↗'
+                f'</a>'
+            )
+        inner = "".join(btn_parts)
+        return (
+            '<div style="margin-top:8px;">'
+            f'<div style="display:flex; gap:6px; align-items:center;">{inner}</div>'
+            '<div style="text-align:center; font-size:10px; color:#6B7280;'
+            ' font-weight:600; margin-top:4px;">'
+            '(İki hocadan dilediğini seçip izleyebilirsin)'
+            '</div>'
+            '</div>'
+        )
+
 

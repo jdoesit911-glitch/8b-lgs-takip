@@ -326,14 +326,6 @@ st.sidebar.markdown("---")
 if current_role in ("admin", "teacher"):
     st.sidebar.info("💡 **Yıl Boyu Kullanım Rehberi:**\nHer deneme sınavından sonra Excel çıktısını (Admin ile) yükleyin.")
 
-st.sidebar.markdown('<div class="logout-btn-box">', unsafe_allow_html=True)
-if st.sidebar.button("🔒 Oturumu Kapat / Çıkış Yap", use_container_width=True, key="btn_logout"):
-    st.session_state.role = None
-    st.session_state.student_name = None
-    st.session_state.student_no = None
-    st.rerun()
-st.sidebar.markdown('</div>', unsafe_allow_html=True)
-
 # ===================== VERİ YOK KONTROLÜ =====================
 if not exams or selected_exam_name == "Kayıtlı Sınav Yok":
     st.warning("Henüz sistemde kayıtlı deneme sınavı bulunmuyor.")
