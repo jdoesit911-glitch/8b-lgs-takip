@@ -476,14 +476,18 @@ if current_role == "student":
             yt = s_item["youtube"]
             with yt_cols[c_idx % 3]:
                 _btns_html = render_yt_buttons_html(yt.get('buttons', []))
+                _badge_color = yt['badge_color']
+                _level_name  = yt['level_name']
+                _channel     = yt['channel']
+                _net_val     = s_item['net']
                 _card_top = (
-                    "<div style='background-color:#FDF2E9; border-radius:8px; padding:12px;"
-                    " border-left:4px solid #E67E22; margin-bottom:12px; box-shadow:0 2px 5px rgba(0,0,0,0.05);'>"
-                    "<div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;'>"
-                    f"<b style='color:#78281F; font-size:14px;'>{s_title}</b>"
-                    f"<span style='background-color:{yt['badge_color']}; color:white; padding:2px 7px; border-radius:8px; font-size:10px; font-weight:bold;'>{yt['level_name']}</span>"
+                    "<div style=\"background-color:#FDF2E9; border-radius:8px; padding:12px;"
+                    " border-left:4px solid #E67E22; margin-bottom:12px; box-shadow:0 2px 5px rgba(0,0,0,0.05);\">"
+                    "<div style=\"display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;\">"
+                    f"<b style=\"color:#78281F; font-size:14px;\">{s_title}</b>"
+                    f"<span style=\"background-color:{_badge_color}; color:white; padding:2px 7px; border-radius:8px; font-size:10px; font-weight:bold;\">{_level_name}</span>"
                     "</div>"
-                    f"<small style='color:#555;'><b>Netin:</b> {s_item['net']:.2f} | <b>Kanal:</b> {yt['channel']}</small>"
+                    f"<small style=\"color:#555;\"><b>Netin:</b> {_net_val:.2f} | <b>Kanal:</b> {_channel}</small>"
                 )
                 st.markdown(_card_top + _btns_html + "</div>", unsafe_allow_html=True)
             c_idx += 1
@@ -508,15 +512,20 @@ if current_role == "student":
                     st.info(f"**💡 Çalışma Reçetesi:** {s_info['advice']}")
                     if yt:
                         _btns_html2 = render_yt_buttons_html(yt.get('buttons', []))
+                        _yt_ch      = yt['channel']
+                        _yt_bc      = yt['badge_color']
+                        _yt_ln      = yt['level_name']
+                        _yt_focus   = yt['focus']
+                        _yt_tip     = yt['study_tip']
                         _yt_box_top = (
-                            "<div style='background-color:#FDEDEC; border-left:4px solid #C0392B;"
-                            " padding:10px; border-radius:6px; margin-top:8px;'>"
-                            "<div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;'>"
-                            f"<span style='color:#900C3F; font-weight:bold;'>📺 Önerilen YouTube Desteği: <b>{yt['channel']}</b></span>"
-                            f"<span style='background-color:{yt['badge_color']}; color:white; padding:2px 7px; border-radius:10px; font-size:11px; font-weight:bold;'>{yt['level_name']}</span>"
+                            "<div style=\"background-color:#FDEDEC; border-left:4px solid #C0392B;"
+                            " padding:10px; border-radius:6px; margin-top:8px;\">"
+                            "<div style=\"display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;\">"
+                            f"<span style=\"color:#900C3F; font-weight:bold;\">📺 Önerilen YouTube Desteği: <b>{_yt_ch}</b></span>"
+                            f"<span style=\"background-color:{_yt_bc}; color:white; padding:2px 7px; border-radius:10px; font-size:11px; font-weight:bold;\">{_yt_ln}</span>"
                             "</div>"
-                            f"<small>🎯 <b>Odak:</b> {yt['focus']}<br>"
-                            f"💡 <b>Çalışma Taktiği:</b> {yt['study_tip']}</small>"
+                            f"<small>🎯 <b>Odak:</b> {_yt_focus}<br>"
+                            f"💡 <b>Çalışma Taktiği:</b> {_yt_tip}</small>"
                         )
                         st.markdown(_yt_box_top + _btns_html2 + "</div>", unsafe_allow_html=True)
             idx_c += 1
@@ -713,14 +722,18 @@ with tab3:
                 yt = s_item["youtube"]
                 with yt_cols3[c_idx3 % 3]:
                     _btns3 = render_yt_buttons_html(yt.get('buttons', []))
+                    _bc3   = yt['badge_color']
+                    _ln3   = yt['level_name']
+                    _ch3   = yt['channel']
+                    _nv3   = s_item['net']
                     _card3_top = (
-                        "<div style='background-color:#FDF2E9; border-radius:8px; padding:12px;"
-                        " border-left:4px solid #E67E22; margin-bottom:12px; box-shadow:0 2px 5px rgba(0,0,0,0.05);'>"
-                        "<div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;'>"
-                        f"<b style='color:#78281F; font-size:14px;'>{s_title}</b>"
-                        f"<span style='background-color:{yt['badge_color']}; color:white; padding:2px 7px; border-radius:8px; font-size:10px; font-weight:bold;'>{yt['level_name']}</span>"
+                        "<div style=\"background-color:#FDF2E9; border-radius:8px; padding:12px;"
+                        " border-left:4px solid #E67E22; margin-bottom:12px; box-shadow:0 2px 5px rgba(0,0,0,0.05);\">"
+                        "<div style=\"display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;\">"
+                        f"<b style=\"color:#78281F; font-size:14px;\">{s_title}</b>"
+                        f"<span style=\"background-color:{_bc3}; color:white; padding:2px 7px; border-radius:8px; font-size:10px; font-weight:bold;\">{_ln3}</span>"
                         "</div>"
-                        f"<small style='color:#555;'><b>Net:</b> {s_item['net']:.2f} | <b>Kanal:</b> {yt['channel']}</small>"
+                        f"<small style=\"color:#555;\"><b>Net:</b> {_nv3:.2f} | <b>Kanal:</b> {_ch3}</small>"
                     )
                     st.markdown(_card3_top + _btns3 + "</div>", unsafe_allow_html=True)
                 c_idx3 += 1
@@ -744,16 +757,21 @@ with tab3:
                             st.success(f"**🟢 Tam Hakim Olunanlar:** {len(s_info['mast'])} kazanım")
                         st.info(f"**💡 Çalışma Reçetesi:** {s_info['advice']}")
                         if yt:
-                            _btns3b = render_yt_buttons_html(yt.get('buttons', []))
+                            _btns3b  = render_yt_buttons_html(yt.get('buttons', []))
+                            _yt3_ch  = yt['channel']
+                            _yt3_bc  = yt['badge_color']
+                            _yt3_ln  = yt['level_name']
+                            _yt3_foc = yt['focus']
+                            _yt3_tip = yt['study_tip']
                             _yt3_top = (
-                                "<div style='background-color:#FDEDEC; border-left:4px solid #C0392B;"
-                                " padding:10px; border-radius:6px; margin-top:8px;'>"
-                                "<div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;'>"
-                                f"<span style='color:#900C3F; font-weight:bold;'>📺 Önerilen YouTube Desteği: <b>{yt['channel']}</b></span>"
-                                f"<span style='background-color:{yt['badge_color']}; color:white; padding:2px 7px; border-radius:10px; font-size:11px; font-weight:bold;'>{yt['level_name']}</span>"
+                                "<div style=\"background-color:#FDEDEC; border-left:4px solid #C0392B;"
+                                " padding:10px; border-radius:6px; margin-top:8px;\">"
+                                "<div style=\"display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;\">"
+                                f"<span style=\"color:#900C3F; font-weight:bold;\">📺 Önerilen YouTube Desteği: <b>{_yt3_ch}</b></span>"
+                                f"<span style=\"background-color:{_yt3_bc}; color:white; padding:2px 7px; border-radius:10px; font-size:11px; font-weight:bold;\">{_yt3_ln}</span>"
                                 "</div>"
-                                f"<small>🎯 <b>Odak:</b> {yt['focus']}<br>"
-                                f"💡 <b>Çalışma Taktiği:</b> {yt['study_tip']}</small>"
+                                f"<small>🎯 <b>Odak:</b> {_yt3_foc}<br>"
+                                f"💡 <b>Çalışma Taktiği:</b> {_yt3_tip}</small>"
                             )
                             st.markdown(_yt3_top + _btns3b + "</div>", unsafe_allow_html=True)
                 idx_c += 1
