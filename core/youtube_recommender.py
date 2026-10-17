@@ -245,3 +245,114 @@ def get_youtube_advice(subject_name, net, target_topic=None):
         "search_url": search_url,
         "search_query": query_str
     }
+
+def render_lgs_youtube_table_html():
+    """
+    Returns a beautifully styled, compact HTML table containing all 6 LGS subjects,
+    their recommended YouTube teachers by level, and direct search links.
+    """
+    html = """
+    <div style="background-color: #FFFFFF; border: 1.5px solid #D5D8DC; border-radius: 8px; padding: 12px; margin-top: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.06);">
+        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #C0392B; padding-bottom: 6px; margin-bottom: 10px;">
+            <span style="font-weight: 700; color: #1F497D; font-size: 13.5px;">
+                📺 8. Sınıf LGS YouTube Öğretmen Listesi
+            </span>
+            <span style="background-color: #FDEDEC; color: #C0392B; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold;">
+                Tıklanabilir Canlı Linkler
+            </span>
+        </div>
+        <p style="font-size: 11.5px; color: #555; margin-bottom: 8px;">
+            Konu eksiğinize veya seviyenize uygun hocayı seçip doğrudan ders videolarına ve soru çözümlerine ulaşabilirsiniz:
+        </p>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 11.5px; text-align: left;">
+                <thead>
+                    <tr style="background-color: #F4F6F7; color: #2C3E50; border-bottom: 1.5px solid #BDC3C7;">
+                        <th style="padding: 6px 8px; font-weight: bold;">Ders</th>
+                        <th style="padding: 6px 8px; font-weight: bold; color: #C0392B;">🔴 Temel Seviye</th>
+                        <th style="padding: 6px 8px; font-weight: bold; color: #D35400;">🟡 Orta Seviye</th>
+                        <th style="padding: 6px 8px; font-weight: bold; color: #27AE60;">🟢 İyi Seviye</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid #ECF0F1;">
+                        <td style="padding: 6px 8px; font-weight: bold; color: #1F497D;">Matematik</td>
+                        <td style="padding: 6px 8px;">
+                            <a href="https://www.youtube.com/results?search_query=Partik%C3%BCl+Matematik+8+s%C4%B1n%C4%B1f+LGS" target="_blank" style="color: #C0392B; text-decoration: none; font-weight: 600;">Partikül Matematik ↗</a>
+                        </td>
+                        <td style="padding: 6px 8px;">
+                            <a href="https://www.youtube.com/results?search_query=%C4%B0MT+Hoca+8+s%C4%B1n%C4%B1f+LGS+Matematik" target="_blank" style="color: #D35400; text-decoration: none; font-weight: 600;">İMT Hoca ↗</a>
+                        </td>
+                        <td style="padding: 6px 8px;">
+                            <a href="https://www.youtube.com/results?search_query=%C3%87opur+Hoca+8+s%C4%B1n%C4%B1f+LGS+Matematik" target="_blank" style="color: #27AE60; text-decoration: none; font-weight: 600;">Çopur Hoca ↗</a>
+                        </td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #ECF0F1; background-color: #FAFAFA;">
+                        <td style="padding: 6px 8px; font-weight: bold; color: #1F497D;">Türkçe</td>
+                        <td style="padding: 6px 8px;">
+                            <a href="https://www.youtube.com/results?search_query=Tongu%C3%A7+Akademi+8+s%C4%B1n%C4%B1f+T%C3%BCrk%C3%A7e" target="_blank" style="color: #C0392B; text-decoration: none; font-weight: 600;">Tonguç Akademi ↗</a>
+                        </td>
+                        <td style="padding: 6px 8px;">
+                            <a href="https://www.youtube.com/results?search_query=H%C4%B1z+Yay%C4%B1nlar%C4%B1+LGS+T%C3%BCrk%C3%A7e" target="_blank" style="color: #D35400; text-decoration: none; font-weight: 600;">Hız Yayınları ↗</a><br>
+                            <a href="https://www.youtube.com/results?search_query=Ebubekir+Hoca+LGS+T%C3%BCrk%C3%A7e" target="_blank" style="color: #7D6608; text-decoration: none; font-size: 11px;">veya Ebubekir Hoca ↗</a>
+                        </td>
+                        <td style="padding: 6px 8px;">
+                            <a href="https://www.youtube.com/results?search_query=H%C4%B1z+Yay%C4%B1nlar%C4%B1+LGS+T%C3%BCrk%C3%A7e" target="_blank" style="color: #27AE60; text-decoration: none; font-weight: 600;">Hız Yayınları ↗</a><br>
+                            <a href="https://www.youtube.com/results?search_query=Ebubekir+Hoca+LGS+T%C3%BCrk%C3%A7e" target="_blank" style="color: #1E8449; text-decoration: none; font-size: 11px;">veya Ebubekir Hoca ↗</a>
+                        </td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #ECF0F1;">
+                        <td style="padding: 6px 8px; font-weight: bold; color: #1F497D;">Fen Bilimleri</td>
+                        <td style="padding: 6px 8px;">
+                            <a href="https://www.youtube.com/results?search_query=Derslike+8+s%C4%B1n%C4%B1f+Fen+Bilimleri" target="_blank" style="color: #C0392B; text-decoration: none; font-weight: 600;">Derslike ↗</a>
+                        </td>
+                        <td style="padding: 6px 8px;">
+                            <a href="https://www.youtube.com/results?search_query=Mehmet+Hoca+ile+Fen+8+s%C4%B1n%C4%B1f" target="_blank" style="color: #D35400; text-decoration: none; font-weight: 600;">Mehmet Hoca ile Fen ↗</a>
+                        </td>
+                        <td style="padding: 6px 8px;">
+                            <a href="https://www.youtube.com/results?search_query=H%C4%B1z+Yay%C4%B1nlar%C4%B1+LGS+Fen" target="_blank" style="color: #27AE60; text-decoration: none; font-weight: 600;">Hız Yayınları ↗</a><br>
+                            <a href="https://www.youtube.com/results?search_query=DNZ+Hoca+8+s%C4%B1n%C4%B1f+Fen" target="_blank" style="color: #1E8449; text-decoration: none; font-size: 11px;">veya DNZ Hoca ↗</a>
+                        </td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #ECF0F1; background-color: #FAFAFA;">
+                        <td style="padding: 6px 8px; font-weight: bold; color: #1F497D;">İnkılap Tarihi</td>
+                        <td style="padding: 6px 8px;">
+                            <a href="https://www.youtube.com/results?search_query=Sosyal+Kale+8+s%C4%B1n%C4%B1f+LGS" target="_blank" style="color: #C0392B; text-decoration: none; font-weight: 600;">Sosyal Kale ↗</a>
+                        </td>
+                        <td style="padding: 6px 8px;">
+                            <a href="https://www.youtube.com/results?search_query=Sosyal+Kale+%C4%B0nk%C4%B1lap+Tarihi" target="_blank" style="color: #D35400; text-decoration: none; font-weight: 600;">Sosyal Kale ↗</a>
+                        </td>
+                        <td style="padding: 6px 8px;">
+                            <a href="https://www.youtube.com/results?search_query=Bu%C4%9Fra+Hoca+Sosyal+Bilgiler+Dersli%C4%9Fi+LGS" target="_blank" style="color: #27AE60; text-decoration: none; font-weight: 600;">Buğra Hoca (S.B. Dersliği) ↗</a>
+                        </td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #ECF0F1;">
+                        <td style="padding: 6px 8px; font-weight: bold; color: #1F497D;">Din Kültürü</td>
+                        <td style="padding: 6px 8px;">
+                            <a href="https://www.youtube.com/results?search_query=Cebrail+Hocam+8+s%C4%B1n%C4%B1f+Din" target="_blank" style="color: #C0392B; text-decoration: none; font-weight: 600;">Cebrail Hocam (Konu) ↗</a>
+                        </td>
+                        <td style="padding: 6px 8px;">
+                            <a href="https://www.youtube.com/results?search_query=Cebrail+Hocam+LGS+Din+K%C3%BClt%C3%BCr%C3%BC" target="_blank" style="color: #D35400; text-decoration: none; font-weight: 600;">Cebrail Hocam (LGS) ↗</a>
+                        </td>
+                        <td style="padding: 6px 8px;">
+                            <a href="https://www.youtube.com/results?search_query=Cebrail+Hocam+LGS+soru+%C3%A7%C3%B6z%C3%BCm%C3%BC" target="_blank" style="color: #27AE60; text-decoration: none; font-weight: 600;">Cebrail Hocam (Soru Çözüm) ↗</a>
+                        </td>
+                    </tr>
+                    <tr style="background-color: #FAFAFA;">
+                        <td style="padding: 6px 8px; font-weight: bold; color: #1F497D;">İngilizce</td>
+                        <td style="padding: 6px 8px;">
+                            <a href="https://www.youtube.com/results?search_query=Tongu%C3%A7+Akademi+8+s%C4%B1n%C4%B1f+%C4%B0ngilizce" target="_blank" style="color: #C0392B; text-decoration: none; font-weight: 600;">Tonguç Akademi ↗</a>
+                        </td>
+                        <td style="padding: 6px 8px;">
+                            <a href="https://www.youtube.com/results?search_query=Dilek+Demirel+8+s%C4%B1n%C4%B1f+LGS+%C4%B0ngilizce" target="_blank" style="color: #D35400; text-decoration: none; font-weight: 600;">Dilek Demirel ↗</a>
+                        </td>
+                        <td style="padding: 6px 8px;">
+                            <a href="https://www.youtube.com/results?search_query=%C3%9Cmitcan+Hoca+8+s%C4%B1n%C4%B1f+LGS+%C4%B0ngilizce" target="_blank" style="color: #27AE60; text-decoration: none; font-weight: 600;">Ümitcan Hoca ↗</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    """
+    return html

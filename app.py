@@ -11,6 +11,7 @@ from core.word_generator import generate_word_report
 from core.excel_generator import generate_excel_tracker
 from core.student_card_gen import generate_all_student_cards, generate_single_student_card, get_subject_prescriptions
 from config import EXPORTS_DIR, SUBJECTS
+from core.youtube_recommender import render_lgs_youtube_table_html
 
 st.set_page_config(
     page_title="LGS Akademik Başarı ve Takip Otomasyonu",
@@ -427,6 +428,9 @@ if current_role == "student":
                 use_container_width=True
             )
 
+        # Karnemi İndir Butonunun Altındaki Boş Alana LGS YouTube Öğretmen Listesi Tablosu
+        st.markdown(render_lgs_youtube_table_html(), unsafe_allow_html=True)
+
     st.markdown("---")
     st.markdown("---")
     st.markdown("### 🔬 6 Branş İçin Kişiselleştirilmiş Gelişim Reçeteleri")
@@ -596,18 +600,7 @@ with tab3:
     st.subheader("👤 Bireysel Öğrenci Başarı Karnesi ve Gelişim Kartı")
 
     with st.expander("📺 8/B Branş ve Seviye Bazlı YouTube Destek Kataloğu (Öğretmen & Veli Rehberi)", expanded=False):
-        st.markdown("""
-        Bu otomasyon, her öğrencinin sınav netine ve sıfır/düşük çektiği kazanımlara göre otomatik seviye belirler, doğrudan ilgili hocanın konu anlatımına ve soru çözümüne yönlendirir:
-        """)
-        yt_summary_data = [
-            {"Ders": "Matematik", "Temel Seviye (<8 Net)": "Partikül Matematik", "Orta Seviye (8-15 Net)": "İMT HOCA", "İyi Seviye (15+ Net)": "Çopur Hoca"},
-            {"Ders": "Türkçe", "Temel Seviye (<8 Net)": "Tonguç Akademi", "Orta Seviye (8-15 Net)": "Hız Yayınları - Ebubekir Hoca", "İyi Seviye (15+ Net)": "Hız Yayınları / Ebubekir Hoca"},
-            {"Ders": "Fen Bilimleri", "Temel Seviye (<8 Net)": "Derslike", "Orta Seviye (8-15 Net)": "Mehmet Hoca ile Fen", "İyi Seviye (15+ Net)": "Hız Yayınları / dnz hoca"},
-            {"Ders": "İnkılap Tarihi", "Temel Seviye (<5 Net)": "Sosyal Kale", "Orta Seviye (5-8 Net)": "Sosyal Kale", "İyi Seviye (8+ Net)": "Buğra Hoca Sosyal Bilgiler Dersliği"},
-            {"Ders": "Din Kültürü", "Temel Seviye (<5 Net)": "Cebrail Hocam", "Orta Seviye (5-8 Net)": "Cebrail Hocam", "İyi Seviye (8+ Net)": "Cebrail Hocam"},
-            {"Ders": "İngilizce", "Temel Seviye (<5 Net)": "Tonguç Akademi", "Orta Seviye (5-8 Net)": "Dilek Demirel", "İyi Seviye (8+ Net)": "Ümitcan Hoca"},
-        ]
-        st.dataframe(pd.DataFrame(yt_summary_data), use_container_width=True, hide_index=True)
+        st.markdown(render_lgs_youtube_table_html(), unsafe_allow_html=True)
 
     st_names = [r['name'] for r in results]
     selected_student = st.selectbox("Öğrenci Seçin:", st_names)
@@ -671,6 +664,9 @@ with tab3:
                     mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                     use_container_width=True
                 )
+
+            # Karnemi İndir Butonunun Altındaki Boş Alana LGS YouTube Öğretmen Listesi Tablosu
+            st.markdown(render_lgs_youtube_table_html(), unsafe_allow_html=True)
 
         st.markdown("---")
         st.markdown("### 🔬 6 Branş İçin Kişiselleştirilmiş Gelişim Reçeteleri")
