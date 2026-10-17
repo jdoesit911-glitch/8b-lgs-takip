@@ -483,16 +483,17 @@ if current_role == "student":
             s_item = sub_recs[s_title]
             yt = s_item["youtube"]
             with yt_cols[c_idx % 3]:
-                st.markdown(f"""
-                <div style='background-color:#FDF2E9; border-radius:8px; padding:12px; border-left:4px solid #E67E22; margin-bottom:12px; box-shadow:0 2px 5px rgba(0,0,0,0.05);'>
-                    <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;'>
-                        <b style='color:#78281F; font-size:14px;'>{s_title}</b> 
-                        <span style='background-color:{yt['badge_color']}; color:white; padding:2px 7px; border-radius:8px; font-size:10px; font-weight:bold;'>{yt['level_name']}</span>
-                    </div>
-                    <small style='color:#555;'><b>Netin:</b> {s_item['net']:.2f} | <b>Kanal:</b> {yt['channel']}</small>
-                    {render_yt_buttons_html(yt.get('buttons', []))}
-                </div>
-                """, unsafe_allow_html=True)
+                _btns_html = render_yt_buttons_html(yt.get('buttons', []))
+                _card_top = (
+                    "<div style='background-color:#FDF2E9; border-radius:8px; padding:12px;"
+                    " border-left:4px solid #E67E22; margin-bottom:12px; box-shadow:0 2px 5px rgba(0,0,0,0.05);'>"
+                    "<div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;'>"
+                    f"<b style='color:#78281F; font-size:14px;'>{s_title}</b>"
+                    f"<span style='background-color:{yt['badge_color']}; color:white; padding:2px 7px; border-radius:8px; font-size:10px; font-weight:bold;'>{yt['level_name']}</span>"
+                    "</div>"
+                    f"<small style='color:#555;'><b>Netin:</b> {s_item['net']:.2f} | <b>Kanal:</b> {yt['channel']}</small>"
+                )
+                st.markdown(_card_top + _btns_html + "</div>", unsafe_allow_html=True)
             c_idx += 1
 
     st.markdown("#### 📋 Ayrıntılı Branş Kazanım Analizi ve Reçeteler")
@@ -514,17 +515,18 @@ if current_role == "student":
                         st.success(f"**🟢 Tam Hakim Olunanlar:** {len(s_info['mast'])} kazanım")
                     st.info(f"**💡 Çalışma Reçetesi:** {s_info['advice']}")
                     if yt:
-                        st.markdown(f"""
-                        <div style='background-color:#FDEDEC; border-left:4px solid #C0392B; padding:10px; border-radius:6px; margin-top:8px;'>
-                            <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;'>
-                                <span style='color:#900C3F; font-weight:bold;'>📺 Önerilen YouTube Desteği: <b>{yt['channel']}</b></span>
-                                <span style='background-color:{yt['badge_color']}; color:white; padding:2px 7px; border-radius:10px; font-size:11px; font-weight:bold;'>{yt['level_name']}</span>
-                            </div>
-                            <small>🎯 <b>Odak:</b> {yt['focus']}<br>
-                            💡 <b>Çalışma Taktiği:</b> {yt['study_tip']}</small>
-                            {render_yt_buttons_html(yt.get('buttons', []))}
-                        </div>
-                        """, unsafe_allow_html=True)
+                        _btns_html2 = render_yt_buttons_html(yt.get('buttons', []))
+                        _yt_box_top = (
+                            "<div style='background-color:#FDEDEC; border-left:4px solid #C0392B;"
+                            " padding:10px; border-radius:6px; margin-top:8px;'>"
+                            "<div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;'>"
+                            f"<span style='color:#900C3F; font-weight:bold;'>📺 Önerilen YouTube Desteği: <b>{yt['channel']}</b></span>"
+                            f"<span style='background-color:{yt['badge_color']}; color:white; padding:2px 7px; border-radius:10px; font-size:11px; font-weight:bold;'>{yt['level_name']}</span>"
+                            "</div>"
+                            f"<small>🎯 <b>Odak:</b> {yt['focus']}<br>"
+                            f"💡 <b>Çalışma Taktiği:</b> {yt['study_tip']}</small>"
+                        )
+                        st.markdown(_yt_box_top + _btns_html2 + "</div>", unsafe_allow_html=True)
             idx_c += 1
 
     # Gelişim Geçmişi
@@ -718,16 +720,17 @@ with tab3:
                 s_item = sub_recs[s_title]
                 yt = s_item["youtube"]
                 with yt_cols3[c_idx3 % 3]:
-                    st.markdown(f"""
-                    <div style='background-color:#FDF2E9; border-radius:8px; padding:12px; border-left:4px solid #E67E22; margin-bottom:12px; box-shadow:0 2px 5px rgba(0,0,0,0.05);'>
-                        <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;'>
-                            <b style='color:#78281F; font-size:14px;'>{s_title}</b> 
-                            <span style='background-color:{yt['badge_color']}; color:white; padding:2px 7px; border-radius:8px; font-size:10px; font-weight:bold;'>{yt['level_name']}</span>
-                        </div>
-                        <small style='color:#555;'><b>Net:</b> {s_item['net']:.2f} | <b>Kanal:</b> {yt['channel']}</small>
-                        {render_yt_buttons_html(yt.get('buttons', []))}
-                    </div>
-                    """, unsafe_allow_html=True)
+                    _btns3 = render_yt_buttons_html(yt.get('buttons', []))
+                    _card3_top = (
+                        "<div style='background-color:#FDF2E9; border-radius:8px; padding:12px;"
+                        " border-left:4px solid #E67E22; margin-bottom:12px; box-shadow:0 2px 5px rgba(0,0,0,0.05);'>"
+                        "<div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;'>"
+                        f"<b style='color:#78281F; font-size:14px;'>{s_title}</b>"
+                        f"<span style='background-color:{yt['badge_color']}; color:white; padding:2px 7px; border-radius:8px; font-size:10px; font-weight:bold;'>{yt['level_name']}</span>"
+                        "</div>"
+                        f"<small style='color:#555;'><b>Net:</b> {s_item['net']:.2f} | <b>Kanal:</b> {yt['channel']}</small>"
+                    )
+                    st.markdown(_card3_top + _btns3 + "</div>", unsafe_allow_html=True)
                 c_idx3 += 1
 
         st.markdown("#### 📋 Ayrıntılı Branş Kazanım Analizi ve Reçeteler")
@@ -749,17 +752,18 @@ with tab3:
                             st.success(f"**🟢 Tam Hakim Olunanlar:** {len(s_info['mast'])} kazanım")
                         st.info(f"**💡 Çalışma Reçetesi:** {s_info['advice']}")
                         if yt:
-                            st.markdown(f"""
-                            <div style='background-color:#FDEDEC; border-left:4px solid #C0392B; padding:10px; border-radius:6px; margin-top:8px;'>
-                                <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;'>
-                                    <span style='color:#900C3F; font-weight:bold;'>📺 Önerilen YouTube Desteği: <b>{yt['channel']}</b></span>
-                                    <span style='background-color:{yt['badge_color']}; color:white; padding:2px 7px; border-radius:10px; font-size:11px; font-weight:bold;'>{yt['level_name']}</span>
-                                </div>
-                                <small>🎯 <b>Odak:</b> {yt['focus']}<br>
-                                💡 <b>Çalışma Taktiği:</b> {yt['study_tip']}</small>
-                                {render_yt_buttons_html(yt.get('buttons', []))}
-                            </div>
-                            """, unsafe_allow_html=True)
+                            _btns3b = render_yt_buttons_html(yt.get('buttons', []))
+                            _yt3_top = (
+                                "<div style='background-color:#FDEDEC; border-left:4px solid #C0392B;"
+                                " padding:10px; border-radius:6px; margin-top:8px;'>"
+                                "<div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;'>"
+                                f"<span style='color:#900C3F; font-weight:bold;'>📺 Önerilen YouTube Desteği: <b>{yt['channel']}</b></span>"
+                                f"<span style='background-color:{yt['badge_color']}; color:white; padding:2px 7px; border-radius:10px; font-size:11px; font-weight:bold;'>{yt['level_name']}</span>"
+                                "</div>"
+                                f"<small>🎯 <b>Odak:</b> {yt['focus']}<br>"
+                                f"💡 <b>Çalışma Taktiği:</b> {yt['study_tip']}</small>"
+                            )
+                            st.markdown(_yt3_top + _btns3b + "</div>", unsafe_allow_html=True)
                 idx_c += 1
 
 # ----------------- TAB 4: Çoklu Deneme Gelişim -----------------
