@@ -1,57 +1,62 @@
 @echo off
 chcp 65001 >nul
-title 8/B LGS Sistemi - Bulut Dagitim Araci
-echo ======================================================================
-echo    8/B LGS TAKIP VE ANALIZ SISTEMINI BULUTA (STREAMLIT CLOUD) YUKLEME
-echo ======================================================================
+title 8/B LGS - GitHub Yukle
+color 0A
 echo.
-echo GitHub Kullanici Adiniz: jdoesit911-glitch
-echo Hedef Depo: https://github.com/jdoesit911-glitch/8b-lgs-takip.git
+echo ====================================================
+echo   8/B LGS SISTEMI - GITHUB'A DOSYA YUKLEME ARACI
+echo ====================================================
 echo.
-echo [DIKKAT]: Eger GitHub'da '8b-lgs-takip' adli depoyu HENUZ ACMADIYSANIZ:
-echo Tarayicinizda https://github.com/new adresine gidip
-echo Repository name kismina '8b-lgs-takip' yazin ve yesil 'Create repository' butonuna basin!
+echo Bu pencere acik kalacak - lutfen kapatmayin!
 echo.
-echo Depoyu actiysaniz devam etmek icin herhangi bir tusa basin...
-pause >nul
 
-cd /d "%~dp0"
+:: Proje dizinine git
+cd /d "C:\Users\ELRA\.gemini\antigravity\scratch\lgs_analiz_otomasyonu"
+
+echo [1/4] Proje dizini kontrol ediliyor...
 if not exist "app.py" (
-    cd /d "C:\Users\ELRA\.gemini\antigravity\scratch\lgs_analiz_otomasyonu"
+    echo HATA: app.py bulunamadi! Lutfen dosyalari kontrol edin.
+    pause
+    exit /b
 )
-
+echo      OK - app.py bulundu.
 echo.
-echo [1/3] Git ayarlari kontrol ediliyor...
-git remote remove origin >nul 2>&1
-git remote add origin https://github.com/jdoesit911-glitch/8b-lgs-takip.git
-git branch -M main
 
-echo [2/3] Guncel dosyalar hazirlaniyor...
+echo [2/4] Git durumu kontrol ediliyor...
+git status
+echo.
+
+echo [3/4] Degisiklikler kaydediliyor...
 git add .
-git commit -m "Bulut guncellemesi" >nul 2>&1
+git commit -m "8B LGS Bulut Surumu - %date% %time%"
+echo.
 
-echo [3/3] Kodlar GitHub'a gonderiliyor...
+echo [4/4] GitHub hesabiniza (jdoesit911-glitch) gonderiliyor...
+echo      -> Tarayicinizda GitHub giris penceresi acilabilir.
+echo      -> Acilirsa 'Sign in with browser' butonuna basip onaylayin.
 echo.
 git push -u origin main
+echo.
 
 if %ERRORLEVEL% EQU 0 (
-    echo.
-    echo ======================================================================
-    echo   [TEBRIKLER] Kodlariniz GitHub'a basariyla aktarildi!
-    echo ======================================================================
-    echo.
-    echo Simdi Streamlit ekranina (tarayiciniza) donun:
-    echo Kirmizi uyarilarin kayboldugunu goreceksiniz!
-    echo Sol alttaki mavi 'Deploy' butonuna basarak sitenizi hemen acabilirsiniz!
-    echo ======================================================================
+    color 0A
+    echo ====================================================
+    echo   BASARILI! Kodlar GitHub'a yuklendi.
+    echo   Simdi Streamlit sayfasini yenileyin (F5).
+    echo   Kirmizi uyarilar kaybolacak ve Deploy aktif olacak!
+    echo ====================================================
 ) else (
+    color 0C
+    echo ====================================================
+    echo   HATA: Yukleme tamamlanamadi.
+    echo   Hata kodu: %ERRORLEVEL%
     echo.
-    echo ======================================================================
-    echo [UYARI] Yukleme tamamlanamadi! Olası 2 neden:
-    echo 1. https://github.com/new adresinden '8b-lgs-takip' adli depoyu henuz acmadiniz.
-    echo 2. Tarayicida GitHub oturumunuz acik degil veya erisim izni verilmedi.
-    echo ======================================================================
+    echo   Cozum: Tarayicinizda github.com'da oturum acik mi?
+    echo   'github.com/jdoesit911-glitch' linkini tarayicida acip
+    echo   giris yaptiginizdan emin olun, sonra tekrar deneyin.
+    echo ====================================================
 )
 
 echo.
-pause
+echo Bu pencereyi kapatmak icin herhangi bir tusa basin...
+pause >nul
