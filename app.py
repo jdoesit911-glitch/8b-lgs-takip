@@ -30,6 +30,26 @@ st.markdown("""
     .role-badge-admin   { background:#1B4F72; color:white; padding:3px 10px; border-radius:12px; font-size:13px; }
     .role-badge-teacher { background:#117864; color:white; padding:3px 10px; border-radius:12px; font-size:13px; }
     .role-badge-student { background:#6C3483; color:white; padding:3px 10px; border-radius:12px; font-size:13px; }
+    
+    /* Belirgin Parlak Kırmızı Çıkış Butonu */
+    .logout-btn-box button {
+        background-color: #C0392B !important;
+        color: #FFFFFF !important;
+        font-weight: 700 !important;
+        font-size: 15px !important;
+        border: 2px solid #900C3F !important;
+        border-radius: 8px !important;
+        padding: 10px 20px !important;
+        box-shadow: 0 4px 10px rgba(192, 57, 43, 0.35) !important;
+        transition: all 0.25s ease-in-out !important;
+    }
+    .logout-btn-box button:hover {
+        background-color: #E74C3C !important;
+        border-color: #C0392B !important;
+        color: #FFFFFF !important;
+        transform: scale(1.02) !important;
+        box-shadow: 0 6px 14px rgba(231, 76, 60, 0.45) !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -75,46 +95,52 @@ if st.session_state.role is None:
         if role_choice == "Öğrenci":
             st.info("🎒 **Öğrenci Girişi:** Size verilen **4 haneli giriş kodunuzu** (büyük harf + rakam) girerek sisteme erişebilirsiniz.\n"
                     "Yalnızca **kendi karnenizi** ve **sınıf ortalamalarını** görebilirsiniz.")
-            pin_input = st.text_input("Öğrenci Giriş Kodunuz (4 hane):", placeholder="Örn: AB1C",
-                                      help="Öğretmeninizden aldığınız 4 karakterli kodu giriniz.")
-            if st.button("🎒 Öğrenci Olarak Giriş Yap", use_container_width=True):
-                import sqlite3
-                from config import DATABASE_PATH
-                conn = sqlite3.connect(DATABASE_PATH)
-                c = conn.cursor()
-                # PIN büyük/küçük harf duyarsız karşılaştırma
-                row = c.execute(
-                    "SELECT name, school_no FROM students WHERE UPPER(pin) = UPPER(?)",
-                    (pin_input.strip(),)
-                ).fetchone()
-                conn.close()
-                if row:
-                    st.session_state.role = "student"
-                    st.session_state.student_name = row[0]
-                    st.session_state.student_no = row[1]
-                    st.rerun()
-                else:
-                    st.error("❌ Hatalı giriş kodu! Lütfen öğretmeninizden aldığınız 4 haneli kodu kontrol edin.")
+            with st.form("form_student_login"):
+                pin_input = st.text_input("Öğrenci Giriş Kodunuz (4 hane):", placeholder="Örn: AB1C",
+                                          help="Öğretmeninizden aldığınız 4 karakterli kodu giriniz.")
+                submit_student = st.form_submit_button("🎒 Öğrenci Olarak Giriş Yap", use_container_width=True)
+                if submit_student:
+                    import sqlite3
+                    from config import DATABASE_PATH
+                    conn = sqlite3.connect(DATABASE_PATH)
+                    c = conn.cursor()
+                    # PIN büyük/küçük harf duyarsız karşılaştırma
+                    row = c.execute(
+                        "SELECT name, school_no FROM students WHERE UPPER(pin) = UPPER(?)",
+                        (pin_input.strip(),)
+                    ).fetchone()
+                    conn.close()
+                    if row:
+                        st.session_state.role = "student"
+                        st.session_state.student_name = row[0]
+                        st.session_state.student_no = row[1]
+                        st.rerun()
+                    else:
+                        st.error("❌ Hatalı giriş kodu! Lütfen öğretmeninizden aldığınız 4 haneli kodu kontrol edin.")
 
         elif role_choice == "Öğretmen":
             st.info("👩‍🏫 **Öğretmen Girişi:** Tüm öğrenci verilerini ve raporları görüntüleyebilirsiniz.")
-            pin_input = st.text_input("Öğretmen Erişim Şifresi:", type="password")
-            if st.button("👩‍🏫 Öğretmen Olarak Giriş Yap", use_container_width=True):
-                if pin_input == TEACHER_PIN:
-                    st.session_state.role = "teacher"
-                    st.rerun()
-                else:
-                    st.error("❌ Hatalı şifre!")
+            with st.form("form_teacher_login"):
+                pin_input = st.text_input("Öğretmen Erişim Şifresi:", type="password")
+                submit_teacher = st.form_submit_button("👩‍🏫 Öğretmen Olarak Giriş Yap", use_container_width=True)
+                if submit_teacher:
+                    if pin_input == TEACHER_PIN:
+                        st.session_state.role = "teacher"
+                        st.rerun()
+                    else:
+                        st.error("❌ Hatalı şifre!")
 
         elif role_choice == "Admin":
             st.info("🔑 **Admin Girişi:** Tüm yetkilere sahipsiniz. Yeni deneme sınavı yükleyebilirsiniz.")
-            pin_input = st.text_input("Admin Şifresi:", type="password")
-            if st.button("🔑 Admin Olarak Giriş Yap", use_container_width=True):
-                if pin_input == ADMIN_PIN:
-                    st.session_state.role = "admin"
-                    st.rerun()
-                else:
-                    st.error("❌ Hatalı admin şifresi!")
+            with st.form("form_admin_login"):
+                pin_input = st.text_input("Admin Şifresi:", type="password")
+                submit_admin = st.form_submit_button("🔑 Admin Olarak Giriş Yap", use_container_width=True)
+                if submit_admin:
+                    if pin_input == ADMIN_PIN:
+                        st.session_state.role = "admin"
+                        st.rerun()
+                    else:
+                        st.error("❌ Hatalı admin şifresi!")
 
         st.markdown("---")
         st.caption("🔒 Bu sistem öğrenci kişisel verilerini korumak için şifre korumalıdır. "
@@ -271,11 +297,13 @@ st.sidebar.markdown("---")
 if current_role in ("admin", "teacher"):
     st.sidebar.info("💡 **Yıl Boyu Kullanım Rehberi:**\nHer deneme sınavından sonra Excel çıktısını (Admin ile) yükleyin.")
 
-if st.sidebar.button("🔒 Çıkış Yap (Ekranı Kilitle)"):
+st.sidebar.markdown('<div class="logout-btn-box">', unsafe_allow_html=True)
+if st.sidebar.button("🔒 Oturumu Kapat / Çıkış Yap", use_container_width=True, key="btn_logout"):
     st.session_state.role = None
     st.session_state.student_name = None
     st.session_state.student_no = None
     st.rerun()
+st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
 # ===================== VERİ YOK KONTROLÜ =====================
 if not exams or selected_exam_name == "Kayıtlı Sınav Yok":
@@ -400,15 +428,43 @@ if current_role == "student":
             )
 
     st.markdown("---")
+    st.markdown("---")
     st.markdown("### 🔬 6 Branş İçin Kişiselleştirilmiş Gelişim Reçeteleri")
     sub_recs = get_subject_prescriptions(st_data, st_kaz)
+
+    # 1. DOĞRUDAN GÖRÜNÜR YOUTUBE DERS VİTRİNİ
+    st.markdown("#### 📺 Seviyene Özel Önerilen YouTube Dersleri")
+    yt_cols = st.columns(3)
+    c_idx = 0
+    for s_title in ["Türkçe", "Matematik", "Fen Bilimleri", "İnkılap Tarihi", "Din Kültürü", "İngilizce"]:
+        if s_title in sub_recs and sub_recs[s_title].get("youtube"):
+            s_item = sub_recs[s_title]
+            yt = s_item["youtube"]
+            with yt_cols[c_idx % 3]:
+                st.markdown(f"""
+                <div style='background-color:#FDF2E9; border-radius:8px; padding:12px; border-left:4px solid #E67E22; margin-bottom:12px;'>
+                    <b style='color:#78281F; font-size:14px;'>{s_title}</b> 
+                    <span style='background-color:{yt['badge_color']}; color:white; padding:2px 7px; border-radius:8px; font-size:10px; font-weight:bold; float:right;'>{yt['level_name']}</span><br>
+                    <small style='color:#555;'><b>Netin:</b> {s_item['net']:.2f} | <b>Kanal:</b> {yt['channel']}</small><br>
+                    <div style='margin-top:8px;'>
+                        <a href='{yt['search_url']}' target='_blank' style='display:block; text-align:center; background-color:#C0392B; color:white; padding:7px 10px; border-radius:5px; text-decoration:none; font-size:11.5px; font-weight:bold;'>
+                            ▶️ {yt.get('action_text', yt['channel'] + ' Dinle / İzle')}
+                        </a>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            c_idx += 1
+
+    st.markdown("#### 📋 Ayrıntılı Branş Kazanım Analizi ve Reçeteler")
     sub_cols = st.columns(2)
     idx_c = 0
     for s_title in ["Fen Bilimleri", "Matematik", "Türkçe", "İnkılap Tarihi", "Din Kültürü", "İngilizce"]:
         if s_title in sub_recs:
             s_info = sub_recs[s_title]
+            yt = s_info.get('youtube', {})
+            yt_tag = f" 📺 {yt.get('channel', '')}" if yt else ""
             with sub_cols[idx_c % 2]:
-                with st.expander(f"{s_info['title']} (Net: {s_info['net']:.2f} | D:{s_info['d']} Y:{s_info['y']} B:{s_info['b']})"):
+                with st.expander(f"{s_info['title']} (Net: {s_info['net']:.2f}){yt_tag}", expanded=True):
                     st.markdown(f"**📊 Kazanım Başarı Dökümü:** {s_info['summary']}")
                     if s_info.get('zero'):
                         st.error(f"**🔴 Sıfır Çekilenler (%0):** {', '.join(s_info['zero'])}")
@@ -417,15 +473,14 @@ if current_role == "student":
                     if s_info.get('mast'):
                         st.success(f"**🟢 Tam Hakim Olunanlar:** {len(s_info['mast'])} kazanım")
                     st.info(f"**💡 Çalışma Reçetesi:** {s_info['advice']}")
-                    if s_info.get('youtube'):
-                        yt = s_info['youtube']
+                    if yt:
                         st.markdown(f"""
                         <div style='background-color:#FDEDEC; border-left:4px solid #C0392B; padding:10px; border-radius:6px; margin-top:8px;'>
                             <b style='color:#900C3F;'>📺 Önerilen YouTube Desteği:</b> <b>{yt['channel']}</b> <span style='background-color:{yt['badge_color']}; color:white; padding:2px 7px; border-radius:10px; font-size:11px; font-weight:bold;'>{yt['level_name']}</span><br>
                             <small>🎯 <b>Odak:</b> {yt['focus']}<br>
                             💡 <b>Çalışma Taktiği:</b> {yt['study_tip']}</small><br>
-                            <a href='{yt['search_url']}' target='_blank' style='display:inline-block; margin-top:6px; background-color:#C0392B; color:white; padding:5px 12px; border-radius:4px; text-decoration:none; font-size:12px; font-weight:bold;'>
-                                ▶️ {yt['channel']} ile Dersi İzle
+                            <a href='{yt['search_url']}' target='_blank' style='display:inline-block; margin-top:6px; background-color:#C0392B; color:white; padding:6px 14px; border-radius:4px; text-decoration:none; font-size:12px; font-weight:bold;'>
+                                ▶️ {yt.get('action_text', yt['channel'] + ' Dinle / İzle')}
                             </a>
                         </div>
                         """, unsafe_allow_html=True)
@@ -620,14 +675,40 @@ with tab3:
         st.markdown("---")
         st.markdown("### 🔬 6 Branş İçin Kişiselleştirilmiş Gelişim Reçeteleri")
         sub_recs = get_subject_prescriptions(st_data, st_kaz)
+
+        # 1. DOĞRUDAN GÖRÜNÜR YOUTUBE DERS VİTRİNİ
+        st.markdown("#### 📺 Öğrenciye Özel Önerilen YouTube Dersleri")
+        yt_cols3 = st.columns(3)
+        c_idx3 = 0
+        for s_title in ["Türkçe", "Matematik", "Fen Bilimleri", "İnkılap Tarihi", "Din Kültürü", "İngilizce"]:
+            if s_title in sub_recs and sub_recs[s_title].get("youtube"):
+                s_item = sub_recs[s_title]
+                yt = s_item["youtube"]
+                with yt_cols3[c_idx3 % 3]:
+                    st.markdown(f"""
+                    <div style='background-color:#FDF2E9; border-radius:8px; padding:12px; border-left:4px solid #E67E22; margin-bottom:12px;'>
+                        <b style='color:#78281F; font-size:14px;'>{s_title}</b> 
+                        <span style='background-color:{yt['badge_color']}; color:white; padding:2px 7px; border-radius:8px; font-size:10px; font-weight:bold; float:right;'>{yt['level_name']}</span><br>
+                        <small style='color:#555;'><b>Net:</b> {s_item['net']:.2f} | <b>Kanal:</b> {yt['channel']}</small><br>
+                        <div style='margin-top:8px;'>
+                            <a href='{yt['search_url']}' target='_blank' style='display:block; text-align:center; background-color:#C0392B; color:white; padding:7px 10px; border-radius:5px; text-decoration:none; font-size:11.5px; font-weight:bold;'>
+                                ▶️ {yt.get('action_text', yt['channel'] + ' Dinle / İzle')}
+                            </a>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                c_idx3 += 1
+
+        st.markdown("#### 📋 Ayrıntılı Branş Kazanım Analizi ve Reçeteler")
         sub_cols = st.columns(2)
         idx_c = 0
         for s_title in ["Fen Bilimleri", "Matematik", "Türkçe", "İnkılap Tarihi", "Din Kültürü", "İngilizce"]:
             if s_title in sub_recs:
                 s_info = sub_recs[s_title]
+                yt = s_info.get('youtube', {})
+                yt_tag = f" 📺 {yt.get('channel', '')}" if yt else ""
                 with sub_cols[idx_c % 2]:
-                    with st.expander(f"{s_info['title']} (Net: {s_info['net']:.2f} | D:{s_info['d']} Y:{s_info['y']} B:{s_info['b']})",
-                                     expanded=(s_title == "Fen Bilimleri")):
+                    with st.expander(f"{s_info['title']} (Net: {s_info['net']:.2f}){yt_tag}", expanded=True):
                         st.markdown(f"**📊 Kazanım Başarı Dökümü:** {s_info['summary']}")
                         if s_info.get('zero'):
                             st.error(f"**🔴 Sıfır Çekilenler:** {', '.join(s_info['zero'])}")
@@ -636,15 +717,14 @@ with tab3:
                         if s_info.get('mast'):
                             st.success(f"**🟢 Tam Hakim Olunanlar:** {len(s_info['mast'])} kazanım")
                         st.info(f"**💡 Çalışma Reçetesi:** {s_info['advice']}")
-                        if s_info.get('youtube'):
-                            yt = s_info['youtube']
+                        if yt:
                             st.markdown(f"""
                             <div style='background-color:#FDEDEC; border-left:4px solid #C0392B; padding:10px; border-radius:6px; margin-top:8px;'>
                                 <b style='color:#900C3F;'>📺 Önerilen YouTube Desteği:</b> <b>{yt['channel']}</b> <span style='background-color:{yt['badge_color']}; color:white; padding:2px 7px; border-radius:10px; font-size:11px; font-weight:bold;'>{yt['level_name']}</span><br>
                                 <small>🎯 <b>Odak:</b> {yt['focus']}<br>
                                 💡 <b>Çalışma Taktiği:</b> {yt['study_tip']}</small><br>
-                                <a href='{yt['search_url']}' target='_blank' style='display:inline-block; margin-top:6px; background-color:#C0392B; color:white; padding:5px 12px; border-radius:4px; text-decoration:none; font-size:12px; font-weight:bold;'>
-                                    ▶️ {yt['channel']} ile Dersi İncele
+                                <a href='{yt['search_url']}' target='_blank' style='display:inline-block; margin-top:6px; background-color:#C0392B; color:white; padding:6px 14px; border-radius:4px; text-decoration:none; font-size:12px; font-weight:bold;'>
+                                    ▶️ {yt.get('action_text', yt['channel'] + ' Dinle / İzle')}
                                 </a>
                             </div>
                             """, unsafe_allow_html=True)

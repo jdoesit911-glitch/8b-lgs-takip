@@ -4,6 +4,8 @@ YOUTUBE_RESOURCES = {
     "Matematik": {
         "temel": {
             "channel": "Partikül Matematik",
+            "action_text": "Partikül Matematik ile Konu & Soru Çözümünü İzle",
+            "search_term": "Partikül Matematik LGS Matematik",
             "level_name": "Temel Seviye",
             "badge_color": "#E74C3C",
             "focus": "Temel Kavramlar & Adım Adım Konu Anlatımı",
@@ -11,6 +13,8 @@ YOUTUBE_RESOURCES = {
         },
         "orta": {
             "channel": "İMT HOCA",
+            "action_text": "İMT Hoca ile Yeni Nesil Matematik İzle",
+            "search_term": "İMT Hoca LGS Matematik",
             "level_name": "Orta Seviye",
             "badge_color": "#F39C12",
             "focus": "Yeni Nesile Geçiş & Soru Çözüm Taktikleri",
@@ -18,6 +22,8 @@ YOUTUBE_RESOURCES = {
         },
         "iyi": {
             "channel": "Çopur Hoca",
+            "action_text": "Çopur Hoca ile İleri Düzey Matematik İzle",
+            "search_term": "Çopur Hoca LGS Matematik",
             "level_name": "İleri Düzey (Şampiyon)",
             "badge_color": "#27AE60",
             "focus": "İleri Düzey Soru Kalıpları & Derece Hedefi",
@@ -27,20 +33,26 @@ YOUTUBE_RESOURCES = {
     "Türkçe": {
         "temel": {
             "channel": "Tonguç Akademi",
+            "action_text": "Tonguç Akademi ile Türkçe İzle",
+            "search_term": "Tonguç Akademi LGS Türkçe",
             "level_name": "Temel Seviye",
             "badge_color": "#E74C3C",
             "focus": "Konu Kavrama & Görsel Özetler",
             "study_tip": "Dil bilgisi ve metin türü kurallarını renkli kavram kartlarıyla not alarak çalış."
         },
         "orta": {
-            "channel": "Hız Yayınları - Ebubekir Hoca",
+            "channel": "Hız Yayınları veya Ebubekir Hoca ile Türkçe",
+            "action_text": "Hız Yayınları veya Ebubekir Hoca ile Türkçe Dinle",
+            "search_term": "Hız Yayınları Ebubekir Hoca LGS Türkçe",
             "level_name": "Orta Seviye",
             "badge_color": "#F39C12",
             "focus": "Paragraf Taktikleri & Çeldirici Eleme",
             "study_tip": "Paragraf sorularında hocanın anahtar kelimeleri ve metin kanıtlarını nasıl çizdiğine dikkat et."
         },
         "iyi": {
-            "channel": "Hız Yayınları / Ebubekir Hoca",
+            "channel": "Hız Yayınları veya Ebubekir Hoca ile Türkçe",
+            "action_text": "Hız Yayınları veya Ebubekir Hoca ile Türkçe Dinle",
+            "search_term": "Hız Yayınları Ebubekir Hoca LGS Türkçe yeni nesil",
             "level_name": "İleri Düzey (Şampiyon)",
             "badge_color": "#27AE60",
             "focus": "MEB Çıkmış & Özgün Yeni Nesil Çözümleri",
@@ -50,6 +62,8 @@ YOUTUBE_RESOURCES = {
     "Fen Bilimleri": {
         "temel": {
             "channel": "Derslike",
+            "action_text": "Derslike ile Fen Bilimleri İzle",
+            "search_term": "Derslike LGS Fen Bilimleri",
             "level_name": "Temel Seviye",
             "badge_color": "#E74C3C",
             "focus": "Görsel ve 3D Animasyonlu Temel Anlatım",
@@ -57,13 +71,17 @@ YOUTUBE_RESOURCES = {
         },
         "orta": {
             "channel": "Mehmet Hoca ile Fen",
+            "action_text": "Mehmet Hoca ile Fen Konu & Deneylerini İzle",
+            "search_term": "Mehmet Hoca ile Fen LGS",
             "level_name": "Orta Seviye",
             "badge_color": "#F39C12",
             "focus": "Kazanım Pekiştirme & Deney Analizi",
             "study_tip": "Deney sorularındaki bağımsız/bağımlı/kontrol değişkeni çözüm adımlarını birebir uygula."
         },
         "iyi": {
-            "channel": "Hız Yayınları / dnz hoca",
+            "channel": "Hız Yayınları veya dnz hoca ile Fen",
+            "action_text": "Hız Yayınları veya dnz hoca ile Fen İzle",
+            "search_term": "dnz hoca Fen LGS Hız Yayınları",
             "level_name": "İleri Düzey (Şampiyon)",
             "badge_color": "#27AE60",
             "focus": "İleri Seviye Grafik & Deney Yorumlama",
@@ -73,6 +91,8 @@ YOUTUBE_RESOURCES = {
     "İnkılap Tarihi": {
         "temel": {
             "channel": "Sosyal Kale",
+            "action_text": "Sosyal Kale ile İnkılap Tarihi Dinle / İzle",
+            "search_term": "Sosyal Kale LGS İnkılap Tarihi",
             "level_name": "Temel Seviye",
             "badge_color": "#E74C3C",
             "focus": "Kronolojik Hikayeleştirme & Kavram Haritaları",
@@ -80,6 +100,8 @@ YOUTUBE_RESOURCES = {
         },
         "orta": {
             "channel": "Sosyal Kale",
+            "action_text": "Sosyal Kale ile İnkılap Tarihi Dinle / İzle",
+            "search_term": "Sosyal Kale LGS İnkılap Tarihi soru çözümü",
             "level_name": "Orta Seviye",
             "badge_color": "#F39C12",
             "focus": "Soru Çözüm Taktikleri & Neden-Sonuç İlişkisi",
@@ -87,6 +109,8 @@ YOUTUBE_RESOURCES = {
         },
         "iyi": {
             "channel": "Buğra Hoca Sosyal Bilgiler Dersliği",
+            "action_text": "Buğra Hoca ile İnkılap Tarihi Dinle / İzle",
+            "search_term": "Buğra Hoca Sosyal Bilgiler Dersliği LGS İnkılap Tarihi",
             "level_name": "İleri Düzey (Şampiyon)",
             "badge_color": "#27AE60",
             "focus": "Kritik Çeldiriciler & MEB Tarzı Uç Sorular",
@@ -96,6 +120,8 @@ YOUTUBE_RESOURCES = {
     "Din Kültürü": {
         "temel": {
             "channel": "Cebrail Hocam",
+            "action_text": "Cebrail Hocam ile Din Kültürü Dinle / İzle",
+            "search_term": "Cebrail Hocam LGS Din Kültürü",
             "level_name": "Temel Seviye",
             "badge_color": "#E74C3C",
             "focus": "Kaza-Kader Temel Kavramları & Ayet Mealleri",
@@ -103,6 +129,8 @@ YOUTUBE_RESOURCES = {
         },
         "orta": {
             "channel": "Cebrail Hocam",
+            "action_text": "Cebrail Hocam ile Din Kültürü Dinle / İzle",
+            "search_term": "Cebrail Hocam LGS Din Kültürü soru çözümü",
             "level_name": "Orta Seviye",
             "badge_color": "#F39C12",
             "focus": "Ayet Yorumlama & MEB Örnek Soruları",
@@ -110,6 +138,8 @@ YOUTUBE_RESOURCES = {
         },
         "iyi": {
             "channel": "Cebrail Hocam",
+            "action_text": "Cebrail Hocam ile Din Kültürü Dinle / İzle",
+            "search_term": "Cebrail Hocam LGS Din Kültürü deneme",
             "level_name": "İleri Düzey (Şampiyon)",
             "badge_color": "#27AE60",
             "focus": "10'da 10 Hedefi & Dikkat/Çeldirici Analizi",
@@ -119,6 +149,8 @@ YOUTUBE_RESOURCES = {
     "İngilizce": {
         "temel": {
             "channel": "Tonguç Akademi",
+            "action_text": "Tonguç Akademi ile İngilizce İzle",
+            "search_term": "Tonguç Akademi LGS İngilizce",
             "level_name": "Temel Seviye",
             "badge_color": "#E74C3C",
             "focus": "Temel Kelimeler & Kalıp Cümleler",
@@ -126,6 +158,8 @@ YOUTUBE_RESOURCES = {
         },
         "orta": {
             "channel": "Dilek Demirel",
+            "action_text": "Dilek Demirel ile İngilizce Dinle / İzle",
+            "search_term": "Dilek Demirel LGS İngilizce",
             "level_name": "Orta Seviye",
             "badge_color": "#F39C12",
             "focus": "Diyalog Tamamlama & Soru Çözüm Metotları",
@@ -133,6 +167,8 @@ YOUTUBE_RESOURCES = {
         },
         "iyi": {
             "channel": "Ümitcan Hoca",
+            "action_text": "Ümitcan Hoca ile İngilizce Dinle / İzle",
+            "search_term": "Ümitcan Hoca LGS İngilizce",
             "level_name": "İleri Düzey (Şampiyon)",
             "badge_color": "#27AE60",
             "focus": "Yeni Nesil Okuma Parçaları, Tablo & Grafik Yorumlama",
@@ -186,10 +222,9 @@ def get_youtube_advice(subject_name, net, target_topic=None):
     info = YOUTUBE_RESOURCES[sub_key][level]
     
     # Generate YouTube search link
-    channel_name = info["channel"]
-    query_parts = [channel_name, "LGS", sub_key]
+    search_base = info.get("search_term", info["channel"] + " LGS " + sub_key)
+    query_parts = [search_base]
     if target_topic and str(target_topic).strip():
-        # Clean topic name
         clean_top = str(target_topic).split('(')[0].strip()
         query_parts.append(clean_top)
     else:
@@ -203,7 +238,8 @@ def get_youtube_advice(subject_name, net, target_topic=None):
         "level": level,
         "level_name": info["level_name"],
         "badge_color": info["badge_color"],
-        "channel": channel_name,
+        "channel": info["channel"],
+        "action_text": info.get("action_text", f"{info['channel']} ile Dersi İzle"),
         "focus": info["focus"],
         "study_tip": info["study_tip"],
         "search_url": search_url,
