@@ -11,7 +11,7 @@ from core.word_generator import generate_word_report
 from core.excel_generator import generate_excel_tracker
 from core.student_card_gen import generate_all_student_cards, generate_single_student_card, get_subject_prescriptions
 from config import EXPORTS_DIR, SUBJECTS
-from core.youtube_recommender import render_lgs_youtube_table_html
+from core.youtube_recommender import render_lgs_youtube_table_html, render_yt_buttons_html
 
 st.set_page_config(
     page_title="LGS Akademik Başarı ve Takip Otomasyonu",
@@ -32,24 +32,46 @@ st.markdown("""
     .role-badge-teacher { background:#117864; color:white; padding:3px 10px; border-radius:12px; font-size:13px; }
     .role-badge-student { background:#6C3483; color:white; padding:3px 10px; border-radius:12px; font-size:13px; }
     
-    /* Belirgin Parlak Kırmızı Çıkış Butonu */
+    /* Belirgin Parlak Kırmızı Çıkış Butonları (Sidebar ve Header) */
+    div[data-testid="stSidebar"] div.stButton > button,
+    section[data-testid="stSidebar"] div.stButton > button,
+    .main-logout-wrapper div.stButton > button,
     .logout-btn-box button {
+        background: linear-gradient(135deg, #E74C3C 0%, #C0392B 100%) !important;
         background-color: #C0392B !important;
         color: #FFFFFF !important;
-        font-weight: 700 !important;
-        font-size: 15px !important;
+        font-weight: 800 !important;
+        font-size: 14.5px !important;
         border: 2px solid #900C3F !important;
         border-radius: 8px !important;
-        padding: 10px 20px !important;
-        box-shadow: 0 4px 10px rgba(192, 57, 43, 0.35) !important;
+        padding: 8px 18px !important;
+        box-shadow: 0 4px 10px rgba(192, 57, 43, 0.45) !important;
         transition: all 0.25s ease-in-out !important;
+        cursor: pointer !important;
+        width: 100% !important;
     }
-    .logout-btn-box button:hover {
-        background-color: #E74C3C !important;
-        border-color: #C0392B !important;
+    div[data-testid="stSidebar"] div.stButton > button p,
+    div[data-testid="stSidebar"] div.stButton > button span,
+    section[data-testid="stSidebar"] div.stButton > button p,
+    section[data-testid="stSidebar"] div.stButton > button span,
+    .main-logout-wrapper div.stButton > button p,
+    .main-logout-wrapper div.stButton > button span,
+    .logout-btn-box button p,
+    .logout-btn-box button span {
         color: #FFFFFF !important;
-        transform: scale(1.02) !important;
-        box-shadow: 0 6px 14px rgba(231, 76, 60, 0.45) !important;
+        font-weight: 800 !important;
+        font-size: 14.5px !important;
+    }
+    div[data-testid="stSidebar"] div.stButton > button:hover,
+    section[data-testid="stSidebar"] div.stButton > button:hover,
+    .main-logout-wrapper div.stButton > button:hover,
+    .logout-btn-box button:hover {
+        background: linear-gradient(135deg, #C0392B 0%, #900C3F 100%) !important;
+        background-color: #900C3F !important;
+        border-color: #641E16 !important;
+        color: #FFFFFF !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 14px rgba(144, 12, 63, 0.6) !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -160,6 +182,12 @@ st.sidebar.markdown(f"**Aktif Oturum:** <span class='{role_info['badge']}'>"
                     f"{role_info['icon']} {role_info['label']}"
                     + (f" — {st.session_state.student_name}" if current_role == "student" else "")
                     + "</span>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='margin-top:6px;'></div>", unsafe_allow_html=True)
+if st.sidebar.button("🚪 Oturumu Kapat / Çıkış Yap", key="btn_logout_top", use_container_width=True):
+    st.session_state.role = None
+    st.session_state.student_name = None
+    st.session_state.student_no = None
+    st.rerun()
 st.sidebar.markdown("---")
 
 # Sınav listesi
@@ -314,11 +342,21 @@ if not exams or selected_exam_name == "Kayıtlı Sınav Yok":
 results = get_exam_results(selected_exam_id)
 comps = get_class_comparison(selected_exam_id)
 
-# ===================== BAŞLIK =====================
-st.markdown(f"<div class='main-title'>🎓 8/B SINIFI AKADEMİK BAŞARI VE LGS TAKİP SİSTEMİ</div>", unsafe_allow_html=True)
-st.markdown(f"<div class='sub-title'>Aktif Sınav: <b>{selected_exam_name}</b> | "
-            f"Örneklem: <b>{len(results)} Öğrenci</b> | "
-            f"Rol: <b>{role_info['icon']} {role_info['label']}</b></div>", unsafe_allow_html=True)
+# ===================== BAŞLIK VE HIZLI ÇIKIŞ =====================
+col_header_title, col_header_logout = st.columns([4.2, 1.3])
+with col_header_title:
+    st.markdown(f"<div class='main-title'>🎓 8/B SINIFI AKADEMİK BAŞARI VE LGS TAKİP SİSTEMİ</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='sub-title'>Aktif Sınav: <b>{selected_exam_name}</b> | "
+                f"Örneklem: <b>{len(results)} Öğrenci</b> | "
+                f"Rol: <b>{role_info['icon']} {role_info['label']}</b></div>", unsafe_allow_html=True)
+with col_header_logout:
+    st.markdown("<div class='main-logout-wrapper' style='margin-top: 6px;'>", unsafe_allow_html=True)
+    if st.button("🚪 Oturumu Kapat", key="btn_main_header_logout", use_container_width=True):
+        st.session_state.role = None
+        st.session_state.student_name = None
+        st.session_state.student_no = None
+        st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ╔══════════════════════════════════════════════════════════╗
@@ -446,15 +484,13 @@ if current_role == "student":
             yt = s_item["youtube"]
             with yt_cols[c_idx % 3]:
                 st.markdown(f"""
-                <div style='background-color:#FDF2E9; border-radius:8px; padding:12px; border-left:4px solid #E67E22; margin-bottom:12px;'>
-                    <b style='color:#78281F; font-size:14px;'>{s_title}</b> 
-                    <span style='background-color:{yt['badge_color']}; color:white; padding:2px 7px; border-radius:8px; font-size:10px; font-weight:bold; float:right;'>{yt['level_name']}</span><br>
-                    <small style='color:#555;'><b>Netin:</b> {s_item['net']:.2f} | <b>Kanal:</b> {yt['channel']}</small><br>
-                    <div style='margin-top:8px;'>
-                        <a href='{yt['search_url']}' target='_blank' style='display:block; text-align:center; background-color:#C0392B; color:white; padding:7px 10px; border-radius:5px; text-decoration:none; font-size:11.5px; font-weight:bold;'>
-                            ▶️ {yt.get('action_text', yt['channel'] + ' Dinle / İzle')}
-                        </a>
+                <div style='background-color:#FDF2E9; border-radius:8px; padding:12px; border-left:4px solid #E67E22; margin-bottom:12px; box-shadow:0 2px 5px rgba(0,0,0,0.05);'>
+                    <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;'>
+                        <b style='color:#78281F; font-size:14px;'>{s_title}</b> 
+                        <span style='background-color:{yt['badge_color']}; color:white; padding:2px 7px; border-radius:8px; font-size:10px; font-weight:bold;'>{yt['level_name']}</span>
                     </div>
+                    <small style='color:#555;'><b>Netin:</b> {s_item['net']:.2f} | <b>Kanal:</b> {yt['channel']}</small>
+                    {render_yt_buttons_html(yt.get('buttons', []))}
                 </div>
                 """, unsafe_allow_html=True)
             c_idx += 1
@@ -480,12 +516,13 @@ if current_role == "student":
                     if yt:
                         st.markdown(f"""
                         <div style='background-color:#FDEDEC; border-left:4px solid #C0392B; padding:10px; border-radius:6px; margin-top:8px;'>
-                            <b style='color:#900C3F;'>📺 Önerilen YouTube Desteği:</b> <b>{yt['channel']}</b> <span style='background-color:{yt['badge_color']}; color:white; padding:2px 7px; border-radius:10px; font-size:11px; font-weight:bold;'>{yt['level_name']}</span><br>
+                            <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;'>
+                                <span style='color:#900C3F; font-weight:bold;'>📺 Önerilen YouTube Desteği: <b>{yt['channel']}</b></span>
+                                <span style='background-color:{yt['badge_color']}; color:white; padding:2px 7px; border-radius:10px; font-size:11px; font-weight:bold;'>{yt['level_name']}</span>
+                            </div>
                             <small>🎯 <b>Odak:</b> {yt['focus']}<br>
-                            💡 <b>Çalışma Taktiği:</b> {yt['study_tip']}</small><br>
-                            <a href='{yt['search_url']}' target='_blank' style='display:inline-block; margin-top:6px; background-color:#C0392B; color:white; padding:6px 14px; border-radius:4px; text-decoration:none; font-size:12px; font-weight:bold;'>
-                                ▶️ {yt.get('action_text', yt['channel'] + ' Dinle / İzle')}
-                            </a>
+                            💡 <b>Çalışma Taktiği:</b> {yt['study_tip']}</small>
+                            {render_yt_buttons_html(yt.get('buttons', []))}
                         </div>
                         """, unsafe_allow_html=True)
             idx_c += 1
@@ -682,15 +719,13 @@ with tab3:
                 yt = s_item["youtube"]
                 with yt_cols3[c_idx3 % 3]:
                     st.markdown(f"""
-                    <div style='background-color:#FDF2E9; border-radius:8px; padding:12px; border-left:4px solid #E67E22; margin-bottom:12px;'>
-                        <b style='color:#78281F; font-size:14px;'>{s_title}</b> 
-                        <span style='background-color:{yt['badge_color']}; color:white; padding:2px 7px; border-radius:8px; font-size:10px; font-weight:bold; float:right;'>{yt['level_name']}</span><br>
-                        <small style='color:#555;'><b>Net:</b> {s_item['net']:.2f} | <b>Kanal:</b> {yt['channel']}</small><br>
-                        <div style='margin-top:8px;'>
-                            <a href='{yt['search_url']}' target='_blank' style='display:block; text-align:center; background-color:#C0392B; color:white; padding:7px 10px; border-radius:5px; text-decoration:none; font-size:11.5px; font-weight:bold;'>
-                                ▶️ {yt.get('action_text', yt['channel'] + ' Dinle / İzle')}
-                            </a>
+                    <div style='background-color:#FDF2E9; border-radius:8px; padding:12px; border-left:4px solid #E67E22; margin-bottom:12px; box-shadow:0 2px 5px rgba(0,0,0,0.05);'>
+                        <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;'>
+                            <b style='color:#78281F; font-size:14px;'>{s_title}</b> 
+                            <span style='background-color:{yt['badge_color']}; color:white; padding:2px 7px; border-radius:8px; font-size:10px; font-weight:bold;'>{yt['level_name']}</span>
                         </div>
+                        <small style='color:#555;'><b>Net:</b> {s_item['net']:.2f} | <b>Kanal:</b> {yt['channel']}</small>
+                        {render_yt_buttons_html(yt.get('buttons', []))}
                     </div>
                     """, unsafe_allow_html=True)
                 c_idx3 += 1
@@ -716,12 +751,13 @@ with tab3:
                         if yt:
                             st.markdown(f"""
                             <div style='background-color:#FDEDEC; border-left:4px solid #C0392B; padding:10px; border-radius:6px; margin-top:8px;'>
-                                <b style='color:#900C3F;'>📺 Önerilen YouTube Desteği:</b> <b>{yt['channel']}</b> <span style='background-color:{yt['badge_color']}; color:white; padding:2px 7px; border-radius:10px; font-size:11px; font-weight:bold;'>{yt['level_name']}</span><br>
+                                <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;'>
+                                    <span style='color:#900C3F; font-weight:bold;'>📺 Önerilen YouTube Desteği: <b>{yt['channel']}</b></span>
+                                    <span style='background-color:{yt['badge_color']}; color:white; padding:2px 7px; border-radius:10px; font-size:11px; font-weight:bold;'>{yt['level_name']}</span>
+                                </div>
                                 <small>🎯 <b>Odak:</b> {yt['focus']}<br>
-                                💡 <b>Çalışma Taktiği:</b> {yt['study_tip']}</small><br>
-                                <a href='{yt['search_url']}' target='_blank' style='display:inline-block; margin-top:6px; background-color:#C0392B; color:white; padding:6px 14px; border-radius:4px; text-decoration:none; font-size:12px; font-weight:bold;'>
-                                    ▶️ {yt.get('action_text', yt['channel'] + ' Dinle / İzle')}
-                                </a>
+                                💡 <b>Çalışma Taktiği:</b> {yt['study_tip']}</small>
+                                {render_yt_buttons_html(yt.get('buttons', []))}
                             </div>
                             """, unsafe_allow_html=True)
                 idx_c += 1
