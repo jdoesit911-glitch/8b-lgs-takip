@@ -162,14 +162,106 @@ if current_role == "admin":
     st.sidebar.subheader("📥 Yeni Deneme Sınavı Yükle")
     uploaded_file = st.sidebar.file_uploader("Excel Dosyası Seç (.xlsx)", type=["xlsx"])
     target_class = st.sidebar.text_input("Şube:", value="8/B")
-    if uploaded_file and st.sidebar.button("Sınavı Sisteme İşle ve Kaydet"):
+    if uploaded_file and st.sidebar.button("⚡ Sınavı Yükle ve Tüm Raporları Oluştur"):
+        # ─── ADIM 1: Dosyayı kaydet ve parse et ───
         temp_path = os.path.join(EXPORTS_DIR, "temp_uploaded.xlsx")
         with open(temp_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
-        parsed = parse_lgs_workbook(temp_path, target_class)
-        save_exam(parsed['exam_name'], parsed['exam_date'], parsed['publisher'],
-                  parsed['students'], parsed['kazanim_data'], parsed['comparison_data'])
-        st.sidebar.success(f"'{parsed['exam_name']}' başarıyla kaydedildi!")
+
+        # Ana ekranda canlı ilerleme göster
+        prog_container = st.empty()
+        with prog_container.container():
+            st.info("⏳ **Otomatik İşlem Hattı Başladı** — lütfen bekleyin...")
+            prog_bar = st.progress(0)
+            prog_status = st.empty()
+
+            # 1/6 – Veri ayrıştırma
+            prog_status.markdown("**1/6** 📂 Excel dosyası okunuyor ve veriler ayrıştırılıyor...")
+            prog_bar.progress(10)
+            parsed = parse_lgs_workbook(temp_path, target_class)
+            exam_name_new = parsed['exam_name']
+
+            # 2/6 – Veri tabanına kayıt
+            prog_status.markdown(f"**2/6** 💾 '{exam_name_new}' veri tabanına kaydediliyor...")
+            prog_bar.progress(25)
+            new_exam_id = save_exam(
+                parsed['exam_name'], parsed['exam_date'], parsed['publisher'],
+                parsed['students'], parsed['kazanim_data'], parsed['comparison_data']
+            )
+
+            # Güncel veriyi çek
+            new_results = get_exam_results(new_exam_id)
+            new_comps   = get_class_comparison(new_exam_id)
+            new_kaz_map = {r['name']: get_student_kazanims(new_exam_id, r['name']) for r in new_results}
+
+            # 3/6 – 27 öğrenci karnesi
+            prog_status.markdown(f"**3/6** 🖨️ {len(new_results)} öğrenci karnesi oluşturuluyor (.docx)...")
+            prog_bar.progress(45)
+            import zipfile as _zipfile
+            karne_dir = os.path.join(EXPORTS_DIR, "karneler")
+            created_cards = generate_all_student_cards(new_results, exam_name_new, new_kaz_map, karne_dir)
+
+            # 4/6 – ZIP paketi
+            prog_status.markdown("**4/6** 📦 Karneler ZIP paketine dönüştürülüyor...")
+            prog_bar.progress(60)
+            zip_path = os.path.join(EXPORTS_DIR, "8B_Tum_Karneler.zip")
+            with _zipfile.ZipFile(zip_path, 'w', _zipfile.ZIP_DEFLATED) as zf:
+                for cfile in created_cards:
+                    zf.write(cfile, os.path.basename(cfile))
+
+            # 5/6 – Word raporu
+            prog_status.markdown("**5/6** 📑 Kapsamlı Word Raporu oluşturuluyor...")
+            prog_bar.progress(75)
+            w_out = os.path.join(EXPORTS_DIR, "8B_LGS_Akademik_Basari_ve_Strateji_Raporu.docx")
+            try:
+                generate_word_report(exam_name_new, new_results, new_kaz_map, new_comps, w_out)
+            except Exception as _e:
+                st.warning(f"Word raporu oluşturulurken uyarı: {_e}")
+
+            # 6/6 – Excel takip dosyası
+            prog_status.markdown("**6/6** 📗 Master Excel Takip Dosyası oluşturuluyor...")
+            prog_bar.progress(90)
+            x_out = os.path.join(EXPORTS_DIR, "8B_LGS_Takip_Sistemi.xlsx")
+            try:
+                generate_excel_tracker(exam_name_new, new_results, new_kaz_map, new_comps, x_out)
+            except Exception as _e:
+                st.warning(f"Excel dosyası oluşturulurken uyarı: {_e}")
+
+            prog_bar.progress(100)
+            prog_status.markdown("✅ **Tüm işlemler tamamlandı!**")
+
+        # Özet
+        st.success(
+            f"🎉 **'{exam_name_new}' başarıyla sisteme eklendi!**\n\n"
+            f"✔ {len(created_cards)} öğrenci karnesi oluşturuldu\n"
+            f"✔ ZIP paketi hazırlandı\n"
+            f"✔ Word raporu güncellendi\n"
+            f"✔ Excel takip dosyası güncellendi\n\n"
+            f"Rapor & Karne sekmesinden tüm dosyaları indirebilirsiniz."
+        )
+
+        # Hızlı indirme butonları
+        dc1, dc2, dc3 = st.columns(3)
+        if os.path.exists(zip_path):
+            with open(zip_path, "rb") as _fz:
+                dc1.download_button("📥 Karneler (ZIP)", data=_fz.read(),
+                                    file_name="8B_Tum_Karneler.zip", mime="application/zip",
+                                    use_container_width=True)
+        if os.path.exists(w_out):
+            with open(w_out, "rb") as _fw:
+                dc2.download_button("📥 Word Raporu", data=_fw.read(),
+                                    file_name="8B_LGS_Akademik_Basari_ve_Strateji_Raporu.docx",
+                                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                    use_container_width=True)
+        if os.path.exists(x_out):
+            with open(x_out, "rb") as _fx:
+                dc3.download_button("📥 Excel Takip", data=_fx.read(),
+                                    file_name="8B_LGS_Takip_Sistemi.xlsx",
+                                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                    use_container_width=True)
+
+        import time as _time
+        _time.sleep(2)
         st.rerun()
 elif current_role == "teacher":
     st.sidebar.markdown("---")
