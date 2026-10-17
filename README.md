@@ -62,11 +62,33 @@ lgs_analiz_otomasyonu/
 
 ---
 
-## 📅 Yıl Boyu İş Akışı
+## ☁️ Sistemi İnternette Canlı Web Sitesine Dönüştürme (Ücretsiz Bulut)
 
-1. Okulda yeni bir deneme sınavı uygulandığında Excel dosyasını indirin.
-2. Web panelinden (veya `cli.py` ile) dosyayı yükleyin.
-3. Sistem anında:
-   - Yeni sınavı veri tabanına işler.
-   - Önceki denemeyle karşılaştırıp net değişimlerini hesaplar.
-   - Güncel Word raporunu, Excel takip tablosunu ve 27 öğrencinin karnelerini `C:\Users\ELRA\Desktop\8B sınıfı veriler` klasörüne aktarır.
+Bu sistemi Streamlit Community Cloud üzerinde **tamamen ücretsiz** ve **7/24 kesintisiz** çalışan canlı bir web sitesi olarak yayınlayabilirsiniz. Böylece evden, akıllı tahtadan veya cep telefonunuzdan dilediğiniz zaman erişebilir, yeni deneme yükleyebilir veya rapor indirebilirsiniz.
+
+### 3 Adımda Canlıya Alma:
+
+1. **GitHub Deposu Oluşturma:**
+   - [github.com](https://github.com) adresine gidin ve ücretsiz bir hesapla oturum açın.
+   - Sağ üstteki `+` simgesine tıklayıp **"New repository"** seçin.
+   - Depo adını yazın (örnek: `8b-lgs-takip`) ve **Private (Gizli)** veya Public olarak oluşturun.
+   - Sayfada verilen HTTPS linkini kopyalayın (`https://github.com/kullanici/8b-lgs-takip.git`).
+
+2. **Kodları GitHub'a Yükleme:**
+   - Masaüstünüzdeki `8B sınıfı veriler` klasöründe yer alan **`Buluta_Yukle_GitHub_Streamlit.bat`** dosyasına çift tıklayın.
+   - Kopyaladığınız GitHub linkini yapıştırıp Enter'a basın. Kodlar otomatik olarak GitHub deponuza yüklenecektir.
+
+3. **Streamlit Cloud ile Canlıya Alma:**
+   - [share.streamlit.io](https://share.streamlit.io) adresine gidin ve GitHub hesabınızla giriş yapın.
+   - **"Create app"** (veya "New app") butonuna basın.
+   - **Repository:** `kullanici/8b-lgs-takip` seçin.
+   - **Branch:** `main`
+   - **Main file path:** `app.py`
+   - **"Deploy!"** butonuna basın.
+
+🎉 **Sonuç:** Yaklaşık 1 dakika içinde `https://8b-lgs-takip.streamlit.app` gibi özel bir web linkiniz hazır olacaktır!
+
+> 🔒 **Gizlilik ve Güvenlik Notu:**
+> Öğrenci kişisel verilerinin korunması amacıyla web sitesine ilk girişte **Öğretmen PIN Kodu** sorulacaktır.
+> **Varsayılan PIN:** `8B2026`
+
