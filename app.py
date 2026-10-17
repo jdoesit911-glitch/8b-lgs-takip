@@ -75,7 +75,7 @@ if st.session_state.role is None:
         if role_choice == "Öğrenci":
             st.info("🎒 **Öğrenci Girişi:** Size verilen **4 haneli giriş kodunuzu** (büyük harf + rakam) girerek sisteme erişebilirsiniz.\n"
                     "Yalnızca **kendi karnenizi** ve **sınıf ortalamalarını** görebilirsiniz.")
-            pin_input = st.text_input("Öğrenci Giriş Kodunuz (4 hane):", placeholder="Örn: 7FQT",
+            pin_input = st.text_input("Öğrenci Giriş Kodunuz (4 hane):", placeholder="Örn: AB1C",
                                       help="Öğretmeninizden aldığınız 4 karakterli kodu giriniz.")
             if st.button("🎒 Öğrenci Olarak Giriş Yap", use_container_width=True):
                 import sqlite3
