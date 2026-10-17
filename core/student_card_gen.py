@@ -6,6 +6,7 @@ from docx.oxml import parse_xml
 from docx.oxml.ns import nsdecls
 import os
 from core.analyzer import diagnose_student
+from core.youtube_recommender import get_youtube_advice
 
 def norm_text(text):
     if not text:
@@ -151,11 +152,15 @@ def get_subject_prescriptions(student, kazanim_list):
         if f_iklim and f_iklim['rate'] < 50: f_adv += f"'İklim ve Hava Hareketleri' (%{f_iklim['rate']:.0f}) hava olayları kavram haritasını çıkar. "
         f_adv += "Haftalık 30 temel seviye kazanım sorusu çöz ve yapamadığın her soruyu öğretmenine sor."
 
+    f_target = f_zero[0] if f_zero else (f_low[0].split(' (')[0] if f_low else None)
+    f_yt = get_youtube_advice("Fen Bilimleri", f_net, f_target)
+
     prescriptions["Fen Bilimleri"] = {
         "title": "Fen Bilimleri Gelişim Reçetesi",
         "icon": "[FEN BİLİMLERİ]",
         "net": f_net, "d": f_d, "y": f_y, "b": f_b,
-        "summary": f_summary, "zero": f_zero, "low": f_low, "mast": f_mast, "advice": f_adv
+        "summary": f_summary, "zero": f_zero, "low": f_low, "mast": f_mast, "advice": f_adv,
+        "youtube": f_yt
     }
 
     # 2. MATEMATİK (5 Kazanım)
@@ -190,13 +195,15 @@ def get_subject_prescriptions(student, kazanim_list):
         if m_zero or m_low:
             targets = (m_zero + [x.split(' (')[0] for x in m_low])[:2]
             m_adv += f"Öncelikle [{', '.join(targets)}] konularındaki temel kazanım kavrama testlerini çöz. "
-        m_adv += "Haftalık 40 temel-orta düzey soru kotası koy ve yanlış defteri tut."
-        
+    m_target = m_zero[0] if m_zero else (m_low[0].split(' (')[0] if m_low else None)
+    m_yt = get_youtube_advice("Matematik", m_net, m_target)
+
     prescriptions["Matematik"] = {
         "title": "Matematik Gelişim Reçetesi",
         "icon": "[MATEMATİK]",
         "net": m_net, "d": m_d, "y": m_y, "b": m_b,
-        "summary": m_summary, "zero": m_zero, "low": m_low, "mast": m_mast, "advice": m_adv
+        "summary": m_summary, "zero": m_zero, "low": m_low, "mast": m_mast, "advice": m_adv,
+        "youtube": m_yt
     }
 
     # 3. TÜRKÇE (16 Kazanım)
@@ -236,11 +243,15 @@ def get_subject_prescriptions(student, kazanim_list):
             t_adv += f"Acilen sıfır çektiğin [{', '.join(t_zero[:3])}] konularını konu fasikülünden çalış. "
         t_adv += "Paragrafı kendi yorumunla değil metindeki kanıtla çöz; günde 20 paragraf + 10 dil bilgisi çöz."
 
+    t_target = t_zero[0] if t_zero else (t_low[0].split(' (')[0] if t_low else None)
+    t_yt = get_youtube_advice("Türkçe", t_net, t_target)
+
     prescriptions["Türkçe"] = {
         "title": "Türkçe Gelişim Reçetesi",
         "icon": "[TÜRKÇE]",
         "net": t_net, "d": t_d, "y": t_y, "b": t_b,
-        "summary": t_summary, "zero": t_zero, "low": t_low, "mast": t_mast, "advice": t_adv
+        "summary": t_summary, "zero": t_zero, "low": t_low, "mast": t_mast, "advice": t_adv,
+        "youtube": t_yt
     }
 
     # 4. İNKILAP TARİHİ (4 Kazanım)
@@ -270,11 +281,15 @@ def get_subject_prescriptions(student, kazanim_list):
             i_adv += f"Pekiştirilmesi gereken [{', '.join(i_low)}] konularında kronoloji tablosu çıkar. "
         i_adv += "Sorularda 'Yalnızca bu bilgiye göre' köklerine dikkat et; metne sadık kal. Haftalık 25 soru çöz."
 
+    i_target = i_zero[0] if i_zero else (i_low[0].split(' (')[0] if i_low else None)
+    i_yt = get_youtube_advice("İnkılap Tarihi", i_net, i_target)
+
     prescriptions["İnkılap Tarihi"] = {
         "title": "T.C. İnkılap Tarihi ve Atatürkçülük Reçetesi",
         "icon": "[İNKILAP TARİHİ]",
         "net": i_net, "d": i_d, "y": i_y, "b": i_b,
-        "summary": i_summary, "zero": i_zero, "low": i_low, "mast": i_mast, "advice": i_adv
+        "summary": i_summary, "zero": i_zero, "low": i_low, "mast": i_mast, "advice": i_adv,
+        "youtube": i_yt
     }
 
     # 5. DİN KÜLTÜRÜ (5 Kazanım)
@@ -304,11 +319,15 @@ def get_subject_prescriptions(student, kazanim_list):
             d_adv += f"Kavram karmaşası yaşanan [{', '.join(d_low)}] alanlarına odaklan. "
         d_adv += "Ömür, ecel, rızık, tevekkül, cüzi/külli irade kavramlarını sözlük kartlarına yazıp ezberle. Ayet-el Kürsi ana fikrine ve yasalara çalış."
 
+    d_target = d_zero[0] if d_zero else (d_low[0].split(' (')[0] if d_low else None)
+    d_yt = get_youtube_advice("Din Kültürü", d_net, d_target)
+
     prescriptions["Din Kültürü"] = {
         "title": "Din Kültürü ve Ahlak Bilgisi Reçetesi",
         "icon": "[DİN KÜLTÜRÜ]",
         "net": d_net, "d": d_d, "y": d_y, "b": d_b,
-        "summary": d_summary, "zero": d_zero, "low": d_low, "mast": d_mast, "advice": d_adv
+        "summary": d_summary, "zero": d_zero, "low": d_low, "mast": d_mast, "advice": d_adv,
+        "youtube": d_yt
     }
 
     # 6. İNGİLİZCE (6 Kazanım)
@@ -338,11 +357,15 @@ def get_subject_prescriptions(student, kazanim_list):
             e_adv += f"Pekiştirilmesi gereken [{', '.join(e_low)}] kalıplarını çalış. "
         e_adv += "Davet etme (Would you like...), kabul/ret ve mazeret kalıplarını ve Friendship sıfatlarını her gün 5 kelime kartıyla çalış. Rastgele işaretleme yapma."
 
+    e_target = e_zero[0] if e_zero else (e_low[0].split(' (')[0] if e_low else None)
+    e_yt = get_youtube_advice("İngilizce", e_net, e_target)
+
     prescriptions["İngilizce"] = {
         "title": "Yabancı Dil (İngilizce) Reçetesi",
         "icon": "[İNGİLİZCE]",
         "net": e_net, "d": e_d, "y": e_y, "b": e_b,
-        "summary": e_summary, "zero": e_zero, "low": e_low, "mast": e_mast, "advice": e_adv
+        "summary": e_summary, "zero": e_zero, "low": e_low, "mast": e_mast, "advice": e_adv,
+        "youtube": e_yt
     }
 
     return prescriptions
@@ -548,6 +571,18 @@ def generate_single_student_card(student, exam_name, kazanim_list, output_file):
         r_ad_lbl.bold = True; r_ad_lbl.font.size = Pt(7.5); r_ad_lbl.font.color.rgb = RGBColor(31, 73, 125)
         r_ad_txt = p_b2.add_run(s_info['advice'])
         r_ad_txt.font.size = Pt(7.5)
+
+        # Line 5: Önerilen YouTube Desteği
+        if s_info.get('youtube'):
+            yt = s_info['youtube']
+            p_b_yt = c_body.add_paragraph()
+            p_b_yt.paragraph_format.space_after = Pt(1)
+            r_yt_l = p_b_yt.add_run(f"📺 Önerilen YouTube Desteği ({yt['level_name']}): ")
+            r_yt_l.bold = True; r_yt_l.font.size = Pt(7.5); r_yt_l.font.color.rgb = RGBColor(192, 57, 43)
+            r_yt_c = p_b_yt.add_run(f"Kanal: {yt['channel']} | ")
+            r_yt_c.bold = True; r_yt_c.font.size = Pt(7.5)
+            r_yt_t = p_b_yt.add_run(f"Odak: {yt['focus']}. Taktik: {yt['study_tip']}")
+            r_yt_t.font.size = Pt(7.5)
         
         # Tiny spacing between subject cards
         p_sp = doc.add_paragraph()

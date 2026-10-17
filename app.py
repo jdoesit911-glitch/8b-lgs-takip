@@ -417,6 +417,18 @@ if current_role == "student":
                     if s_info.get('mast'):
                         st.success(f"**🟢 Tam Hakim Olunanlar:** {len(s_info['mast'])} kazanım")
                     st.info(f"**💡 Çalışma Reçetesi:** {s_info['advice']}")
+                    if s_info.get('youtube'):
+                        yt = s_info['youtube']
+                        st.markdown(f"""
+                        <div style='background-color:#FDEDEC; border-left:4px solid #C0392B; padding:10px; border-radius:6px; margin-top:8px;'>
+                            <b style='color:#900C3F;'>📺 Önerilen YouTube Desteği:</b> <b>{yt['channel']}</b> <span style='background-color:{yt['badge_color']}; color:white; padding:2px 7px; border-radius:10px; font-size:11px; font-weight:bold;'>{yt['level_name']}</span><br>
+                            <small>🎯 <b>Odak:</b> {yt['focus']}<br>
+                            💡 <b>Çalışma Taktiği:</b> {yt['study_tip']}</small><br>
+                            <a href='{yt['search_url']}' target='_blank' style='display:inline-block; margin-top:6px; background-color:#C0392B; color:white; padding:5px 12px; border-radius:4px; text-decoration:none; font-size:12px; font-weight:bold;'>
+                                ▶️ {yt['channel']} ile Dersi İzle
+                            </a>
+                        </div>
+                        """, unsafe_allow_html=True)
             idx_c += 1
 
     # Gelişim Geçmişi
@@ -527,6 +539,21 @@ with tab2:
 # ----------------- TAB 3: Bireysel Öğrenci Karneleri -----------------
 with tab3:
     st.subheader("👤 Bireysel Öğrenci Başarı Karnesi ve Gelişim Kartı")
+
+    with st.expander("📺 8/B Branş ve Seviye Bazlı YouTube Destek Kataloğu (Öğretmen & Veli Rehberi)", expanded=False):
+        st.markdown("""
+        Bu otomasyon, her öğrencinin sınav netine ve sıfır/düşük çektiği kazanımlara göre otomatik seviye belirler, doğrudan ilgili hocanın konu anlatımına ve soru çözümüne yönlendirir:
+        """)
+        yt_summary_data = [
+            {"Ders": "Matematik", "Temel Seviye (<8 Net)": "Partikül Matematik", "Orta Seviye (8-15 Net)": "İMT HOCA", "İyi Seviye (15+ Net)": "Çopur Hoca"},
+            {"Ders": "Türkçe", "Temel Seviye (<8 Net)": "Tonguç Akademi", "Orta Seviye (8-15 Net)": "Hız Yayınları - Ebubekir Hoca", "İyi Seviye (15+ Net)": "Hız Yayınları / Ebubekir Hoca"},
+            {"Ders": "Fen Bilimleri", "Temel Seviye (<8 Net)": "Derslike", "Orta Seviye (8-15 Net)": "Mehmet Hoca ile Fen", "İyi Seviye (15+ Net)": "Hız Yayınları / dnz hoca"},
+            {"Ders": "İnkılap Tarihi", "Temel Seviye (<5 Net)": "Sosyal Kale", "Orta Seviye (5-8 Net)": "Sosyal Kale", "İyi Seviye (8+ Net)": "Buğra Hoca Sosyal Bilgiler Dersliği"},
+            {"Ders": "Din Kültürü", "Temel Seviye (<5 Net)": "Cebrail Hocam", "Orta Seviye (5-8 Net)": "Cebrail Hocam", "İyi Seviye (8+ Net)": "Cebrail Hocam"},
+            {"Ders": "İngilizce", "Temel Seviye (<5 Net)": "Tonguç Akademi", "Orta Seviye (5-8 Net)": "Dilek Demirel", "İyi Seviye (8+ Net)": "Ümitcan Hoca"},
+        ]
+        st.dataframe(pd.DataFrame(yt_summary_data), use_container_width=True, hide_index=True)
+
     st_names = [r['name'] for r in results]
     selected_student = st.selectbox("Öğrenci Seçin:", st_names)
 
@@ -609,6 +636,18 @@ with tab3:
                         if s_info.get('mast'):
                             st.success(f"**🟢 Tam Hakim Olunanlar:** {len(s_info['mast'])} kazanım")
                         st.info(f"**💡 Çalışma Reçetesi:** {s_info['advice']}")
+                        if s_info.get('youtube'):
+                            yt = s_info['youtube']
+                            st.markdown(f"""
+                            <div style='background-color:#FDEDEC; border-left:4px solid #C0392B; padding:10px; border-radius:6px; margin-top:8px;'>
+                                <b style='color:#900C3F;'>📺 Önerilen YouTube Desteği:</b> <b>{yt['channel']}</b> <span style='background-color:{yt['badge_color']}; color:white; padding:2px 7px; border-radius:10px; font-size:11px; font-weight:bold;'>{yt['level_name']}</span><br>
+                                <small>🎯 <b>Odak:</b> {yt['focus']}<br>
+                                💡 <b>Çalışma Taktiği:</b> {yt['study_tip']}</small><br>
+                                <a href='{yt['search_url']}' target='_blank' style='display:inline-block; margin-top:6px; background-color:#C0392B; color:white; padding:5px 12px; border-radius:4px; text-decoration:none; font-size:12px; font-weight:bold;'>
+                                    ▶️ {yt['channel']} ile Dersi İncele
+                                </a>
+                            </div>
+                            """, unsafe_allow_html=True)
                 idx_c += 1
 
 # ----------------- TAB 4: Çoklu Deneme Gelişim -----------------
