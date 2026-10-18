@@ -837,6 +837,10 @@ def generate_branch_word_report(subject_name, exam_name, students, kazanim_data=
         c1.paragraphs[0].runs[0].font.size = Pt(8)
         c1.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
 
+    if output_path:
+        out_dir = os.path.dirname(os.path.abspath(output_path))
+        os.makedirs(out_dir, exist_ok=True)
+
     doc.save(output_path)
     return output_path
 

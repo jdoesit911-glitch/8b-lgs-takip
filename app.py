@@ -789,37 +789,45 @@ with tab_branch:
     with col_bsel2:
         # Tek branş Word indirme
         tr_safe_sub = norm_text(chosen_branch).replace(" ", "_").upper()
-        single_br_path = os.path.join(EXPORTS_DIR, "brans_raporlari", f"8B_{tr_safe_sub}_Brans_Raporu.docx")
-        if not os.path.exists(single_br_path):
-            generate_branch_word_report(chosen_branch, selected_exam_name, results, all_kaz_data, comps, single_br_path)
-        if os.path.exists(single_br_path):
-            with open(single_br_path, "rb") as f_br:
-                br_bytes = f_br.read()
-            st.download_button(
-                f"📥 {chosen_branch} Raporunu İndir (.docx)",
-                data=br_bytes,
-                file_name=f"8B_{tr_safe_sub}_Brans_Raporu.docx",
-                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                use_container_width=True,
-                key="btn_down_single_branch"
-            )
+        br_dir = os.path.join(EXPORTS_DIR, "brans_raporlari")
+        os.makedirs(br_dir, exist_ok=True)
+        single_br_path = os.path.join(br_dir, f"8B_{tr_safe_sub}_Brans_Raporu.docx")
+        try:
+            if not os.path.exists(single_br_path):
+                generate_branch_word_report(chosen_branch, selected_exam_name, results, all_kaz_data, comps, single_br_path)
+            if os.path.exists(single_br_path):
+                with open(single_br_path, "rb") as f_br:
+                    br_bytes = f_br.read()
+                st.download_button(
+                    f"📥 {chosen_branch} Raporunu İndir (.docx)",
+                    data=br_bytes,
+                    file_name=f"8B_{tr_safe_sub}_Brans_Raporu.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    use_container_width=True,
+                    key="btn_down_single_branch"
+                )
+        except Exception as _e_br:
+            st.error(f"Rapor oluşturulurken hata: {_e_br}")
 
     with col_bsel3:
         # Tüm branşlar ZIP
         all_br_zip = os.path.join(EXPORTS_DIR, "8B_Tum_Brans_Ogretmen_Raporlari.zip")
-        if not os.path.exists(all_br_zip):
-            generate_all_branch_reports(selected_exam_name, results, all_kaz_data, comps)
-        if os.path.exists(all_br_zip):
-            with open(all_br_zip, "rb") as f_zbr:
-                zbr_bytes = f_zbr.read()
-            st.download_button(
-                "📦 6 Branş Raporunu İndir (ZIP)",
-                data=zbr_bytes,
-                file_name="8B_Tum_Brans_Ogretmen_Raporlari.zip",
-                mime="application/zip",
-                use_container_width=True,
-                key="btn_down_all_branch_zip"
-            )
+        try:
+            if not os.path.exists(all_br_zip):
+                generate_all_branch_reports(selected_exam_name, results, all_kaz_data, comps)
+            if os.path.exists(all_br_zip):
+                with open(all_br_zip, "rb") as f_zbr:
+                    zbr_bytes = f_zbr.read()
+                st.download_button(
+                    "📦 6 Branş Raporunu İndir (ZIP)",
+                    data=zbr_bytes,
+                    file_name="8B_Tum_Brans_Ogretmen_Raporlari.zip",
+                    mime="application/zip",
+                    use_container_width=True,
+                    key="btn_down_all_branch_zip"
+                )
+        except Exception as _e_zip:
+            st.error(f"ZIP oluşturulurken hata: {_e_zip}")
 
     st.markdown("---")
 
@@ -1093,19 +1101,22 @@ with tab5:
     with col_b4:
         st.markdown("#### 📚 6 Branş Öğretmen Raporu")
         zip_branch = os.path.join(EXPORTS_DIR, "8B_Tum_Brans_Ogretmen_Raporlari.zip")
-        if current_role == "admin" and st.button("Branş Raporlarını Paketle", key="btn_branch_zip_gen", use_container_width=True):
-            all_kaz = {r['name']: get_student_kazanims(selected_exam_id, r['name']) for r in results}
-            _, zip_branch = generate_all_branch_reports(selected_exam_name, results, all_kaz, comps)
-            st.success("6 branş raporu başarıyla ZIP paketine dönüştürüldü!")
-        if not os.path.exists(zip_branch):
-            all_kaz = {r['name']: get_student_kazanims(selected_exam_id, r['name']) for r in results}
-            _, zip_branch = generate_all_branch_reports(selected_exam_name, results, all_kaz, comps)
-        if os.path.exists(zip_branch):
-            with open(zip_branch, "rb") as f_zb:
-                zb_bytes = f_zb.read()
-            st.download_button("📥 6 Branşı ZIP İndir", data=zb_bytes,
-                               file_name="8B_Tum_Brans_Ogretmen_Raporlari.zip", mime="application/zip",
-                               use_container_width=True)
+        try:
+            if current_role == "admin" and st.button("Branş Raporlarını Paketle", key="btn_branch_zip_gen", use_container_width=True):
+                all_kaz = {r['name']: get_student_kazanims(selected_exam_id, r['name']) for r in results}
+                _, zip_branch = generate_all_branch_reports(selected_exam_name, results, all_kaz, comps)
+                st.success("6 branş raporu başarıyla ZIP paketine dönüştürüldü!")
+            if not os.path.exists(zip_branch):
+                all_kaz = {r['name']: get_student_kazanims(selected_exam_id, r['name']) for r in results}
+                _, zip_branch = generate_all_branch_reports(selected_exam_name, results, all_kaz, comps)
+            if os.path.exists(zip_branch):
+                with open(zip_branch, "rb") as f_zb:
+                    zb_bytes = f_zb.read()
+                st.download_button("📥 6 Branşı ZIP İndir", data=zb_bytes,
+                                   file_name="8B_Tum_Brans_Ogretmen_Raporlari.zip", mime="application/zip",
+                                   use_container_width=True)
+        except Exception as _e_zb:
+            st.warning(f"Branş raporları hazırlanırken: {_e_zb}")
 
     # --- PIN LİSTESİ (Sadece Öğretmen ve Admin görür) ---
     st.markdown("---")
