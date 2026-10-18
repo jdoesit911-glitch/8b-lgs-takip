@@ -770,8 +770,8 @@ with tab3:
 
 # ----------------- TAB BRANŞ: Branş Öğretmen Raporları -----------------
 with tab_branch:
-    st.subheader("📚 Branş Öğretmenleri Akademik Değerlendirme & Eylem Planı Merkezi")
-    st.caption("Her branş öğretmeni kendi dersini; kazanım başarı oranları, çeldirici tuzakları, 4 seviye öğrenci grubu ve 4 haftalık eylem planı bazında detaylıca inceler ve resmi Word raporunu indirir.")
+    st.subheader("📚 Branş Öğretmenleri — Sınıf Akademik Teşhis Merkezi")
+    st.caption("Her branş öğretmeni kendi dersine ait sınıf geneli istatistikleri, kazanım başarı oranlarını ve bireysel öğrenci performanslarını bu ekrandan inceler.")
 
     col_bsel1, col_bsel2, col_bsel3 = st.columns([2.5, 1.8, 1.8])
     with col_bsel1:
@@ -781,20 +781,18 @@ with tab_branch:
             key="select_branch_view"
         )
 
-    # Kazanim verisi haritası
+    # Kazanım verisi haritası
     all_kaz_data = {r['name']: get_student_kazanims(selected_exam_id, r['name']) for r in results}
     b_data = analyze_branch_data(chosen_branch, results, all_kaz_data, comps)
-    ped = b_data['pedagogy']
 
     with col_bsel2:
-        # Tek branş Word indirme
+        # Tek branş Word raporu — her seferinde taze üret
         tr_safe_sub = norm_text(chosen_branch).replace(" ", "_").upper()
         br_dir = os.path.join(EXPORTS_DIR, "brans_raporlari")
         os.makedirs(br_dir, exist_ok=True)
         single_br_path = os.path.join(br_dir, f"8B_{tr_safe_sub}_Brans_Raporu.docx")
         try:
-            if not os.path.exists(single_br_path):
-                generate_branch_word_report(chosen_branch, selected_exam_name, results, all_kaz_data, comps, single_br_path)
+            generate_branch_word_report(chosen_branch, selected_exam_name, results, all_kaz_data, comps, single_br_path)
             if os.path.exists(single_br_path):
                 with open(single_br_path, "rb") as f_br:
                     br_bytes = f_br.read()
@@ -831,45 +829,50 @@ with tab_branch:
 
     st.markdown("---")
 
-    # Pedagojik Özet Banner
-    st.info(f"💡 **{chosen_branch} Zümre Rehberi:** {ped['description']} {ped['exam_characteristics']}")
-
-    # 1. KPI Metrikleri
+    # ── 1. KPI Metrikleri ──────────────────────────────────────────────────
     diff_prefix = "+" if b_data['diff_from_school'] >= 0 else ""
     diff_label = f"{diff_prefix}{b_data['diff_from_school']:.2f} Okul Farkı"
-    
-    k1, k2, k3, k4, k5 = st.columns(5)
-    k1.metric("Sınıf Net Ortalaması", f"{b_data['mean_net']:.2f} / {b_data['questions']}", delta=diff_label)
-    k2.metric("Sınıf Medyan Neti", f"{b_data['median_net']:.2f}", help="Sınıfın tam ortasındaki öğrencinin neti")
-    k3.metric("Doğru Yüzdesi", f"%{b_data['d_pct']:.1f}", f"{b_data['total_d']} Toplam Doğru")
-    k4.metric("Yanlış Yüzdesi", f"%{b_data['y_pct']:.1f}", f"{b_data['total_y']} Toplam Yanlış")
-    k5.metric("Boş Yüzdesi", f"%{b_data['b_pct']:.1f}", f"{b_data['total_b']} Toplam Boş")
 
-    # Davranış Tespiti Uyarısı
-    if b_data['total_y'] > b_data['total_b']:
-        st.warning(
-            f"⚠️ **Sınav Stratejisi Tespiti (Negatif Net Riski):** {chosen_branch} testinde sınıf genelinde **{b_data['total_y']} Yanlış**, **{b_data['total_b']} Boş** yapılmıştır. "
-            f"Öğrencilerde kararsız kaldığı soruyu tahminle işaretleme eğilimi yüksektir. 3 yanlış 1 doğruyu götürdüğü için "
-            f"sınıfın net ortalaması bu sebeple yaklaşık **{(b_data['total_y']/3)/b_data['total_students']:.2f} net** düşmüştür. "
-            f"İki şık arasında kalınca boş bırakma disiplini aşılanmalıdır."
-        )
-    else:
-        st.info(
-            f"💡 **Sınav Stratejisi Tespiti (Süre ve Boş Analizi):** {chosen_branch} testinde sınıf genelinde **{b_data['total_b']} Boş**, **{b_data['total_y']} Yanlış** yapılmıştır. "
-            f"Öğrenciler sorularda süre yetiştirememiş veya yeni nesil uzun metinlerden çekinmiş olabilir. "
-            f"Zaman sınırlı soru çözümü ve soruya cesaretle başlama etütleri önerilir."
-        )
+    k1, k2, k3, k4, k5, k6 = st.columns(6)
+    k1.metric("Sınıf Net Ort.", f"{b_data['mean_net']:.2f} / {b_data['questions']}", delta=diff_label)
+    k2.metric("Medyan Net", f"{b_data['median_net']:.2f}", help="Tam ortadaki öğrencinin neti")
+    k3.metric("Doğru %", f"%{b_data['d_pct']:.1f}", f"{b_data['total_d']} toplam")
+    k4.metric("Yanlış %", f"%{b_data['y_pct']:.1f}", f"{b_data['total_y']} toplam")
+    k5.metric("Boş %", f"%{b_data['b_pct']:.1f}", f"{b_data['total_b']} toplam")
+    k6.metric("Zirve / Taban", f"{b_data['max_net']:.1f} / {b_data['min_net']:.1f}", help="En yüksek ve en düşük net")
+
+    # ── Sınav Davranış Teşhisi ─────────────────────────────────────────────
+    high_y_ui = [s for s in b_data['students'] if s['y'] >= b_data['questions'] * 0.35]
+    high_b_ui = [s for s in b_data['students'] if s['b'] >= b_data['questions'] * 0.35]
+    diag_c1, diag_c2 = st.columns(2)
+    with diag_c1:
+        if high_y_ui:
+            st.error(
+                f"🔴 **Negatif Net Riski ({len(high_y_ui)} Öğrenci):** "
+                + ", ".join([f"{s['name'].title()} ({s['y']}Y)" for s in high_y_ui[:12]])
+                + (" ..." if len(high_y_ui) > 12 else "")
+            )
+        else:
+            st.success("✅ Aşırı yanlış yapan öğrenci tespit edilmedi.")
+    with diag_c2:
+        if high_b_ui:
+            st.warning(
+                f"🟡 **Süre / Çekinme Sorunu ({len(high_b_ui)} Öğrenci):** "
+                + ", ".join([f"{s['name'].title()} ({s['b']}B)" for s in high_b_ui[:12]])
+                + (" ..." if len(high_b_ui) > 12 else "")
+            )
+        else:
+            st.success("✅ Aşırı boş bırakan öğrenci tespit edilmedi.")
 
     st.markdown("---")
 
-    # 2. Bölüm: Kazanım Başarı Grafiği ve Detayları
-    col_chart, col_tuzak = st.columns([3, 2])
+    # ── 2. Kazanım Başarı Grafiği + Risk Tablosu ──────────────────────────
+    col_chart, col_ktable = st.columns([2, 3])
     with col_chart:
         st.subheader(f"📊 {chosen_branch} Kazanım Başarı Oranları (%)")
         if b_data["kazanims"]:
             df_kz = pd.DataFrame(b_data["kazanims"])
-            fig_kz, ax_kz = plt.subplots(figsize=(7, max(3, len(df_kz) * 0.45)))
-            
+            fig_kz, ax_kz = plt.subplots(figsize=(6, max(3, len(df_kz) * 0.45)))
             bar_colors = []
             for r in df_kz["avg_rate"]:
                 if r < 40:
@@ -880,123 +883,69 @@ with tab_branch:
                     bar_colors.append("#27AE60")
                 else:
                     bar_colors.append("#117864")
-
             y_pos = np.arange(len(df_kz))
             ax_kz.barh(y_pos, df_kz["avg_rate"], color=bar_colors, height=0.6)
             ax_kz.set_yticks(y_pos)
-            clean_labels = [k[:32] + ("..." if len(k) > 32 else "") for k in df_kz["kazanim"]]
-            ax_kz.set_yticklabels(clean_labels, fontsize=8)
+            clean_labels = [k[:30] + ("..." if len(k) > 30 else "") for k in df_kz["kazanim"]]
+            ax_kz.set_yticklabels(clean_labels, fontsize=7.5)
             ax_kz.set_xlim(0, 105)
             ax_kz.set_xlabel("Sınıf Başarı Oranı (%)")
+            ax_kz.axvline(40, color="#E74C3C", linestyle="--", alpha=0.5, linewidth=0.8, label="%40 Acil")
+            ax_kz.axvline(60, color="#F39C12", linestyle="--", alpha=0.5, linewidth=0.8, label="%60 Risk")
+            ax_kz.legend(fontsize=7)
             ax_kz.grid(axis='x', linestyle='--', alpha=0.4)
             for i, v in enumerate(df_kz["avg_rate"]):
-                ax_kz.text(v + 1.5, i, f"%{v:.1f}", va='center', fontsize=7.5, fontweight='bold', color='#333')
+                ax_kz.text(v + 1.5, i, f"%{v:.1f}", va='center', fontsize=7, fontweight='bold', color='#333')
             plt.tight_layout()
             st.pyplot(fig_kz)
         else:
             st.info("Bu branşa ait kazanım verisi bulunmuyor.")
 
-    with col_tuzak:
-        st.subheader(f"⚠️ Sık Düşülen Tuzaklar & Çözüm Taktikleri")
-        with st.expander("📌 En Sık Düşülen Kavram Hataları", expanded=True):
-            for pit in ped["common_pitfalls"]:
-                st.markdown(f"- ⚠️ <small>{pit}</small>", unsafe_allow_html=True)
-        with st.expander(f"💡 Uzman {chosen_branch} Çözüm Taktikleri", expanded=True):
-            for tac in ped["tactics"]:
-                st.markdown(f"- ✔️ <small><b>{tac.split(':')[0]}:</b> {':'.join(tac.split(':')[1:]) if ':' in tac else tac}</small>", unsafe_allow_html=True)
-
-    # 3. Bölüm: Kazanım Tablosu ve Kritik Öğrenci Takibi
-    st.subheader(f"📋 Kazanım Başarı Tablosu ve Kritik Desteğe İhtiyacı Olan Öğrenciler")
-    if b_data["kazanims"]:
-        df_ktable = pd.DataFrame([
-            {
-                "Kazanım": k["kazanim"],
-                "Başarı %": f"%{k['avg_rate']:.1f}",
-                "Öncelik": k["level_code"],
-                "Kritik Açık (<%40)": f"{k['crit_count']} Öğrenci",
-                "Güçlü Hakim (≥%75)": f"{k['high_count']} Öğrenci",
-                "Önerilen Zümre Reçetesi": k["level_desc"]
-            }
-            for k in b_data["kazanims"]
-        ])
-        st.dataframe(df_ktable, use_container_width=True)
-
-        with st.expander(f"🔍 Kritik Kazanımlarda Desteğe İhtiyacı Olan Öğrencilerin İsim Listesi (<%40 Başarı)", expanded=False):
-            crit_any = False
-            for k in b_data["kazanims"]:
-                if k["crit_count"] > 0 and k["avg_rate"] < 65.0:
-                    crit_any = True
-                    st.markdown(f"**🔴 {k['kazanim']} (Sınıf Başarısı: %{k['avg_rate']:.1f}):**")
-                    st.caption(f"Öğrenciler ({k['crit_count']} kişi): {', '.join(k['crit_students'])}")
-            if not crit_any:
-                st.success("Tebrikler! Kritik eşikte (<%40) desteğe muhtaç öğrenci grubu bulunmuyor.")
+    with col_ktable:
+        st.subheader("📋 Kazanım Risk Tablosu")
+        if b_data["kazanims"]:
+            df_ktable = pd.DataFrame([
+                {
+                    "Kazanım": k["kazanim"],
+                    "Başarı %": f"%{k['avg_rate']:.1f}",
+                    "Durum": k["level_code"],
+                    "Kritik (<40%)": f"{k['crit_count']} Öğr.",
+                    "Güçlü (≥75%)": f"{k['high_count']} Öğr.",
+                }
+                for k in b_data["kazanims"]
+            ])
+            st.dataframe(df_ktable, use_container_width=True, height=350)
+            with st.expander("🔍 <%40 Başarılı Öğrencilerin İsim Listesi", expanded=False):
+                crit_any = False
+                for k in b_data["kazanims"]:
+                    if k["crit_count"] > 0 and k["avg_rate"] < 65.0:
+                        crit_any = True
+                        st.markdown(
+                            f"**🔴 {k['kazanim']} (%{k['avg_rate']:.1f}):** "
+                            f"{', '.join(k['crit_students'])}"
+                        )
+                if not crit_any:
+                    st.success("Kritik eşikte (<40%) desteğe muhtaç öğrenci yok.")
 
     st.markdown("---")
 
-    # 4. Bölüm: 4 Seviye Öğrenci Grupları
-    st.subheader(f"🏅 {chosen_branch} Farklılaştırılmış Öğretim Grupları (4 Seviye)")
-    st.caption("Branş öğretmeni ders içi etkinliklerde, ödevlendirmede ve etütlerde bu seviye gruplarını esas alır.")
-    
-    tier_cols = st.columns(4)
-    for idx_t, (t_title, t_info) in enumerate(b_data["tiers"].items()):
-        with tier_cols[idx_t]:
-            st.markdown(
-                f"<div style='background-color:{t_info['bg']}; border-left:4px solid {t_info['color']}; "
-                f"border-radius:8px; padding:10px; min-height:180px; box-shadow:0 2px 4px rgba(0,0,0,0.05);'>"
-                f"<b style='color:{t_info['color']}; font-size:12px;'>{t_title.split(':')[0]}</b><br>"
-                f"<span style='font-size:10px; color:#555;'>Aralık: <b>{t_info['range']}</b> ({len(t_info['students'])} Öğrenci)</span>"
-                f"<hr style='margin:6px 0;'>"
-                f"<small style='font-size:10px; color:#333;'><b>🎯 Hedef:</b> {t_info['goal']}</small><br><br>"
-                f"<small style='font-size:9.5px; color:#1F497D;'><b>Öğrenciler:</b> "
-                f"{', '.join([s['name'].title() for s in t_info['students'][:6]])}"
-                f"{'...' if len(t_info['students']) > 6 else ''}</small>"
-                f"</div>",
-                unsafe_allow_html=True
-            )
-
-    st.markdown("---")
-
-    # 5. Bölüm: Tüm Öğrencilerin Branş Sıralaması ve Davranış Tablosu
-    st.subheader(f"👥 8/B Sınıfı {chosen_branch} Sıralama ve Davranış Listesi (27 Öğrenci)")
+    # ── 3. Öğrenci Performans Listesi ─────────────────────────────────────
+    st.subheader(f"👥 8/B {chosen_branch} Öğrenci Performans Listesi")
     df_st_branch = pd.DataFrame([
         {
-            "S.Sıra": s["branch_rank"],
+            "Sıra": s["branch_rank"],
             "No": s["school_no"],
-            "Öğrenci Adı Soyadı": s["name"],
+            "Öğrenci": s["name"],
             "Doğru": s["d"],
             "Yanlış": s["y"],
             "Boş": s["b"],
             "Net": f"{s['net']:.2f}",
             "Başarı %": f"%{s['succ_pct']:.1f}",
-            "Davranış Kodu": s["behavior_code"],
-            "Bireysel Tavsiye": s["recommendation"]
+            "Durum": s["behavior_code"],
         }
         for s in b_data["students"]
     ])
-    st.dataframe(df_st_branch, use_container_width=True, height=450)
-
-    st.markdown("---")
-
-    # 6. Bölüm: 4 Haftalık Zümre Eylem Planı ve YouTube Önerileri
-    col_plan1, col_plan2 = st.columns([3, 2])
-    with col_plan1:
-        st.subheader(f"📅 {chosen_branch} Zümresi 4 Haftalık Eylem Planı")
-        for week_title, week_act in ped["four_week_plan"]:
-            st.markdown(f"**{week_title}** {week_act}")
-        st.markdown(f"🎯 **Haftalık Ödevlendirme & Kota:** `{ped['weekly_homework_target']}`")
-
-    with col_plan2:
-        st.subheader(f"📺 Seviye Bazlı YouTube Destek Rehberi")
-        if b_data.get("youtube"):
-            for lvl_key, l_info in b_data["youtube"].items():
-                st.markdown(
-                    f"<div style='background-color:#FDF2E9; border-left:3px solid #E67E22; padding:8px; border-radius:6px; margin-bottom:6px;'>"
-                    f"<b style='color:#78281F; font-size:11px;'>{l_info['level_name']}: {l_info['channel']}</b><br>"
-                    f"<small style='font-size:10px;'>🎯 <b>Odak:</b> {l_info['focus']}<br>"
-                    f"💡 <b>Taktik:</b> {l_info['study_tip']}</small>"
-                    f"</div>",
-                    unsafe_allow_html=True
-                )
+    st.dataframe(df_st_branch, use_container_width=True, height=500)
 
 # ----------------- TAB 4: Çoklu Deneme Gelişim -----------------
 with tab4:
