@@ -274,17 +274,22 @@ if current_role == "admin":
             except Exception as _e:
                 st.warning(f"Word raporu oluşturulurken uyarı: {_e}")
 
-            # 6/6 – Excel takip dosyası
-            prog_status.markdown("**6/6** 📗 Master Excel Takip Dosyası oluşturuluyor...")
+            # 6/6 – Excel takip dosyası ve Branş Raporları
+            prog_status.markdown("**6/6** 📗 Excel ve Branş Raporları oluşturuluyor...")
             prog_bar.progress(90)
             x_out = os.path.join(EXPORTS_DIR, "8B_LGS_Takip_Sistemi.xlsx")
             try:
                 generate_excel_tracker(exam_name_new, new_results, new_kaz_map, new_comps, x_out)
             except Exception as _e:
                 st.warning(f"Excel dosyası oluşturulurken uyarı: {_e}")
+            try:
+                generate_all_branch_reports(exam_name_new, new_results, new_kaz_map, new_comps)
+            except Exception as _e:
+                pass
 
             prog_bar.progress(100)
             prog_status.markdown("✅ **Tüm işlemler tamamlandı!**")
+
 
         # Özet
         st.success(
@@ -802,7 +807,7 @@ with tab_branch:
                     file_name=f"8B_{tr_safe_sub}_Brans_Raporu.docx",
                     mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                     use_container_width=True,
-                    key="btn_down_single_branch"
+                    key=f"btn_down_{tr_safe_sub}"
                 )
         except Exception as _e_br:
             st.error(f"Rapor oluşturulurken hata: {_e_br}")
@@ -821,7 +826,7 @@ with tab_branch:
                     file_name="8B_Tum_Brans_Ogretmen_Raporlari.zip",
                     mime="application/zip",
                     use_container_width=True,
-                    key="btn_down_all_branch_zip"
+                    key=f"btn_down_all_branch_zip_{chosen_branch}"
                 )
         except Exception as _e_zip:
             st.error(f"ZIP oluşturulurken hata: {_e_zip}")
@@ -1050,21 +1055,18 @@ with tab5:
         st.markdown("#### 📚 6 Branş Öğretmen Raporu")
         zip_branch = os.path.join(EXPORTS_DIR, "8B_Tum_Brans_Ogretmen_Raporlari.zip")
         try:
-            if current_role == "admin" and st.button("Branş Raporlarını Paketle", key="btn_branch_zip_gen", use_container_width=True):
-                all_kaz = {r['name']: get_student_kazanims(selected_exam_id, r['name']) for r in results}
-                _, zip_branch = generate_all_branch_reports(selected_exam_name, results, all_kaz, comps)
-                st.success("6 branş raporu başarıyla ZIP paketine dönüştürüldü!")
-            if not os.path.exists(zip_branch):
-                all_kaz = {r['name']: get_student_kazanims(selected_exam_id, r['name']) for r in results}
-                _, zip_branch = generate_all_branch_reports(selected_exam_name, results, all_kaz, comps)
+            all_kaz = {r['name']: get_student_kazanims(selected_exam_id, r['name']) for r in results}
+            _, zip_branch = generate_all_branch_reports(selected_exam_name, results, all_kaz, comps)
             if os.path.exists(zip_branch):
                 with open(zip_branch, "rb") as f_zb:
                     zb_bytes = f_zb.read()
                 st.download_button("📥 6 Branşı ZIP İndir", data=zb_bytes,
                                    file_name="8B_Tum_Brans_Ogretmen_Raporlari.zip", mime="application/zip",
-                                   use_container_width=True)
+                                   use_container_width=True,
+                                   key="btn_down_all_branch_zip_export_tab")
         except Exception as _e_zb:
             st.warning(f"Branş raporları hazırlanırken: {_e_zb}")
+
 
     # --- PIN LİSTESİ (Sadece Öğretmen ve Admin görür) ---
     st.markdown("---")
