@@ -473,18 +473,18 @@ def generate_branch_word_report(subject_name, exam_name, students, kazanim_data=
     doc = docx.Document()
     sec = doc.sections[0]
     # Tek sayfaya sığması için dar kenar boşlukları
-    sec.top_margin = Inches(0.35)
-    sec.bottom_margin = Inches(0.35)
-    sec.left_margin = Inches(0.4)
-    sec.right_margin = Inches(0.4)
+    sec.top_margin = Inches(0.28)
+    sec.bottom_margin = Inches(0.28)
+    sec.left_margin = Inches(0.35)
+    sec.right_margin = Inches(0.35)
 
     normal = doc.styles["Normal"]
     normal.font.name = "Calibri"
-    normal.font.size = Pt(8.5)
+    normal.font.size = Pt(8)
     normal.font.color.rgb = RGBColor(35, 35, 35)
     normal.paragraph_format.space_before = Pt(0)
-    normal.paragraph_format.space_after = Pt(1.5)
-    normal.paragraph_format.line_spacing = 1.05
+    normal.paragraph_format.space_after = Pt(1)
+    normal.paragraph_format.line_spacing = 1.0
 
     # 1. Kompakt Başlık
     p_head = doc.add_paragraph()
@@ -493,12 +493,12 @@ def generate_branch_word_report(subject_name, exam_name, students, kazanim_data=
     p_head.paragraph_format.space_after = Pt(1)
     r_h1 = p_head.add_run(f"8/B SINIFI {real_subject.upper()} BRANŞI AKADEMİK TEŞHİS VE ÖĞRENCİ ANALİZ RAPORU\n")
     r_h1.bold = True
-    r_h1.font.size = Pt(11)
+    r_h1.font.size = Pt(10.5)
     r_h1.font.color.rgb = RGBColor(31, 73, 125)
 
     r_h2 = p_head.add_run(f"Deneme Sınavı: {exam_name} | Branş: {real_subject} ({b_data['questions']} Soru - Katsayı: {b_data['weight']}x) | Örneklem: {b_data['total_students']} Öğrenci")
     r_h2.italic = True
-    r_h2.font.size = Pt(8)
+    r_h2.font.size = Pt(7.5)
     r_h2.font.color.rgb = RGBColor(90, 90, 90)
 
     # 2. Sınıf Genel Performans Göstergeleri (Tek Satırlık Tablo)
@@ -519,15 +519,15 @@ def generate_branch_word_report(subject_name, exam_name, students, kazanim_data=
     for c_idx, (label, val, bg) in enumerate(kpi_cols):
         cell = tbl_kpi.cell(0, c_idx)
         set_cell_shading(cell, bg)
-        set_cell_margins(cell, top=35, bottom=35, left=45, right=45)
+        set_cell_margins(cell, top=25, bottom=25, left=40, right=40)
         p = cell.paragraphs[0]
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         r1 = p.add_run(f"{label}\n")
-        r1.font.size = Pt(7.5)
+        r1.font.size = Pt(7)
         r1.font.color.rgb = RGBColor(90, 90, 90)
         r2 = p.add_run(val)
         r2.bold = True
-        r2.font.size = Pt(9)
+        r2.font.size = Pt(8.5)
         r2.font.color.rgb = RGBColor(31, 73, 125)
 
     # 3. Sınav Davranış Teşhisi (Aşırı Yanlış vs Aşırı Boş Bırakanlar)
@@ -541,43 +541,46 @@ def generate_branch_word_report(subject_name, exam_name, students, kazanim_data=
     # Sol: Yanlış (Negatif Net)
     cell_y = tbl_diag.cell(0, 0)
     set_cell_shading(cell_y, "FDEDEC")
-    set_cell_margins(cell_y, top=40, bottom=40, left=60, right=60)
+    set_cell_margins(cell_y, top=25, bottom=25, left=50, right=50)
     p_y = cell_y.paragraphs[0]
     r_yt = p_y.add_run("🔴 Negatif Net Kaybı Yaşayanlar (Aşırı Yanlış):\n")
     r_yt.bold = True
-    r_yt.font.size = Pt(7.5)
+    r_yt.font.size = Pt(7)
     r_yt.font.color.rgb = RGBColor(144, 12, 63)
     y_str = ", ".join([f"{s['name'].title()} ({s['y']}Y)" for s in high_y_students[:8]]) if high_y_students else "Aşırı yanlış yapan öğrenci bulunmuyor."
     r_yd = p_y.add_run(f"{y_str} (3 yanlış 1 doğruyu götürdüğü için net kaybı yaşamaktadırlar).")
-    r_yd.font.size = Pt(7.5)
+    r_yd.font.size = Pt(7)
 
     # Sağ: Boş (Süre/Çekinme)
     cell_b = tbl_diag.cell(0, 1)
     set_cell_shading(cell_b, "FEF9E7")
-    set_cell_margins(cell_b, top=40, bottom=40, left=60, right=60)
+    set_cell_margins(cell_b, top=25, bottom=25, left=50, right=50)
     p_b = cell_b.paragraphs[0]
     r_bt = p_b.add_run("🟡 Süre / Çekinme Yaşayanlar (Aşırı Boş):\n")
     r_bt.bold = True
-    r_bt.font.size = Pt(7.5)
+    r_bt.font.size = Pt(7)
     r_bt.font.color.rgb = RGBColor(125, 102, 8)
     b_str = ", ".join([f"{s['name'].title()} ({s['b']}B)" for s in high_b_students[:8]]) if high_b_students else "Aşırı boş bırakan öğrenci bulunmuyor."
     r_bd = p_b.add_run(f"{b_str} (Süre yetiştirememiş veya soruya başlamaktan çekinmişlerdir).")
-    r_bd.font.size = Pt(7.5)
+    r_bd.font.size = Pt(7)
 
     # 4. Kazanım Risk ve Hasar Matrisi (Kompakt Tablo)
     p_khead = doc.add_paragraph()
-    p_khead.paragraph_format.space_before = Pt(3)
+    p_khead.paragraph_format.space_before = Pt(2)
     p_khead.paragraph_format.space_after = Pt(1)
     r_kh = p_khead.add_run(f"📌 {real_subject.upper()} KAZANIM BAŞARI ORANLARI VE KRİTİK AÇIĞI OLAN ÖĞRENCİLER")
     r_kh.bold = True
-    r_kh.font.size = Pt(8.5)
+    r_kh.font.size = Pt(8)
     r_kh.font.color.rgb = RGBColor(31, 73, 125)
 
     if b_data["kazanims"]:
         all_k_list = b_data["kazanims"]
-        if len(all_k_list) > 8:
-            actionable_k = [k for k in all_k_list if k["avg_rate"] < 75.0]
-            mastered_k = [k for k in all_k_list if k["avg_rate"] >= 75.0]
+        if len(all_k_list) > 7:
+            # Kritik ve müdahale gereken ilk kazanımları al (en fazla 7 kazanım)
+            actionable_k = [k for k in all_k_list if k["avg_rate"] < 60.0]
+            if len(actionable_k) > 7:
+                actionable_k = actionable_k[:7]
+            mastered_k = [k for k in all_k_list if k not in actionable_k]
         else:
             actionable_k = all_k_list
             mastered_k = []
