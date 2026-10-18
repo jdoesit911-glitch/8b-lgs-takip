@@ -808,11 +808,10 @@ with tab_branch:
             st.error(f"Rapor oluşturulurken hata: {_e_br}")
 
     with col_bsel3:
-        # Tüm branşlar ZIP
+        # Tüm branşlar ZIP — her zaman taze üret
         all_br_zip = os.path.join(EXPORTS_DIR, "8B_Tum_Brans_Ogretmen_Raporlari.zip")
         try:
-            if not os.path.exists(all_br_zip):
-                generate_all_branch_reports(selected_exam_name, results, all_kaz_data, comps)
+            generate_all_branch_reports(selected_exam_name, results, all_kaz_data, comps)
             if os.path.exists(all_br_zip):
                 with open(all_br_zip, "rb") as f_zbr:
                     zbr_bytes = f_zbr.read()
