@@ -457,386 +457,314 @@ def analyze_branch_data(subject_name, students, kazanim_data=None, comparisons=N
 
 
 # ===================== UZMAN BRANŞ WORD RAPORU OLUŞTURUCU =====================
+# ===================== TEK SAYFALIK BRANŞ TEŞHİS RAPORU OLUŞTURUCU =====================
 def generate_branch_word_report(subject_name, exam_name, students, kazanim_data=None, comparisons=None, output_path=None):
     """
-    Uzman bir branş öğretmeni bakış açısıyla MEB / Zümre teftiş standartlarında Word (.docx) raporu üretir.
+    Öğretmene akıl vermeyen, sınıfın ve öğrencilerin röntgenini çeken,
+    kesinlikle TEK BİR A4 SAYFASINA sığacak şekilde optimize edilmiş resmi teşhis raporu.
     """
     b_data = analyze_branch_data(subject_name, students, kazanim_data, comparisons)
-    ped = b_data["pedagogy"]
     real_subject = b_data["subject"]
 
     if not output_path:
         tr_safe = norm_text(real_subject).replace(" ", "_")
-        output_path = os.path.join(EXPORTS_DIR, f"8B_{tr_safe.upper()}_Brans_Raporu.docx")
+        output_path = os.path.join(EXPORTS_DIR, "brans_raporlari", f"8B_{tr_safe.upper()}_Brans_Raporu.docx")
 
     doc = docx.Document()
     sec = doc.sections[0]
-    sec.top_margin = Inches(0.7)
-    sec.bottom_margin = Inches(0.7)
-    sec.left_margin = Inches(0.75)
-    sec.right_margin = Inches(0.75)
+    # Tek sayfaya sığması için dar kenar boşlukları
+    sec.top_margin = Inches(0.35)
+    sec.bottom_margin = Inches(0.35)
+    sec.left_margin = Inches(0.4)
+    sec.right_margin = Inches(0.4)
 
     normal = doc.styles["Normal"]
     normal.font.name = "Calibri"
-    normal.font.size = Pt(10)
-    normal.font.color.rgb = RGBColor(40, 40, 40)
-    normal.paragraph_format.space_after = Pt(3)
-    normal.paragraph_format.line_spacing = 1.15
+    normal.font.size = Pt(8.5)
+    normal.font.color.rgb = RGBColor(35, 35, 35)
+    normal.paragraph_format.space_before = Pt(0)
+    normal.paragraph_format.space_after = Pt(1.5)
+    normal.paragraph_format.line_spacing = 1.05
 
-    def add_title(text):
-        p = doc.add_paragraph()
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p.paragraph_format.space_before = Pt(6)
-        p.paragraph_format.space_after = Pt(2)
-        r = p.add_run(text)
-        r.bold = True
-        r.font.size = Pt(15)
-        r.font.color.rgb = RGBColor(31, 73, 125)
+    # 1. Kompakt Başlık
+    p_head = doc.add_paragraph()
+    p_head.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_head.paragraph_format.space_before = Pt(0)
+    p_head.paragraph_format.space_after = Pt(1)
+    r_h1 = p_head.add_run(f"8/B SINIFI {real_subject.upper()} BRANŞI AKADEMİK TEŞHİS VE ÖĞRENCİ ANALİZ RAPORU\n")
+    r_h1.bold = True
+    r_h1.font.size = Pt(11)
+    r_h1.font.color.rgb = RGBColor(31, 73, 125)
 
-    def add_subtitle(text):
-        p = doc.add_paragraph()
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p.paragraph_format.space_before = Pt(0)
-        p.paragraph_format.space_after = Pt(10)
-        r = p.add_run(text)
-        r.italic = True
-        r.font.size = Pt(9.5)
-        r.font.color.rgb = RGBColor(110, 110, 110)
+    r_h2 = p_head.add_run(f"Deneme Sınavı: {exam_name} | Branş: {real_subject} ({b_data['questions']} Soru - Katsayı: {b_data['weight']}x) | Örneklem: {b_data['total_students']} Öğrenci")
+    r_h2.italic = True
+    r_h2.font.size = Pt(8)
+    r_h2.font.color.rgb = RGBColor(90, 90, 90)
 
-    def add_h1(text):
-        p = doc.add_paragraph()
-        p.paragraph_format.space_before = Pt(12)
-        p.paragraph_format.space_after = Pt(3)
-        r = p.add_run(text)
-        r.bold = True
-        r.font.size = Pt(11.5)
-        r.font.color.rgb = RGBColor(31, 73, 125)
-
-    def add_h2(text):
-        p = doc.add_paragraph()
-        p.paragraph_format.space_before = Pt(8)
-        p.paragraph_format.space_after = Pt(2)
-        r = p.add_run(text)
-        r.bold = True
-        r.font.size = Pt(10)
-        r.font.color.rgb = RGBColor(17, 120, 100)
-
-    # 1. BAŞLIK VE KÜNYE
-    add_title(f"8/B SINIFI {real_subject.upper()} BRANŞI AKADEMİK ANALİZ VE EYLEM PLANI RAPORU")
-    add_subtitle(f"Deneme Sınavı: {exam_name} | Branş: {real_subject} ({b_data['questions']} Soru - Katsayı: {b_data['weight']}x)\n"
-                 f"Sınıf Mevcudu: {b_data['total_students']} Öğrenci | Analiz Motoru: LGS Otomasyonu v2.0")
-
-    add_callout(
-        doc,
-        f"{ped['description']} {ped['exam_characteristics']}",
-        "NOTE",
-        title=f"UZMAN BRANŞ REHBERİ ({real_subject.upper()})"
-    )
-
-    # 2. BÖLÜM: BRANŞ GENEL PERFORMANS GÖSTERGELERİ
-    add_h1("1. BRANŞ GENEL PERFORMANS GÖSTERGELERİ")
-
-    tbl_kpi = doc.add_table(rows=2, cols=4)
+    # 2. Sınıf Genel Performans Göstergeleri (Tek Satırlık Tablo)
+    tbl_kpi = doc.add_table(rows=1, cols=6)
     tbl_kpi.alignment = WD_TABLE_ALIGNMENT.CENTER
     set_table_borders(tbl_kpi)
 
     diff_str = f"+{b_data['diff_from_school']:.2f}" if b_data['diff_from_school'] >= 0 else f"{b_data['diff_from_school']:.2f}"
-    kpi_items = [
-        ("Sınıf Net Ortalaması", f"{b_data['mean_net']:.2f} / {b_data['questions']}", "F2F5F8"),
-        ("Sınıf Medyan Neti", f"{b_data['median_net']:.2f}", "F2F5F8"),
-        ("Okul Ortalaması / Fark", f"{b_data['school_avg']:.2f} ({diff_str})", "E8F8F5" if b_data['diff_from_school']>=0 else "FDEDEC"),
-        ("Zirve / Taban Net", f"{b_data['max_net']:.2f} / {b_data['min_net']:.2f}", "F2F5F8"),
+    kpi_cols = [
+        ("Sınıf Net Ort.", f"{b_data['mean_net']:.2f} / {b_data['questions']}", "F2F5F8"),
+        ("Okul Ort. / Fark", f"{b_data['school_avg']:.2f} ({diff_str})", "E8F8F5" if b_data['diff_from_school']>=0 else "FDEDEC"),
         ("Toplam Doğru", f"{b_data['total_d']} (%{b_data['d_pct']:.1f})", "E8F8F5"),
         ("Toplam Yanlış", f"{b_data['total_y']} (%{b_data['y_pct']:.1f})", "FDEDEC"),
         ("Toplam Boş", f"{b_data['total_b']} (%{b_data['b_pct']:.1f})", "FEF9E7"),
-        ("Standart Sapma", f"{b_data['std_net']:.2f} Net", "F2F5F8"),
+        ("Zirve / Taban", f"{b_data['max_net']:.1f} / {b_data['min_net']:.1f}", "F2F5F8"),
     ]
 
-    for idx, (label, val, bg) in enumerate(kpi_items):
-        r_idx = idx // 4
-        c_idx = idx % 4
-        cell = tbl_kpi.cell(r_idx, c_idx)
+    for c_idx, (label, val, bg) in enumerate(kpi_cols):
+        cell = tbl_kpi.cell(0, c_idx)
         set_cell_shading(cell, bg)
-        set_cell_margins(cell, top=60, bottom=60, left=80, right=80)
+        set_cell_margins(cell, top=35, bottom=35, left=45, right=45)
         p = cell.paragraphs[0]
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         r1 = p.add_run(f"{label}\n")
-        r1.font.size = Pt(8)
-        r1.font.color.rgb = RGBColor(100, 100, 100)
+        r1.font.size = Pt(7.5)
+        r1.font.color.rgb = RGBColor(90, 90, 90)
         r2 = p.add_run(val)
         r2.bold = True
-        r2.font.size = Pt(11)
+        r2.font.size = Pt(9)
         r2.font.color.rgb = RGBColor(31, 73, 125)
 
-    doc.add_paragraph().paragraph_format.space_before = Pt(4)
+    # 3. Sınav Davranış Teşhisi (Aşırı Yanlış vs Aşırı Boş Bırakanlar)
+    high_y_students = [s for s in b_data["students"] if s["y"] >= (b_data["questions"] * 0.35)]
+    high_b_students = [s for s in b_data["students"] if s["b"] >= (b_data["questions"] * 0.35)]
 
-    # Branş Yanlış / Boş Davranış Tespiti
-    if b_data['total_y'] > b_data['total_b']:
-        add_callout(
-            doc,
-            f"8/B sınıfında {real_subject} testinde toplam YANLIŞ sayısı ({b_data['total_y']}), BOŞ sayısından ({b_data['total_b']}) fazladır. "
-            f"Öğrencilerde emin olmadan işaretleme (şans/tahmin) davranışı gözlenmektedir. LGS'de 3 yanlış 1 doğruyu götürdüğü için "
-            f"bu durum sınıfın net ortalamasını yaklaşık {(b_data['total_y']/3)/b_data['total_students']:.2f} net aşağı çekmektedir. "
-            f"Öğrencilere 'İki güçlü çeldirici arasında kalındığında boş bırakma' disiplini verilmelidir.",
-            "WARNING",
-            title="SINAV STRATEJİSİ UYARISI: NEGATİF NET KAYBI"
-        )
-    else:
-        add_callout(
-            doc,
-            f"8/B sınıfında {real_subject} testinde toplam BOŞ sayısı ({b_data['total_b']}), YANLIŞ sayısından ({b_data['total_y']}) fazladır. "
-            f"Öğrenciler sorularda süre yetiştirememiş veya yeni nesil uzun metinlerden çekinmiş olabilir. "
-            f"Zaman yönetimi ve soruya cesaretle başlama pratikleri yapılmalıdır.",
-            "TIP",
-            title="SINAV STRATEJİSİ TAVSİYESİ: SÜRE VE CESARET YÖNETİMİ"
-        )
+    tbl_diag = doc.add_table(rows=1, cols=2)
+    tbl_diag.alignment = WD_TABLE_ALIGNMENT.CENTER
+    set_table_borders(tbl_diag)
 
-    # 3. BÖLÜM: BRANŞA ÖZEL EN SIK YAPILAN KAVRAM HATALARI
-    add_h1(f"2. {real_subject.upper()} TESTİNDE EN SIK DÜŞÜLEN TUZAKLAR VE KAVRAM YANILGILARI")
-    for pit in ped["common_pitfalls"]:
-        p_pit = doc.add_paragraph(style="List Bullet")
-        p_pit.paragraph_format.space_before = Pt(1)
-        p_pit.paragraph_format.space_after = Pt(1)
-        r_w = p_pit.add_run("⚠️ ")
-        r_t = p_pit.add_run(pit)
-        r_t.font.size = Pt(9)
+    # Sol: Yanlış (Negatif Net)
+    cell_y = tbl_diag.cell(0, 0)
+    set_cell_shading(cell_y, "FDEDEC")
+    set_cell_margins(cell_y, top=40, bottom=40, left=60, right=60)
+    p_y = cell_y.paragraphs[0]
+    r_yt = p_y.add_run("🔴 Negatif Net Kaybı Yaşayanlar (Aşırı Yanlış):\n")
+    r_yt.bold = True
+    r_yt.font.size = Pt(7.5)
+    r_yt.font.color.rgb = RGBColor(144, 12, 63)
+    y_str = ", ".join([f"{s['name'].title()} ({s['y']}Y)" for s in high_y_students[:8]]) if high_y_students else "Aşırı yanlış yapan öğrenci bulunmuyor."
+    r_yd = p_y.add_run(f"{y_str} (3 yanlış 1 doğruyu götürdüğü için net kaybı yaşamaktadırlar).")
+    r_yd.font.size = Pt(7.5)
 
-    doc.add_paragraph().paragraph_format.space_before = Pt(3)
-    add_h2(f"💡 Uzman {real_subject} Öğretmeni Çözüm Taktikleri")
-    for tac in ped["tactics"]:
-        p_tac = doc.add_paragraph(style="List Bullet")
-        p_tac.paragraph_format.space_before = Pt(1)
-        p_tac.paragraph_format.space_after = Pt(1)
-        r_w = p_tac.add_run("✔ ")
-        r_w.bold = True
-        r_w.font.color.rgb = RGBColor(14, 102, 85)
-        r_t = p_tac.add_run(tac)
-        r_t.font.size = Pt(9)
+    # Sağ: Boş (Süre/Çekinme)
+    cell_b = tbl_diag.cell(0, 1)
+    set_cell_shading(cell_b, "FEF9E7")
+    set_cell_margins(cell_b, top=40, bottom=40, left=60, right=60)
+    p_b = cell_b.paragraphs[0]
+    r_bt = p_b.add_run("🟡 Süre / Çekinme Yaşayanlar (Aşırı Boş):\n")
+    r_bt.bold = True
+    r_bt.font.size = Pt(7.5)
+    r_bt.font.color.rgb = RGBColor(125, 102, 8)
+    b_str = ", ".join([f"{s['name'].title()} ({s['b']}B)" for s in high_b_students[:8]]) if high_b_students else "Aşırı boş bırakan öğrenci bulunmuyor."
+    r_bd = p_b.add_run(f"{b_str} (Süre yetiştirememiş veya soruya başlamaktan çekinmişlerdir).")
+    r_bd.font.size = Pt(7.5)
 
-    # 4. BÖLÜM: KAZANIM BAZLI BAŞARI VE ACİL MÜDAHALE LİSTESİ
-    doc.add_paragraph().paragraph_format.space_before = Pt(4)
-    add_h1(f"3. {real_subject.upper()} KAZANIM BAŞARI DÖKÜMÜ VE ÖNCELİKLENDİRME")
-    doc.add_paragraph(
-        f"Aşağıdaki tabloda {real_subject} dersine ait kazanımların sınıf ortalamaları, başarı düzeyleri ve "
-        f"zümre öğretmenine önerilen ders içi müdahale reçetesi yer almaktadır:"
-    )
+    # 4. Kazanım Risk ve Hasar Matrisi (Kompakt Tablo)
+    p_khead = doc.add_paragraph()
+    p_khead.paragraph_format.space_before = Pt(3)
+    p_khead.paragraph_format.space_after = Pt(1)
+    r_kh = p_khead.add_run(f"📌 {real_subject.upper()} KAZANIM BAŞARI ORANLARI VE KRİTİK AÇIĞI OLAN ÖĞRENCİLER")
+    r_kh.bold = True
+    r_kh.font.size = Pt(8.5)
+    r_kh.font.color.rgb = RGBColor(31, 73, 125)
 
     if b_data["kazanims"]:
-        tbl_kaz = doc.add_table(rows=len(b_data["kazanims"]) + 1, cols=6)
+        all_k_list = b_data["kazanims"]
+        if len(all_k_list) > 8:
+            actionable_k = [k for k in all_k_list if k["avg_rate"] < 75.0]
+            mastered_k = [k for k in all_k_list if k["avg_rate"] >= 75.0]
+        else:
+            actionable_k = all_k_list
+            mastered_k = []
+
+        total_rows = len(actionable_k) + 1 + (1 if mastered_k else 0)
+        tbl_kaz = doc.add_table(rows=total_rows, cols=4)
         tbl_kaz.alignment = WD_TABLE_ALIGNMENT.CENTER
         set_table_borders(tbl_kaz)
 
-        k_hdrs = ["Kazanım Adı", "Başarı %", "Öncelik Kodu", "Kritik Açık (<%40)", "Güçlü Hakim (≥%75)", "Zümre Reçetesi"]
+        k_hdrs = ["Kazanım Adı", "Başarı %", "Durum", "Kritik Açığı Olan Öğrenciler (<%40 Başarı / Sıfır Çekenler)"]
         for c, h in enumerate(k_hdrs):
             cell = tbl_kaz.cell(0, c)
             set_cell_shading(cell, "1F497D")
-            set_cell_margins(cell, top=60, bottom=60, left=80, right=80)
+            set_cell_margins(cell, top=20, bottom=20, left=35, right=35)
             p = cell.paragraphs[0]
             p.text = h
             p.runs[0].bold = True
-            p.runs[0].font.size = Pt(8.5)
+            p.runs[0].font.size = Pt(7)
             p.runs[0].font.color.rgb = RGBColor(255, 255, 255)
-            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            if c in [1, 2]:
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-        for r_idx, k_item in enumerate(b_data["kazanims"], 1):
+        for r_idx, k_item in enumerate(actionable_k, 1):
             row_cells = tbl_kaz.rows[r_idx].cells
-            
             bg_col = "FFFFFF"
+            status_text = "Güçlü"
+            status_color = "0E6655"
             if k_item["avg_rate"] < 40.0:
                 bg_col = "FDEDEC"
+                status_text = "Acil Müdahale"
+                status_color = "900C3F"
             elif k_item["avg_rate"] < 60.0:
                 bg_col = "FEF9E7"
-            elif k_item["avg_rate"] >= 80.0:
-                bg_col = "E8F8F5"
+                status_text = "Yüksek Risk"
+                status_color = "7D6608"
+            elif k_item["avg_rate"] < 75.0:
+                status_text = "Geliştirilebilir"
+                status_color = "145A32"
+
+            crit_list_str = ", ".join([name.title() for name in k_item["crit_students"]]) if k_item["crit_students"] else "Tüm sınıf %40 üzeri başarı sağladı."
 
             vals = [
                 k_item["kazanim"],
                 f"%{k_item['avg_rate']:.1f}",
-                k_item["level_code"].split(" - ")[0],
-                f"{k_item['crit_count']} Öğr.",
-                f"{k_item['high_count']} Öğr.",
-                k_item["level_desc"]
+                status_text,
+                f"({k_item['crit_count']} Öğr.): {crit_list_str}"
             ]
 
             for c_idx, val in enumerate(vals):
                 cell = row_cells[c_idx]
                 set_cell_shading(cell, bg_col)
-                set_cell_margins(cell, top=45, bottom=45, left=65, right=65)
+                set_cell_margins(cell, top=16, bottom=16, left=25, right=25)
                 p = cell.paragraphs[0]
                 p.text = str(val)
-                p.runs[0].font.size = Pt(8)
-                if c_idx in [1, 2, 3, 4]:
+                p.runs[0].font.size = Pt(6.5)
+                if c_idx == 1:
                     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
                     p.runs[0].bold = True
+                elif c_idx == 2:
+                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    p.runs[0].bold = True
+                    p.runs[0].font.color.rgb = RGBColor.from_string(status_color)
 
-        # Kritik desteğe ihtiyacı olan öğrencilerin net isim listesi
-        doc.add_paragraph().paragraph_format.space_before = Pt(3)
-        add_h2("📌 Kritik Kazanımlarda Desteğe İhtiyacı Olan Öğrenciler (<%40 Başarı / Sıfır Çekenler)")
-        crit_found = False
-        for k_item in b_data["kazanims"]:
-            if k_item["crit_count"] > 0 and k_item["avg_rate"] < 65.0:
-                crit_found = True
-                p_z = doc.add_paragraph(style="List Bullet")
-                p_z.paragraph_format.space_before = Pt(1)
-                p_z.paragraph_format.space_after = Pt(1)
-                r_z1 = p_z.add_run(f"{k_item['kazanim']} (Sınıf Başarısı: %{k_item['avg_rate']:.1f}): ")
-                r_z1.bold = True
-                r_z1.font.size = Pt(8.5)
-                r_z1.font.color.rgb = RGBColor(144, 12, 63)
-                r_z2 = p_z.add_run(f"Kritik {k_item['crit_count']} Öğrenci: {', '.join(k_item['crit_students'])}")
-                r_z2.font.size = Pt(8.5)
-        if not crit_found:
-            doc.add_paragraph("Tebrikler! Kritik eşikte (<%40) desteğe muhtaç öğrenci grubu bulunmamaktadır.")
-    else:
-        doc.add_paragraph("Bu branş için kayıtlı kazanım dökümü bulunmamaktadır.")
+        if mastered_k:
+            last_r = len(actionable_k) + 1
+            row_cells = tbl_kaz.rows[last_r].cells
+            for cell in row_cells:
+                set_cell_shading(cell, "E8F8F5")
+                set_cell_margins(cell, top=16, bottom=16, left=25, right=25)
+            
+            m_text = ", ".join([f"{k['kazanim']} (%{k['avg_rate']:.0f})" for k in mastered_k])
+            row_cells[0].paragraphs[0].text = "🟢 Güçlü Kazanımlar (Tam Hakimiyet)"
+            row_cells[0].paragraphs[0].runs[0].font.size = Pt(6.5)
+            row_cells[0].paragraphs[0].runs[0].bold = True
+            row_cells[0].paragraphs[0].runs[0].font.color.rgb = RGBColor(14, 102, 85)
 
-    # 5. BÖLÜM: FARKLILAŞTIRILMIŞ ÖĞRETİM İÇİN ÖĞRENCİ SEVİYE GRUPLARI
-    doc.add_paragraph().paragraph_format.space_before = Pt(4)
-    add_h1(f"4. FARKLILAŞTIRILMIŞ ÖĞRETİM GRUPLARI ({real_subject.upper()} BAZLI)")
-    doc.add_paragraph(
-        f"Öğrenciler {real_subject} netlerine göre 4 gruba tasnif edilmiştir. "
-        f"Zümre öğretmeninin ders içi ödevlendirme ve etüt planında bu grupları esas alması önerilir:"
-    )
+            row_cells[1].paragraphs[0].text = "≥%75"
+            row_cells[1].paragraphs[0].runs[0].font.size = Pt(6.5)
+            row_cells[1].paragraphs[0].runs[0].bold = True
+            row_cells[1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-    for g_title, g_info in b_data["tiers"].items():
-        tbl_g = doc.add_table(rows=1, cols=1)
-        tbl_g.alignment = WD_TABLE_ALIGNMENT.CENTER
-        cell_g = tbl_g.cell(0, 0)
-        set_cell_shading(cell_g, g_info["bg"][1:] if g_info["bg"].startswith("#") else g_info["bg"])
-        set_cell_margins(cell_g, top=70, bottom=70, left=110, right=110)
-        border_hex = g_info["color"][1:] if g_info["color"].startswith("#") else g_info["color"]
-        borders_xml = (
-            f'<w:tcBorders {nsdecls("w")}><w:top w:val="none"/>'
-            f'<w:left w:val="single" w:sz="20" w:space="0" w:color="{border_hex}"/>'
-            f'<w:bottom w:val="none"/><w:right w:val="none"/></w:tcBorders>'
-        )
-        cell_g._tc.get_or_add_tcPr().append(parse_xml(borders_xml))
-        
-        p = cell_g.paragraphs[0]
-        p.paragraph_format.space_before = Pt(1)
-        p.paragraph_format.space_after = Pt(1)
-        r_head = p.add_run(f"{g_title} [{g_info['range']}] — {len(g_info['students'])} Öğrenci\n")
-        r_head.bold = True
-        r_head.font.size = Pt(9.5)
-        r_head.font.color.rgb = RGBColor.from_string(border_hex)
+            row_cells[2].paragraphs[0].text = f"{len(mastered_k)} Konu"
+            row_cells[2].paragraphs[0].runs[0].font.size = Pt(6.5)
+            row_cells[2].paragraphs[0].runs[0].bold = True
+            row_cells[2].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            row_cells[2].paragraphs[0].runs[0].font.color.rgb = RGBColor(14, 102, 85)
 
-        r_goal = p.add_run(f"🎯 Zümre Hedefi & Strateji: {g_info['goal']}\n")
-        r_goal.italic = True
-        r_goal.font.size = Pt(8.5)
+            row_cells[3].paragraphs[0].text = f"Sınıf genelinde yüksek başarı sağlanan konular: {m_text}"
+            row_cells[3].paragraphs[0].runs[0].font.size = Pt(6.5)
 
-        st_names_str = ", ".join([f"{s['name']} ({s['net']:.2f}N)" for s in g_info["students"]]) if g_info["students"] else "Bu grupta öğrenci bulunmuyor."
-        r_st = p.add_run(f"Öğrenciler: {st_names_str}")
-        r_st.font.size = Pt(8.5)
+    # 5. 27 Öğrencinin Branş Başarı ve Davranış Sıralaması (Çift Bloklu Yan Yana Düzen)
+    p_shead = doc.add_paragraph()
+    p_shead.paragraph_format.space_before = Pt(3)
+    p_shead.paragraph_format.space_after = Pt(1)
+    r_sh = p_shead.add_run(f"👥 8/B SINIFI TÜM ÖĞRENCİLERİN BRANŞ PERFORMANS VE DAVRANIŞ SIRALAMASI (27 ÖĞRENCİ)")
+    r_sh.bold = True
+    r_sh.font.size = Pt(8.5)
+    r_sh.font.color.rgb = RGBColor(31, 73, 125)
 
-        doc.add_paragraph().paragraph_format.space_before = Pt(2)
+    # 27 öğrenciyi sol (1-14) ve sağ (15-27) blok olarak birleştirelim
+    half = (len(b_data["students"]) + 1) // 2
+    left_students = b_data["students"][:half]
+    right_students = b_data["students"][half:]
 
-    # 6. BÖLÜM: TÜM ÖĞRENCİLERİN BRANŞ PERFORMANS VE DAVRANIŞ SIRALAMASI
-    add_h1(f"5. 8/B SINIFI {real_subject.upper()} ÖĞRENCİ SIRALAMA VE DAVRANIŞ LİSTESİ")
-
-    tbl_st = doc.add_table(rows=len(b_data["students"]) + 1, cols=8)
+    tbl_st = doc.add_table(rows=half + 1, cols=10)
     tbl_st.alignment = WD_TABLE_ALIGNMENT.CENTER
     set_table_borders(tbl_st)
 
-    s_hdrs = ["Sıra", "No", "Öğrenci Adı Soyadı", "D", "Y", "B", "Net", "Davranış / Bireysel Tavsiye"]
-    for c, h in enumerate(s_hdrs):
+    sub_hdrs = ["Sıra", "No", "Öğrenci", "D/Y/B", "Net", "Sıra", "No", "Öğrenci", "D/Y/B", "Net"]
+    for c, h in enumerate(sub_hdrs):
         cell = tbl_st.cell(0, c)
-        set_cell_shading(cell, "595959")
-        set_cell_margins(cell, top=45, bottom=45, left=60, right=60)
+        set_cell_shading(cell, "4A4A4A" if c < 5 else "595959")
+        set_cell_margins(cell, top=25, bottom=25, left=30, right=30)
         p = cell.paragraphs[0]
         p.text = h
         p.runs[0].bold = True
-        p.runs[0].font.size = Pt(8)
+        p.runs[0].font.size = Pt(6.5)
         p.runs[0].font.color.rgb = RGBColor(255, 255, 255)
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        if c in [0, 1, 3, 4, 5, 6, 8, 9]:
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-    for r_idx, s in enumerate(b_data["students"], 1):
-        row_cells = tbl_st.rows[r_idx].cells
+    for r_idx in range(half):
+        row_cells = tbl_st.rows[r_idx + 1].cells
         
-        bg_col = "FFFFFF" if r_idx % 2 == 1 else "F9F9F9"
-        if s["net"] >= (b_data["questions"] * 0.8):
-            bg_col = "E8F8F5"
-        elif s["net"] < (b_data["questions"] * 0.3):
-            bg_col = "FDEDEC"
+        # Sol blok (1-14)
+        if r_idx < len(left_students):
+            s_l = left_students[r_idx]
+            bg_l = "FFFFFF" if r_idx % 2 == 0 else "F9F9F9"
+            if s_l["net"] >= (b_data["questions"] * 0.8):
+                bg_l = "E8F8F5"
+            elif s_l["net"] < (b_data["questions"] * 0.3):
+                bg_l = "FDEDEC"
 
-        vals = [
-            str(s["branch_rank"]),
-            str(s["school_no"]),
-            s["name"],
-            str(s["d"]),
-            str(s["y"]),
-            str(s["b"]),
-            f"{s['net']:.2f}",
-            f"{s['behavior_code']}: {s['recommendation']}"
-        ]
+            l_vals = [
+                str(s_l["branch_rank"]),
+                str(s_l["school_no"]),
+                s_l["name"].title()[:15],
+                f"{s_l['d']}/{s_l['y']}/{s_l['b']}",
+                f"{s_l['net']:.2f}"
+            ]
+            for c_idx, val in enumerate(l_vals):
+                cell = row_cells[c_idx]
+                set_cell_shading(cell, bg_l)
+                set_cell_margins(cell, top=20, bottom=20, left=30, right=30)
+                p = cell.paragraphs[0]
+                p.text = val
+                p.runs[0].font.size = Pt(6.5)
+                if c_idx in [0, 1, 3, 4]:
+                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                if c_idx == 4:
+                    p.runs[0].bold = True
 
-        for c_idx, val in enumerate(vals):
-            cell = row_cells[c_idx]
-            set_cell_shading(cell, bg_col)
-            set_cell_margins(cell, top=35, bottom=35, left=50, right=50)
-            p = cell.paragraphs[0]
-            p.text = str(val)
-            p.runs[0].font.size = Pt(7.5)
-            if c_idx in [0, 1, 3, 4, 5, 6]:
-                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            if c_idx == 6:
-                p.runs[0].bold = True
+        # Sağ blok (15-27)
+        if r_idx < len(right_students):
+            s_r = right_students[r_idx]
+            bg_r = "FFFFFF" if r_idx % 2 == 0 else "F9F9F9"
+            if s_r["net"] >= (b_data["questions"] * 0.8):
+                bg_r = "E8F8F5"
+            elif s_r["net"] < (b_data["questions"] * 0.3):
+                bg_r = "FDEDEC"
 
-    # 7. BÖLÜM: 4 HAFTALIK ZÜMRE EYLEM VE İYİLEŞTİRME TAKVİMİ
-    doc.add_paragraph().paragraph_format.space_before = Pt(6)
-    add_h1(f"6. {real_subject.upper()} ZÜMRESİ 4 HAFTALIK EYLEM VE TAKİP PLANI")
-    doc.add_paragraph(f"Önümüzdeki deneme sınavına kadar derste uygulanacak somut eylem adımları:")
+            r_vals = [
+                str(s_r["branch_rank"]),
+                str(s_r["school_no"]),
+                s_r["name"].title()[:15],
+                f"{s_r['d']}/{s_r['y']}/{s_r['b']}",
+                f"{s_r['net']:.2f}"
+            ]
+            for c_idx, val in enumerate(r_vals):
+                cell = row_cells[c_idx + 5]
+                set_cell_shading(cell, bg_r)
+                set_cell_margins(cell, top=20, bottom=20, left=30, right=30)
+                p = cell.paragraphs[0]
+                p.text = val
+                p.runs[0].font.size = Pt(6.5)
+                if c_idx in [0, 1, 3, 4]:
+                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                if c_idx == 4:
+                    p.runs[0].bold = True
+        else:
+            # Boş hücre
+            for c_idx in range(5, 10):
+                cell = row_cells[c_idx]
+                set_cell_shading(cell, "FFFFFF")
+                cell.paragraphs[0].text = ""
 
-    for week, act in ped["four_week_plan"]:
-        p_act = doc.add_paragraph(style="List Bullet")
-        p_act.paragraph_format.space_before = Pt(1)
-        p_act.paragraph_format.space_after = Pt(1)
-        r_w = p_act.add_run(f"{week} ")
-        r_w.bold = True
-        r_w.font.size = Pt(8.5)
-        r_w.font.color.rgb = RGBColor(31, 73, 125)
-        r_a = p_act.add_run(act)
-        r_a.font.size = Pt(8.5)
-
-    doc.add_paragraph().paragraph_format.space_before = Pt(2)
-    p_hw = doc.add_paragraph()
-    r_hw1 = p_hw.add_run("🎯 Haftalık Ödevlendirme ve Soru Çözüm Kotası: ")
-    r_hw1.bold = True
-    r_hw1.font.size = Pt(9)
-    r_hw1.font.color.rgb = RGBColor(17, 120, 100)
-    r_hw2 = p_hw.add_run(ped["weekly_homework_target"])
-    r_hw2.font.size = Pt(9)
-
-    # 8. BÖLÜM: SEVİYE BAZLI YOUTUBE DESTEK REHBERİ
-    if b_data.get("youtube"):
-        doc.add_paragraph().paragraph_format.space_before = Pt(2)
-        add_h2(f"📺 {real_subject} Öğrencilere Tavsiye Edilecek YouTube Kanalları")
-        for lvl_key, l_info in b_data["youtube"].items():
-            p_yt = doc.add_paragraph(style="List Bullet")
-            p_yt.paragraph_format.space_before = Pt(1)
-            p_yt.paragraph_format.space_after = Pt(1)
-            r_yt1 = p_yt.add_run(f"{l_info['level_name']}: {l_info['channel']} — ")
-            r_yt1.bold = True
-            r_yt1.font.size = Pt(8.5)
-            r_yt2 = p_yt.add_run(f"Odak: {l_info['focus']} | Taktiği: {l_info['study_tip']}")
-            r_yt2.font.size = Pt(8.5)
-
-    # 9. BÖLÜM: RESMİ İMZA VE ONAY ALANI
-    doc.add_paragraph().paragraph_format.space_before = Pt(10)
-    tbl_sign = doc.add_table(rows=2, cols=3)
-    tbl_sign.alignment = WD_TABLE_ALIGNMENT.CENTER
-    sign_headers = [f"{real_subject} Öğretmeni", "Zümre Başkanı", "Okul Müdürü"]
-    for i, h in enumerate(sign_headers):
-        c0 = tbl_sign.cell(0, i)
-        c0.paragraphs[0].text = h
-        c0.paragraphs[0].runs[0].bold = True
-        c0.paragraphs[0].runs[0].font.size = Pt(9)
-        c0.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-        
-        c1 = tbl_sign.cell(1, i)
-        c1.paragraphs[0].text = "\n\nİmza / Tarih: ................"
-        c1.paragraphs[0].runs[0].font.size = Pt(8)
-        c1.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-
+    # Güvenli kayıt
     if output_path:
         out_dir = os.path.dirname(os.path.abspath(output_path))
         os.makedirs(out_dir, exist_ok=True)
