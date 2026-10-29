@@ -328,13 +328,19 @@ def profile_to_risk_factors(student_id: int, data: dict):
 
     # ── Bölüm 4: Sağlık ───────────────────────────────────────
     # F26: Süreğen hastalığı olan (ilaç kullanımı veya tanı)
+    _saglik_notlari = []
+    if data.get("tani_aciklama"):
+        _saglik_notlari.append(f"Tanı: {data['tani_aciklama']}")
+    if data.get("ilac_adi"):
+        _saglik_notlari.append(f"İlaç: {data['ilac_adi']}")
     sf(26, data.get("ilac_kullaniyor") == "Evet" or data.get("tani_var") == "Evet",
-       note=data.get("tani_aciklama", ""))
+       note=" | ".join(_saglik_notlari))
     # F25: Yetersizlik alanında özel eğitim raporu
     ozel_egitim = data.get("ozel_egitim", "")
     sf(25, ozel_egitim in ("Evet, özel eğitim alıyorum", "Evet, kaynaştırma öğrencisiyim"))
     # F18: Ailesinde süreğen hastalığı olan
-    sf(18, data.get("ailede_hastalik") == "Evet")
+    sf(18, data.get("ailede_hastalik") == "Evet",
+       note=data.get("ailede_aciklama", ""))
 
     # ── Bölüm 5: Okul Hayatı ──────────────────────────────────
     # F31: Sürekli devamsız olan

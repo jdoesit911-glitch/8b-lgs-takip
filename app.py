@@ -2133,19 +2133,24 @@ with tab_risk:
                 # Özet tablo
                 summary_rows = []
                 for p in all_profiles:
+                    akad_str = ", ".join(_pjson.loads(p.get("akademik_destek","[]") or "[]")) if p.get("akademik_destek") else "-"
+                    tek_raw = p.get("teknoloji_aleti", "")
+                    tek_str = ", ".join(_pjson.loads(tek_raw or "[]")) if tek_raw.startswith("[") else (tek_raw or "-")
                     summary_rows.append({
-                        "Okul No":      p.get("school_no", ""),
-                        "Adı Soyadı":   p.get("name", ""),
-                        "Cinsiyet":     p.get("cinsiyet", ""),
-                        "Cep Tel":      p.get("cep_telefon", ""),
-                        "Kardeş":       p.get("kardes_sayisi", ""),
-                        "Anne Eğitim":  p.get("anne_egitim", ""),
-                        "Baba Eğitim":  p.get("baba_egitim", ""),
-                        "Devamsızlık":  p.get("devamsizlik_gun", ""),
-                        "Ders Zorluk":  p.get("ders_zorluk", ""),
-                        "Çalışma":      p.get("calisma_durumu", ""),
-                        "Genel His":    p.get("genel_his", ""),
-                        "Destek İstek": p.get("destek_istek", ""),
+                        "Okul No":          p.get("school_no", ""),
+                        "Adı Soyadı":       p.get("name", ""),
+                        "Cinsiyet":         p.get("cinsiyet", ""),
+                        "Cep Tel":          p.get("cep_telefon", ""),
+                        "İlaç / Cihaz":     p.get("ilac_adi") if p.get("ilac_kullaniyor") == "Evet" else ("Evet" if p.get("ilac_kullaniyor") == "Evet" else "-"),
+                        "Tanı / Engel":     p.get("tani_aciklama") if p.get("tani_var") == "Evet" else ("Evet" if p.get("tani_var") == "Evet" else "-"),
+                        "Ailede Hastalık":  p.get("ailede_aciklama") if p.get("ailede_hastalik") == "Evet" else ("Evet" if p.get("ailede_hastalik") == "Evet" else "-"),
+                        "Kulüp / Branş":    p.get("kurs_brans") or (p.get("kurs_adi") if p.get("kurs_kulup") == "Evet" else "-"),
+                        "Akademik Destek":  akad_str,
+                        "Teknoloji":        tek_str,
+                        "Devamsızlık":      p.get("devamsizlik_gun", ""),
+                        "Ders Zorluk":      p.get("ders_zorluk", ""),
+                        "Genel His":        p.get("genel_his", ""),
+                        "Destek İstek":     p.get("destek_istek", ""),
                     })
                 df_profiles = pd.DataFrame(summary_rows)
                 st.dataframe(df_profiles, use_container_width=True, height=420)
@@ -2191,12 +2196,15 @@ with tab_risk:
 """)
                     dc2.markdown(f"""
 **🏥 Sağlık**
-- İlaç kullanımı: {sel_prof_data.get('ilac_kullaniyor','-')} {('('+sel_prof_data.get('ilac_adi','')+')'  ) if sel_prof_data.get('ilac_adi') else ''}
-- Tanı: {sel_prof_data.get('tani_var','-')} {('('+sel_prof_data.get('tani_aciklama','')+')'  ) if sel_prof_data.get('tani_aciklama') else ''}
-- Özel eğitim: {sel_prof_data.get('ozel_egitim','-')}
-- Ailede hastalık: {sel_prof_data.get('ailede_hastalik','-')} {('('+sel_prof_data.get('ailede_aciklama','')+')') if sel_prof_data.get('ailede_aciklama') else ''}
-- Kulüp / Spor: {sel_prof_data.get('kurs_kulup','-')} {('('+sel_prof_data.get('kurs_brans','')+')') if sel_prof_data.get('kurs_brans') else ''}
+- İlaç / Cihaz kullanımı: {sel_prof_data.get('ilac_kullaniyor','-')} {('— ' + sel_prof_data.get('ilac_adi','')) if sel_prof_data.get('ilac_adi') else ''}
+- Tanısı konmuş hastalık / engel: {sel_prof_data.get('tani_var','-')} {('— ' + sel_prof_data.get('tani_aciklama','')) if sel_prof_data.get('tani_aciklama') else ''}
+- Özel eğitim / kaynaştırma: {sel_prof_data.get('ozel_egitim','-')}
+- Ailede süreğen hastalık / engel: {sel_prof_data.get('ailede_hastalik','-')} {('— ' + sel_prof_data.get('ailede_aciklama','')) if sel_prof_data.get('ailede_aciklama') else ''}
+
+**🎨 Kulüp & Akademik Destek**
+- Kulüp / Spor / Sanat: {sel_prof_data.get('kurs_kulup','-')} {('— Branş: ' + sel_prof_data.get('kurs_brans','')) if sel_prof_data.get('kurs_brans') else ''}
 - Akademik destek: {', '.join(_pjson.loads(sel_prof_data.get('akademik_destek','[]') or '[]')) if sel_prof_data.get('akademik_destek') else '-'}
+- Hobiler: {', '.join(_pjson.loads(sel_prof_data.get('hobiler','[]') or '[]')) if sel_prof_data.get('hobiler') else '-'}
 
 **🏫 Okul Hayatı**
 - Devamsızlık: {sel_prof_data.get('devamsizlik_gun','-')}
@@ -2206,9 +2214,10 @@ with tab_risk:
 - Arkadaş edinme: {sel_prof_data.get('arkadas_edinme','-')}
 
 **🌇 Günlük Hayat**
-- Çalışma: {sel_prof_data.get('calisma_durumu','-')}
+- Çalışma durumu: {sel_prof_data.get('calisma_durumu','-')}
 - Ders ortamı: {sel_prof_data.get('ders_ortami','-')}
-- İnternet: {sel_prof_data.get('internet_erisim','-')}
+- İnternet erişimi: {sel_prof_data.get('internet_erisim','-')}
+- Teknolojik aletler: {', '.join(_pjson.loads(sel_prof_data.get('teknoloji_aleti','[]') or '[]')) if sel_prof_data.get('teknoloji_aleti','').startswith('[') else (sel_prof_data.get('teknoloji_aleti') or '-') }
 
 **💬 Kendini Anlat**
 - Genel his: {sel_prof_data.get('genel_his','-')}
@@ -2226,7 +2235,19 @@ with tab_risk:
                 if st.button("📥 Tüm Profilleri Excel Olarak İndir", key="btn_profiles_excel"):
                     import io as _io
                     buf_p = _io.BytesIO()
-                    df_full = pd.DataFrame(all_profiles)
+                    # JSON listelerini temiz metne dönüştür
+                    clean_profiles = []
+                    for pr in all_profiles:
+                        pr_copy = dict(pr)
+                        for col_j in ["evde_kimseler", "zor_dersler", "hobiler", "teknoloji_aleti", "akademik_destek"]:
+                            val_j = pr_copy.get(col_j, "")
+                            if isinstance(val_j, str) and val_j.startswith("["):
+                                try:
+                                    pr_copy[col_j] = ", ".join(_pjson.loads(val_j))
+                                except Exception:
+                                    pass
+                        clean_profiles.append(pr_copy)
+                    df_full = pd.DataFrame(clean_profiles)
                     df_full.to_excel(buf_p, index=False, sheet_name="Öğrenci Profilleri")
                     buf_p.seek(0)
                     st.download_button(
