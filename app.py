@@ -382,220 +382,221 @@ if current_role == "student":
     diag = diagnose_student(st_data, st_kaz)
     stats = analyze_class_performance(results)
 
-    # --- Öğrenci KPI ---
-    st.markdown(f"## 🎒 Hoş Geldiniz, {student_name.title()}!")
-    st.markdown("---")
-
-    # İki Deneme Arası Karşılaştırmalı Gelişim Kartı
-    try:
-        from core.comparative_analyzer import get_multi_exam_comparison
-        all_comps = get_multi_exam_comparison()
-        my_comp = all_comps.get(student_name)
-        if my_comp and my_comp.get('has_both'):
-            my_d_net = my_comp.get('delta_net', my_comp.get('d_net', 0.0))
-            my_d_puan = my_comp.get('delta_puan', my_comp.get('d_puan', 0.0))
-            my_d_rank = my_comp.get('delta_cls_rank', my_comp.get('d_cls_rank', 0))
-            my_best = my_comp.get('best_sub', ('-', 0.0))
-            my_worst = my_comp.get('worst_sub', ('-', 0.0))
-            my_trend = my_comp.get('trend', 'Dengeli')
-            my_icon = my_comp.get('trend_icon', '📊')
-
-            st.markdown(
-                f"<div style='background-color:#EBF5FB; border-left:5px solid #2980B9; border-radius:8px; padding:14px; margin-bottom:15px;'>"
-                f"<h4 style='margin:0 0 8px 0; color:#1B4F72;'>📈 Denemeler Arası Gelişim Özeti ({my_comp.get('exam1_name', '1. Deneme')} ➔ {my_comp.get('exam2_name', '2. Deneme')})</h4>"
-                f"<div style='display:flex; gap:20px; flex-wrap:wrap;'>"
-                f"<div><b>Net Değişimi:</b> <span style='color:{'#27AE60' if my_d_net >= 0 else '#C0392B'}; font-weight:bold;'>{my_d_net:+.2f} Net</span></div>"
-                f"<div><b>LGS Puan Değişimi:</b> <span style='color:{'#27AE60' if my_d_puan >= 0 else '#C0392B'}; font-weight:bold;'>{my_d_puan:+.2f} Puan</span></div>"
-                f"<div><b>Sınıf Sırası Değişimi:</b> <span style='color:{'#27AE60' if my_d_rank >= 0 else '#C0392B'}; font-weight:bold;'>{my_d_rank:+d} Sıra</span></div>"
-                f"<div><b>Gelişim Durumu:</b> {my_icon} {my_trend}</div>"
-                f"</div>"
-                f"<div style='margin-top:8px; font-size:13px; color:#2C3E50;'>"
-                f"🚀 <b>En Çok Geliştiğin Branş:</b> {my_best[0]} ({my_best[1]:+.2f} Net) &nbsp;|&nbsp; "
-                f"🎯 <b>Destek Gereken Branş:</b> {my_worst[0]} ({my_worst[1]:+.2f} Net)"
-                f"</div>"
-                f"</div>",
-                unsafe_allow_html=True
-            )
-        elif my_comp and not my_comp.get('has_both') and my_comp.get('r2'):
-            st.info("🌱 **8/B Sınıfına Hoş Geldin!** Bu senin sınıfımızdaki ilk deneme sınavın. Başlangıç performansın başarıyla kaydedildi.")
-        elif my_comp and not my_comp.get('has_both') and my_comp.get('r1'):
-            st.warning("ℹ️ **Bu Sınava Katılamadın (Mazeretli).** Bir önceki deneme verilerin ve telafi çalışma programın sistemde korunmaktadır.")
-    except Exception as _e_comp:
-        pass
-
-    k1, k2, k3, k4, k5 = st.columns(5)
-    k1.metric("📝 Toplam Net", f"{st_data['top_net']:.2f}")
-    k2.metric("🏆 LGS Puanı", f"{st_data['score']:.2f}")
-    k3.metric("📊 Sınıf Sırası", f"{st_data['class_rank']}. / {len(results)}")
-    k4.metric("🎯 14. Gün Hedefi", f"{diag['target_14d']} Net")
-    k5.metric("📈 28. Gün Hedefi", f"{diag['target_28d']} Net")
-
-    st.markdown("---")
-
-    # --- Sınıf karşılaştırma ---
-    col_mine, col_class = st.columns(2)
-
-    with col_mine:
-        st.subheader("📊 Ders Bazında Kendi Netlerim")
-        subj_map = {
-            "Türkçe": st_data.get("tur_net", 0),
-            "İnkılap": st_data.get("ink_net", 0),
-            "Din Kültürü": st_data.get("din_net", 0),
-            "İngilizce": st_data.get("ing_net", 0),
-            "Matematik": st_data.get("mat_net", 0),
-            "Fen Bilimleri": st_data.get("fen_net", 0),
-        }
-        fig_me, ax_me = plt.subplots(figsize=(5, 3))
-        ax_me.barh(list(subj_map.keys()), list(subj_map.values()), color="#1F497D")
-        ax_me.set_xlabel("Net")
-        ax_me.grid(axis="x", linestyle="--", alpha=0.4)
-        st.pyplot(fig_me)
-
-    with col_class:
-        st.subheader("📊 Sınıf Ortalamaları (Karşılaştırma)")
-        comp_df = pd.DataFrame(comps)
-        if not comp_df.empty:
-            fig_c, ax_c = plt.subplots(figsize=(5, 3))
-            ax_c.barh(comp_df['subject'], comp_df['class_8b'], color="#117864")
-            ax_c.set_xlabel("Sınıf Ort. Net")
-            ax_c.grid(axis="x", linestyle="--", alpha=0.4)
-            st.pyplot(fig_c)
-
-    st.markdown("---")
-
-    # --- Kazanımlar ---
-    col_k1, col_k2 = st.columns(2)
-    with col_k1:
-        st.markdown("### 🔴 Sıfır Çekilen Kazanımlar (%0)")
-        if diag['zero_kaz']:
-            for zk in diag['zero_kaz']:
-                st.error(f"❌ {zk}")
-        else:
-            st.success("Tebrikler! Sıfır çektiğin kazanım bulunmuyor.")
-
-        st.markdown("### 🟡 Kritik Açıklar (<%50 Başarı)")
-        if diag['low_kaz']:
-            for lk in diag['low_kaz']:
-                st.warning(f"⚠️ {lk}")
-        else:
-            st.info("Kritik seviyede düşük kazanım bulunmuyor.")
-
-    with col_k2:
-        st.markdown("### 🎯 Gelişim Hedefleri & Strateji")
-        st.info(f"**Önerilen Strateji:** {diag['strategy']}")
-        st.success(f"**14. Gün Ara Kontrol Hedefi:** {diag['target_14d']} Net")
-        st.success(f"**28. Gün (2. Deneme) Hedefi:** {diag['target_28d']} Net")
-        st.warning(f"**Haftalık Soru Çözüm Kotası:** {diag['weekly_quota']} Soru + Yanlış Defteri")
-
-        # Karne indirme — Türkçe karakterleri ASCII'ye dönüştür (generate_all_student_cards ile tutarlı)
-        def _tr_safe(s):
-            return s.replace(' ','_').replace('ç','c').replace('Ç','C').replace('ğ','g').replace('Ğ','G').replace('ı','i').replace('İ','I').replace('ö','o').replace('Ö','O').replace('ş','s').replace('Ş','S').replace('ü','u').replace('Ü','U')
-        safe_name = _tr_safe(student_name)
-        single_card_path = os.path.join(EXPORTS_DIR, "karneler",
-                                         f"{st_data.get('school_no', '000')}_{safe_name}_Karne.docx")
-        if not os.path.exists(single_card_path):
-            fb_c = os.path.join(os.path.dirname(os.path.abspath(__file__)), "exports", "karneler",
-                                f"{st_data.get('school_no', '000')}_{safe_name}_Karne.docx")
-            if os.path.exists(fb_c):
-                single_card_path = fb_c
-            else:
-                generate_single_student_card(st_data, selected_exam_name, st_kaz, single_card_path)
-        if os.path.exists(single_card_path):
-            with open(single_card_path, "rb") as f_card:
-                c_bytes = f_card.read()
-            st.download_button(
-                label=f"📥 Karnemi İndir (.docx)",
-                data=c_bytes,
-                file_name=f"{st_data.get('school_no', '000')}_{safe_name}_Karne.docx",
-                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                use_container_width=True
-            )
-
-        # Karnemi İndir Butonunun Altındaki Boş Alana LGS YouTube Öğretmen Listesi Tablosu
-        st.markdown(render_lgs_youtube_table_html(), unsafe_allow_html=True)
-
-    st.markdown("---")
-    st.markdown("---")
-    st.markdown("### 🔬 6 Branş İçin Kişiselleştirilmiş Gelişim Reçeteleri")
-    sub_recs = get_subject_prescriptions(st_data, st_kaz)
-
-    # 1. DOĞRUDAN GÖRÜNÜR YOUTUBE DERS VİTRİNİ
-    st.markdown("#### 📺 Seviyene Özel Önerilen YouTube Dersleri")
-    yt_cols = st.columns(3)
-    c_idx = 0
-    for s_title in ["Türkçe", "Matematik", "Fen Bilimleri", "İnkılap Tarihi", "Din Kültürü", "İngilizce"]:
-        if s_title in sub_recs and sub_recs[s_title].get("youtube"):
-            s_item = sub_recs[s_title]
-            yt = s_item["youtube"]
-            with yt_cols[c_idx % 3]:
-                _btns_html = render_yt_buttons_html(yt.get('buttons', []))
-                _badge_color = yt['badge_color']
-                _level_name  = yt['level_name']
-                _channel     = yt['channel']
-                _net_val     = s_item['net']
-                _card_top = (
-                    "<div style=\"background-color:#FDF2E9; border-radius:8px; padding:12px;"
-                    " border-left:4px solid #E67E22; margin-bottom:12px; box-shadow:0 2px 5px rgba(0,0,0,0.05);\">"
-                    "<div style=\"display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;\">"
-                    f"<b style=\"color:#78281F; font-size:14px;\">{s_title}</b>"
-                    f"<span style=\"background-color:{_badge_color}; color:white; padding:2px 7px; border-radius:8px; font-size:10px; font-weight:bold;\">{_level_name}</span>"
-                    "</div>"
-                    f"<small style=\"color:#555;\"><b>Netin:</b> {_net_val:.2f} | <b>Kanal:</b> {_channel}</small>"
-                )
-                st.markdown(_card_top + _btns_html + "</div>", unsafe_allow_html=True)
-            c_idx += 1
-
-    st.markdown("#### 📋 Ayrıntılı Branş Kazanım Analizi ve Reçeteler")
-    sub_cols = st.columns(2)
-    idx_c = 0
-    for s_title in ["Fen Bilimleri", "Matematik", "Türkçe", "İnkılap Tarihi", "Din Kültürü", "İngilizce"]:
-        if s_title in sub_recs:
-            s_info = sub_recs[s_title]
-            yt = s_info.get('youtube', {})
-            yt_tag = f" 📺 {yt.get('channel', '')}" if yt else ""
-            with sub_cols[idx_c % 2]:
-                with st.expander(f"{s_info['title']} (Net: {s_info['net']:.2f}){yt_tag}", expanded=False):
-                    st.markdown(f"**📊 Kazanım Başarı Dökümü:** {s_info['summary']}")
-                    if s_info.get('zero'):
-                        st.error(f"**🔴 Sıfır Çekilenler (%0):** {', '.join(s_info['zero'])}")
-                    if s_info.get('low'):
-                        st.warning(f"**🟡 Pekiştirilecekler (<% 100):** {', '.join(s_info['low'])}")
-                    if s_info.get('mast'):
-                        st.success(f"**🟢 Tam Hakim Olunanlar:** {len(s_info['mast'])} kazanım")
-                    st.info(f"**💡 Çalışma Reçetesi:** {s_info['advice']}")
-                    if yt:
-                        _btns_html2 = render_yt_buttons_html(yt.get('buttons', []))
-                        _yt_ch      = yt['channel']
-                        _yt_bc      = yt['badge_color']
-                        _yt_ln      = yt['level_name']
-                        _yt_focus   = yt['focus']
-                        _yt_tip     = yt['study_tip']
-                        _yt_box_top = (
-                            "<div style=\"background-color:#FDEDEC; border-left:4px solid #C0392B;"
-                            " padding:10px; border-radius:6px; margin-top:8px;\">"
-                            "<div style=\"display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;\">"
-                            f"<span style=\"color:#900C3F; font-weight:bold;\">📺 Önerilen YouTube Desteği: <b>{_yt_ch}</b></span>"
-                            f"<span style=\"background-color:{_yt_bc}; color:white; padding:2px 7px; border-radius:10px; font-size:11px; font-weight:bold;\">{_yt_ln}</span>"
-                            "</div>"
-                            f"<small>🎯 <b>Odak:</b> {_yt_focus}<br>"
-                            f"💡 <b>Çalışma Taktiği:</b> {_yt_tip}</small>"
-                        )
-                        st.markdown(_yt_box_top + _btns_html2 + "</div>", unsafe_allow_html=True)
-            idx_c += 1
-
-    # Gelişim Geçmişi
-    st_hist = get_student_history(student_name)
-    if len(st_hist) > 1:
+    if not st.session_state.get("show_student_form", False):
+        # --- Öğrenci KPI ---
+        st.markdown(f"## 🎒 Hoş Geldiniz, {student_name.title()}!")
         st.markdown("---")
-        st.markdown("### 📈 Deneme Sınavlarındaki Gelişim Grafiğim")
-        df_hist = pd.DataFrame(st_hist)
-        fig_h, ax_h = plt.subplots(figsize=(8, 3))
-        ax_h.plot(df_hist['exam_name'], df_hist['top_net'], marker='o', linewidth=2, color='#1F497D')
-        ax_h.set_ylabel("Net")
-        ax_h.grid(True, linestyle='--', alpha=0.5)
-        st.pyplot(fig_h)
 
-    # ─────────────────────────────────────────────────────────────────────────
+        # İki Deneme Arası Karşılaştırmalı Gelişim Kartı
+        try:
+            from core.comparative_analyzer import get_multi_exam_comparison
+            all_comps = get_multi_exam_comparison()
+            my_comp = all_comps.get(student_name)
+            if my_comp and my_comp.get('has_both'):
+                my_d_net = my_comp.get('delta_net', my_comp.get('d_net', 0.0))
+                my_d_puan = my_comp.get('delta_puan', my_comp.get('d_puan', 0.0))
+                my_d_rank = my_comp.get('delta_cls_rank', my_comp.get('d_cls_rank', 0))
+                my_best = my_comp.get('best_sub', ('-', 0.0))
+                my_worst = my_comp.get('worst_sub', ('-', 0.0))
+                my_trend = my_comp.get('trend', 'Dengeli')
+                my_icon = my_comp.get('trend_icon', '📊')
+
+                st.markdown(
+                    f"<div style='background-color:#EBF5FB; border-left:5px solid #2980B9; border-radius:8px; padding:14px; margin-bottom:15px;'>"
+                    f"<h4 style='margin:0 0 8px 0; color:#1B4F72;'>📈 Denemeler Arası Gelişim Özeti ({my_comp.get('exam1_name', '1. Deneme')} ➔ {my_comp.get('exam2_name', '2. Deneme')})</h4>"
+                    f"<div style='display:flex; gap:20px; flex-wrap:wrap;'>"
+                    f"<div><b>Net Değişimi:</b> <span style='color:{'#27AE60' if my_d_net >= 0 else '#C0392B'}; font-weight:bold;'>{my_d_net:+.2f} Net</span></div>"
+                    f"<div><b>LGS Puan Değişimi:</b> <span style='color:{'#27AE60' if my_d_puan >= 0 else '#C0392B'}; font-weight:bold;'>{my_d_puan:+.2f} Puan</span></div>"
+                    f"<div><b>Sınıf Sırası Değişimi:</b> <span style='color:{'#27AE60' if my_d_rank >= 0 else '#C0392B'}; font-weight:bold;'>{my_d_rank:+d} Sıra</span></div>"
+                    f"<div><b>Gelişim Durumu:</b> {my_icon} {my_trend}</div>"
+                    f"</div>"
+                    f"<div style='margin-top:8px; font-size:13px; color:#2C3E50;'>"
+                    f"🚀 <b>En Çok Geliştiğin Branş:</b> {my_best[0]} ({my_best[1]:+.2f} Net) &nbsp;|&nbsp; "
+                    f"🎯 <b>Destek Gereken Branş:</b> {my_worst[0]} ({my_worst[1]:+.2f} Net)"
+                    f"</div>"
+                    f"</div>",
+                    unsafe_allow_html=True
+                )
+            elif my_comp and not my_comp.get('has_both') and my_comp.get('r2'):
+                st.info("🌱 **8/B Sınıfına Hoş Geldin!** Bu senin sınıfımızdaki ilk deneme sınavın. Başlangıç performansın başarıyla kaydedildi.")
+            elif my_comp and not my_comp.get('has_both') and my_comp.get('r1'):
+                st.warning("ℹ️ **Bu Sınava Katılamadın (Mazeretli).** Bir önceki deneme verilerin ve telafi çalışma programın sistemde korunmaktadır.")
+        except Exception as _e_comp:
+            pass
+
+        k1, k2, k3, k4, k5 = st.columns(5)
+        k1.metric("📝 Toplam Net", f"{st_data['top_net']:.2f}")
+        k2.metric("🏆 LGS Puanı", f"{st_data['score']:.2f}")
+        k3.metric("📊 Sınıf Sırası", f"{st_data['class_rank']}. / {len(results)}")
+        k4.metric("🎯 14. Gün Hedefi", f"{diag['target_14d']} Net")
+        k5.metric("📈 28. Gün Hedefi", f"{diag['target_28d']} Net")
+
+        st.markdown("---")
+
+        # --- Sınıf karşılaştırma ---
+        col_mine, col_class = st.columns(2)
+
+        with col_mine:
+            st.subheader("📊 Ders Bazında Kendi Netlerim")
+            subj_map = {
+                "Türkçe": st_data.get("tur_net", 0),
+                "İnkılap": st_data.get("ink_net", 0),
+                "Din Kültürü": st_data.get("din_net", 0),
+                "İngilizce": st_data.get("ing_net", 0),
+                "Matematik": st_data.get("mat_net", 0),
+                "Fen Bilimleri": st_data.get("fen_net", 0),
+            }
+            fig_me, ax_me = plt.subplots(figsize=(5, 3))
+            ax_me.barh(list(subj_map.keys()), list(subj_map.values()), color="#1F497D")
+            ax_me.set_xlabel("Net")
+            ax_me.grid(axis="x", linestyle="--", alpha=0.4)
+            st.pyplot(fig_me)
+
+        with col_class:
+            st.subheader("📊 Sınıf Ortalamaları (Karşılaştırma)")
+            comp_df = pd.DataFrame(comps)
+            if not comp_df.empty:
+                fig_c, ax_c = plt.subplots(figsize=(5, 3))
+                ax_c.barh(comp_df['subject'], comp_df['class_8b'], color="#117864")
+                ax_c.set_xlabel("Sınıf Ort. Net")
+                ax_c.grid(axis="x", linestyle="--", alpha=0.4)
+                st.pyplot(fig_c)
+
+        st.markdown("---")
+
+        # --- Kazanımlar ---
+        col_k1, col_k2 = st.columns(2)
+        with col_k1:
+            st.markdown("### 🔴 Sıfır Çekilen Kazanımlar (%0)")
+            if diag['zero_kaz']:
+                for zk in diag['zero_kaz']:
+                    st.error(f"❌ {zk}")
+            else:
+                st.success("Tebrikler! Sıfır çektiğin kazanım bulunmuyor.")
+
+            st.markdown("### 🟡 Kritik Açıklar (<%50 Başarı)")
+            if diag['low_kaz']:
+                for lk in diag['low_kaz']:
+                    st.warning(f"⚠️ {lk}")
+            else:
+                st.info("Kritik seviyede düşük kazanım bulunmuyor.")
+
+        with col_k2:
+            st.markdown("### 🎯 Gelişim Hedefleri & Strateji")
+            st.info(f"**Önerilen Strateji:** {diag['strategy']}")
+            st.success(f"**14. Gün Ara Kontrol Hedefi:** {diag['target_14d']} Net")
+            st.success(f"**28. Gün (2. Deneme) Hedefi:** {diag['target_28d']} Net")
+            st.warning(f"**Haftalık Soru Çözüm Kotası:** {diag['weekly_quota']} Soru + Yanlış Defteri")
+
+            # Karne indirme — Türkçe karakterleri ASCII'ye dönüştür (generate_all_student_cards ile tutarlı)
+            def _tr_safe(s):
+                return s.replace(' ','_').replace('ç','c').replace('Ç','C').replace('ğ','g').replace('Ğ','G').replace('ı','i').replace('İ','I').replace('ö','o').replace('Ö','O').replace('ş','s').replace('Ş','S').replace('ü','u').replace('Ü','U')
+            safe_name = _tr_safe(student_name)
+            single_card_path = os.path.join(EXPORTS_DIR, "karneler",
+                                             f"{st_data.get('school_no', '000')}_{safe_name}_Karne.docx")
+            if not os.path.exists(single_card_path):
+                fb_c = os.path.join(os.path.dirname(os.path.abspath(__file__)), "exports", "karneler",
+                                    f"{st_data.get('school_no', '000')}_{safe_name}_Karne.docx")
+                if os.path.exists(fb_c):
+                    single_card_path = fb_c
+                else:
+                    generate_single_student_card(st_data, selected_exam_name, st_kaz, single_card_path)
+            if os.path.exists(single_card_path):
+                with open(single_card_path, "rb") as f_card:
+                    c_bytes = f_card.read()
+                st.download_button(
+                    label=f"📥 Karnemi İndir (.docx)",
+                    data=c_bytes,
+                    file_name=f"{st_data.get('school_no', '000')}_{safe_name}_Karne.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    use_container_width=True
+                )
+
+            # Karnemi İndir Butonunun Altındaki Boş Alana LGS YouTube Öğretmen Listesi Tablosu
+            st.markdown(render_lgs_youtube_table_html(), unsafe_allow_html=True)
+
+        st.markdown("---")
+        st.markdown("---")
+        st.markdown("### 🔬 6 Branş İçin Kişiselleştirilmiş Gelişim Reçeteleri")
+        sub_recs = get_subject_prescriptions(st_data, st_kaz)
+
+        # 1. DOĞRUDAN GÖRÜNÜR YOUTUBE DERS VİTRİNİ
+        st.markdown("#### 📺 Seviyene Özel Önerilen YouTube Dersleri")
+        yt_cols = st.columns(3)
+        c_idx = 0
+        for s_title in ["Türkçe", "Matematik", "Fen Bilimleri", "İnkılap Tarihi", "Din Kültürü", "İngilizce"]:
+            if s_title in sub_recs and sub_recs[s_title].get("youtube"):
+                s_item = sub_recs[s_title]
+                yt = s_item["youtube"]
+                with yt_cols[c_idx % 3]:
+                    _btns_html = render_yt_buttons_html(yt.get('buttons', []))
+                    _badge_color = yt['badge_color']
+                    _level_name  = yt['level_name']
+                    _channel     = yt['channel']
+                    _net_val     = s_item['net']
+                    _card_top = (
+                        "<div style=\"background-color:#FDF2E9; border-radius:8px; padding:12px;"
+                        " border-left:4px solid #E67E22; margin-bottom:12px; box-shadow:0 2px 5px rgba(0,0,0,0.05);\">"
+                        "<div style=\"display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;\">"
+                        f"<b style=\"color:#78281F; font-size:14px;\">{s_title}</b>"
+                        f"<span style=\"background-color:{_badge_color}; color:white; padding:2px 7px; border-radius:8px; font-size:10px; font-weight:bold;\">{_level_name}</span>"
+                        "</div>"
+                        f"<small style=\"color:#555;\"><b>Netin:</b> {_net_val:.2f} | <b>Kanal:</b> {_channel}</small>"
+                    )
+                    st.markdown(_card_top + _btns_html + "</div>", unsafe_allow_html=True)
+                c_idx += 1
+
+        st.markdown("#### 📋 Ayrıntılı Branş Kazanım Analizi ve Reçeteler")
+        sub_cols = st.columns(2)
+        idx_c = 0
+        for s_title in ["Fen Bilimleri", "Matematik", "Türkçe", "İnkılap Tarihi", "Din Kültürü", "İngilizce"]:
+            if s_title in sub_recs:
+                s_info = sub_recs[s_title]
+                yt = s_info.get('youtube', {})
+                yt_tag = f" 📺 {yt.get('channel', '')}" if yt else ""
+                with sub_cols[idx_c % 2]:
+                    with st.expander(f"{s_info['title']} (Net: {s_info['net']:.2f}){yt_tag}", expanded=False):
+                        st.markdown(f"**📊 Kazanım Başarı Dökümü:** {s_info['summary']}")
+                        if s_info.get('zero'):
+                            st.error(f"**🔴 Sıfır Çekilenler (%0):** {', '.join(s_info['zero'])}")
+                        if s_info.get('low'):
+                            st.warning(f"**🟡 Pekiştirilecekler (<% 100):** {', '.join(s_info['low'])}")
+                        if s_info.get('mast'):
+                            st.success(f"**🟢 Tam Hakim Olunanlar:** {len(s_info['mast'])} kazanım")
+                        st.info(f"**💡 Çalışma Reçetesi:** {s_info['advice']}")
+                        if yt:
+                            _btns_html2 = render_yt_buttons_html(yt.get('buttons', []))
+                            _yt_ch      = yt['channel']
+                            _yt_bc      = yt['badge_color']
+                            _yt_ln      = yt['level_name']
+                            _yt_focus   = yt['focus']
+                            _yt_tip     = yt['study_tip']
+                            _yt_box_top = (
+                                "<div style=\"background-color:#FDEDEC; border-left:4px solid #C0392B;"
+                                " padding:10px; border-radius:6px; margin-top:8px;\">"
+                                "<div style=\"display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;\">"
+                                f"<span style=\"color:#900C3F; font-weight:bold;\">📺 Önerilen YouTube Desteği: <b>{_yt_ch}</b></span>"
+                                f"<span style=\"background-color:{_yt_bc}; color:white; padding:2px 7px; border-radius:10px; font-size:11px; font-weight:bold;\">{_yt_ln}</span>"
+                                "</div>"
+                                f"<small>🎯 <b>Odak:</b> {_yt_focus}<br>"
+                                f"💡 <b>Çalışma Taktiği:</b> {_yt_tip}</small>"
+                            )
+                            st.markdown(_yt_box_top + _btns_html2 + "</div>", unsafe_allow_html=True)
+                idx_c += 1
+
+        # Gelişim Geçmişi
+        st_hist = get_student_history(student_name)
+        if len(st_hist) > 1:
+            st.markdown("---")
+            st.markdown("### 📈 Deneme Sınavlarındaki Gelişim Grafiğim")
+            df_hist = pd.DataFrame(st_hist)
+            fig_h, ax_h = plt.subplots(figsize=(8, 3))
+            ax_h.plot(df_hist['exam_name'], df_hist['top_net'], marker='o', linewidth=2, color='#1F497D')
+            ax_h.set_ylabel("Net")
+            ax_h.grid(True, linestyle='--', alpha=0.5)
+            st.pyplot(fig_h)
+
+        # ─────────────────────────────────────────────────────────────────────────
     if st.session_state.get("show_student_form", False):
         # ÖĞRENCİ TANIMA FORMU — Tab yerine doğrudan öğrenci sayfasında göster
         # ─────────────────────────────────────────────────────────────────────────
