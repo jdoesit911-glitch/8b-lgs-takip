@@ -1336,7 +1336,7 @@ with tab_risk:
 
         # --- Özet Metrik Kutuları ---
         total_students = len(_students_r)
-        total_at_risk = sum(1 for sid, _ in [(s[0], all_risk.get(s[0], set())) for s in _students_r] if all_risk.get(s[0]))
+        total_at_risk = sum(1 for s in _students_r if all_risk.get(s[0]))
         risk_summary = get_risk_summary()
 
         rm1, rm2, rm3 = st.columns(3)
