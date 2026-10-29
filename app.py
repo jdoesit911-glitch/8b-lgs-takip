@@ -372,18 +372,26 @@ if current_role == "student":
         all_comps = get_multi_exam_comparison()
         my_comp = all_comps.get(student_name)
         if my_comp and my_comp.get('has_both'):
+            my_d_net = my_comp.get('delta_net', my_comp.get('d_net', 0.0))
+            my_d_puan = my_comp.get('delta_puan', my_comp.get('d_puan', 0.0))
+            my_d_rank = my_comp.get('delta_cls_rank', my_comp.get('d_cls_rank', 0))
+            my_best = my_comp.get('best_sub', ('-', 0.0))
+            my_worst = my_comp.get('worst_sub', ('-', 0.0))
+            my_trend = my_comp.get('trend', 'Dengeli')
+            my_icon = my_comp.get('trend_icon', '📊')
+
             st.markdown(
                 f"<div style='background-color:#EBF5FB; border-left:5px solid #2980B9; border-radius:8px; padding:14px; margin-bottom:15px;'>"
-                f"<h4 style='margin:0 0 8px 0; color:#1B4F72;'>📈 Denemeler Arası Gelişim Özeti ({my_comp['exam1_name']} ➔ {my_comp['exam2_name']})</h4>"
+                f"<h4 style='margin:0 0 8px 0; color:#1B4F72;'>📈 Denemeler Arası Gelişim Özeti ({my_comp.get('exam1_name', '1. Deneme')} ➔ {my_comp.get('exam2_name', '2. Deneme')})</h4>"
                 f"<div style='display:flex; gap:20px; flex-wrap:wrap;'>"
-                f"<div><b>Net Değişimi:</b> <span style='color:{'#27AE60' if my_comp['d_net'] >= 0 else '#C0392B'}; font-weight:bold;'>{my_comp['d_net']:+.2f} Net</span></div>"
-                f"<div><b>LGS Puan Değişimi:</b> <span style='color:{'#27AE60' if my_comp['d_puan'] >= 0 else '#C0392B'}; font-weight:bold;'>{my_comp['d_puan']:+.2f} Puan</span></div>"
-                f"<div><b>Sınıf Sırası Değişimi:</b> <span style='color:{'#27AE60' if my_comp['d_cls_rank'] >= 0 else '#C0392B'}; font-weight:bold;'>{my_comp['d_cls_rank']:+d} Sıra</span></div>"
-                f"<div><b>Gelişim Durumu:</b> {my_comp['trend_icon']} {my_comp['trend']}</div>"
+                f"<div><b>Net Değişimi:</b> <span style='color:{'#27AE60' if my_d_net >= 0 else '#C0392B'}; font-weight:bold;'>{my_d_net:+.2f} Net</span></div>"
+                f"<div><b>LGS Puan Değişimi:</b> <span style='color:{'#27AE60' if my_d_puan >= 0 else '#C0392B'}; font-weight:bold;'>{my_d_puan:+.2f} Puan</span></div>"
+                f"<div><b>Sınıf Sırası Değişimi:</b> <span style='color:{'#27AE60' if my_d_rank >= 0 else '#C0392B'}; font-weight:bold;'>{my_d_rank:+d} Sıra</span></div>"
+                f"<div><b>Gelişim Durumu:</b> {my_icon} {my_trend}</div>"
                 f"</div>"
                 f"<div style='margin-top:8px; font-size:13px; color:#2C3E50;'>"
-                f"🚀 <b>En Çok Geliştiğin Branş:</b> {my_comp['best_sub'][0]} ({my_comp['best_sub'][1]:+.2f} Net) &nbsp;|&nbsp; "
-                f"🎯 <b>Destek Gereken Branş:</b> {my_comp['worst_sub'][0]} ({my_comp['worst_sub'][1]:+.2f} Net)"
+                f"🚀 <b>En Çok Geliştiğin Branş:</b> {my_best[0]} ({my_best[1]:+.2f} Net) &nbsp;|&nbsp; "
+                f"🎯 <b>Destek Gereken Branş:</b> {my_worst[0]} ({my_worst[1]:+.2f} Net)"
                 f"</div>"
                 f"</div>",
                 unsafe_allow_html=True
@@ -996,11 +1004,11 @@ with tab4:
         
         if valid_comps:
             # Sınıf Özet Metrikleri
-            total_d_net = sum(c['d_net'] for c in valid_comps)
+            total_d_net = sum(c.get('delta_net', c.get('d_net', 0.0)) for c in valid_comps)
             avg_d_net = total_d_net / len(valid_comps)
-            total_d_puan = sum(c['d_puan'] for c in valid_comps)
+            total_d_puan = sum(c.get('delta_puan', c.get('d_puan', 0.0)) for c in valid_comps)
             avg_d_puan = total_d_puan / len(valid_comps)
-            improved_count = sum(1 for c in valid_comps if c['d_net'] > 0)
+            improved_count = sum(1 for c in valid_comps if c.get('delta_net', c.get('d_net', 0.0)) > 0)
             
             c_m1, c_m2, c_m3, c_m4 = st.columns(4)
             c_m1.metric("Sınıf Net Değişimi (Ort.)", f"{avg_d_net:+.2f} Net", delta=f"{avg_d_net:+.2f}")
@@ -1016,14 +1024,17 @@ with tab4:
             
             # En Çok Gelişim Gösteren İlk 5
             st.markdown("### 🚀 En Çok Gelişim Gösteren Öğrenciler (Top 5)")
-            top_improvers = sorted(valid_comps, key=lambda x: x['d_net'], reverse=True)[:5]
+            top_improvers = sorted(valid_comps, key=lambda x: x.get('delta_net', x.get('d_net', 0.0)), reverse=True)[:5]
             imp_cols = st.columns(5)
             for idx, imp in enumerate(top_improvers):
                 with imp_cols[idx]:
+                    val_net = imp.get('delta_net', imp.get('d_net', 0.0))
+                    val_puan = imp.get('delta_puan', imp.get('d_puan', 0.0))
+                    val_rank = imp.get('delta_cls_rank', imp.get('d_cls_rank', 0))
                     st.metric(
-                        label=f"{idx+1}. {imp['name']}",
-                        value=f"+{imp['d_net']:.2f} Net",
-                        delta=f"+{imp['d_puan']:.1f} Puan (+{imp['d_cls_rank']} Sıra)"
+                        label=f"{idx+1}. {imp.get('name', '')}",
+                        value=f"{val_net:+.2f} Net",
+                        delta=f"{val_puan:+.1f} Puan ({val_rank:+d} Sıra)"
                     )
             
             st.markdown("---")
@@ -1033,8 +1044,8 @@ with tab4:
             sub_names = ["Türkçe", "Matematik", "Fen Bilimleri", "İnkılap Tarihi", "Din Kültürü", "İngilizce"]
             sub_p1_keys = ["tur_net", "mat_net", "fen_net", "ink_net", "din_net", "ing_net"]
             
-            p1_means = [sum(c['r1'][k] for c in valid_comps) / len(valid_comps) for k in sub_p1_keys]
-            p2_means = [sum(c['r2'][k] for c in valid_comps) / len(valid_comps) for k in sub_p1_keys]
+            p1_means = [sum(c['r1'].get(k, 0.0) for c in valid_comps) / len(valid_comps) for k in sub_p1_keys]
+            p2_means = [sum(c['r2'].get(k, 0.0) for c in valid_comps) / len(valid_comps) for k in sub_p1_keys]
             
             df_sub_comp = pd.DataFrame({
                 "Branş": sub_names,
@@ -1065,28 +1076,30 @@ with tab4:
             # Tüm Öğrencilerin Gelişim Tablosu
             st.markdown("### 📋 Tüm Öğrencilerin Karşılaştırmalı Gelişim Tablosu")
             table_rows = []
-            for c in sorted(comp_data.values(), key=lambda x: int(x['school_no'] or 0)):
+            for c in sorted(comp_data.values(), key=lambda x: int(x.get('school_no') or 0)):
                 if c.get('has_both'):
+                    b_sub = c.get('best_sub')
+                    w_sub = c.get('worst_sub')
                     table_rows.append({
-                        "No": c['school_no'],
-                        "Öğrenci": c['name'],
+                        "No": c.get('school_no', ''),
+                        "Öğrenci": c.get('name', ''),
                         "Paraf Net": f"{c['r1']['top_net']:.2f}",
                         "NARTEST Net": f"{c['r2']['top_net']:.2f}",
-                        "Δ Net": f"{c['d_net']:+.2f}",
+                        "Δ Net": f"{c.get('delta_net', c.get('d_net', 0.0)):+.2f}",
                         "Paraf Puan": f"{c['r1']['puan']:.2f}",
                         "NARTEST Puan": f"{c['r2']['puan']:.2f}",
-                        "Δ Puan": f"{c['d_puan']:+.2f}",
+                        "Δ Puan": f"{c.get('delta_puan', c.get('d_puan', 0.0)):+.2f}",
                         "Paraf Sıra": c['r1']['class_rank'],
                         "NARTEST Sıra": c['r2']['class_rank'],
-                        "Δ Sıra": f"{c['d_cls_rank']:+d}",
-                        "En Çok Gelişen": f"{c['best_sub'][0]} ({c['best_sub'][1]:+.2f})",
-                        "Takviye Branş": f"{c['worst_sub'][0]} ({c['worst_sub'][1]:+.2f})",
-                        "Durum": f"{c['trend_icon']} {c['trend']}"
+                        "Δ Sıra": f"{c.get('delta_cls_rank', c.get('d_cls_rank', 0)):+d}",
+                        "En Çok Gelişen": f"{b_sub[0]} ({b_sub[1]:+.2f})" if b_sub else "-",
+                        "Takviye Branş": f"{w_sub[0]} ({w_sub[1]:+.2f})" if w_sub else "-",
+                        "Durum": f"{c.get('trend_icon', '')} {c.get('trend', 'Belirsiz')}"
                     })
                 elif c.get('r2'):
                     table_rows.append({
-                        "No": c['school_no'],
-                        "Öğrenci": c['name'],
+                        "No": c.get('school_no', ''),
+                        "Öğrenci": c.get('name', ''),
                         "Paraf Net": "-",
                         "NARTEST Net": f"{c['r2']['top_net']:.2f}",
                         "Δ Net": "Yeni Kayıt",
@@ -1102,8 +1115,8 @@ with tab4:
                     })
                 elif c.get('r1'):
                     table_rows.append({
-                        "No": c['school_no'],
-                        "Öğrenci": c['name'],
+                        "No": c.get('school_no', ''),
+                        "Öğrenci": c.get('name', ''),
                         "Paraf Net": f"{c['r1']['top_net']:.2f}",
                         "NARTEST Net": "Giremedi",
                         "Δ Net": "Mazeretli",
