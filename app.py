@@ -2037,13 +2037,48 @@ with tab_risk:
 
             students_list = [{"id": s[0], "school_no": s[1], "name": s[2]} for s in _students_r]
 
-            col_dl1, col_dl2 = st.columns(2)
+            col_dl1, col_dl2, col_dl3 = st.columns(3)
+
+            # ── Excel İndir ───────────────────────────────────────────────────
+            with col_dl1:
+                st.markdown("#### 📊 Resmi Excel Tablosu (.xlsx)")
+                st.caption("MEB S.İ.4.a şablonu, dikey başlıklar, 'X' işaretleri")
+                if st.button("⚙️ Excel Dosyasını Oluştur", key="btn_risk_excel", use_container_width=True, type="primary"):
+                    try:
+                        from core.risk_pdf_exporter import export_risk_excel
+                        risk_excel_out = os.path.join(EXPORTS_DIR, "8B_Sinif_Risk_Haritasi.xlsx")
+                        os.makedirs(EXPORTS_DIR, exist_ok=True)
+                        export_risk_excel(
+                            students=students_list,
+                            risk_data=all_risk,
+                            output_path=risk_excel_out,
+                            school_name=school_inp or "……",
+                            class_name=class_inp or "8/B"
+                        )
+                        st.session_state["risk_excel_path"] = risk_excel_out
+                        st.success("✅ Excel dosyası hazır!")
+                    except Exception as e_rx:
+                        st.error(f"Hata: {e_rx}")
+
+                risk_excel_path = st.session_state.get("risk_excel_path",
+                                  os.path.join(EXPORTS_DIR, "8B_Sinif_Risk_Haritasi.xlsx"))
+                if os.path.exists(risk_excel_path):
+                    with open(risk_excel_path, "rb") as f_re:
+                        re_bytes = f_re.read()
+                    st.download_button(
+                        "📥 Risk Haritasını İndir (.xlsx)",
+                        data=re_bytes,
+                        file_name="8B_Sinif_Risk_Haritasi.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True,
+                        key="btn_dl_risk_excel"
+                    )
 
             # ── Word İndir ────────────────────────────────────────────────────
-            with col_dl1:
+            with col_dl2:
                 st.markdown("#### 📝 Word Belgesi (.docx)")
                 st.caption("Yatay A4, tek sayfa, renkli kategoriler, ✓ işaretleri")
-                if st.button("⚙️ Word Dosyasını Oluştur", key="btn_risk_word", use_container_width=True, type="primary"):
+                if st.button("⚙️ Word Dosyasını Oluştur", key="btn_risk_word", use_container_width=True, type="secondary"):
                     try:
                         from core.risk_pdf_exporter import export_risk_pdf
                         risk_out = os.path.join(EXPORTS_DIR, "8B_Sinif_Risk_Haritasi.docx")
@@ -2075,9 +2110,9 @@ with tab_risk:
                     )
 
             # ── Tarayıcıda Yazdır ─────────────────────────────────────────────
-            with col_dl2:
+            with col_dl3:
                 st.markdown("#### 🖨️ Tarayıcıda Yazdır / PDF")
-                st.caption("Önizlemeyi açın → Ctrl+P → 'Yatay' seçin → PDF olarak kaydedin")
+                st.caption("Önizleme → Ctrl+P → 'Yatay' seçin → PDF olarak kaydedin")
                 if st.button("🔍 Yazdır Önizlemesini Aç", key="btn_risk_html", use_container_width=True, type="secondary"):
                     st.session_state["show_risk_html"] = True
 

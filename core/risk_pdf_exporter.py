@@ -390,3 +390,214 @@ th, td {{ border: 0.3pt solid #AAAAAA; vertical-align: middle; padding: 0 1px; o
 </body></html>""")
 
     return "".join(html)
+
+
+
+def export_risk_excel(students: list, risk_data: dict, output_path: str,
+                      school_name: str = "Şehit Öğretmen Neşe Alten Ortaokulu",
+                      class_name: str = "8/B"):
+    """
+    Sınıf Risk Haritasını MEB S.İ.4.a standart şablonunda Excel (.xlsx) formatında oluşturur.
+    Ekran görüntüsündeki formatın birebir aynısıdır:
+    - 35 faktör dikey (90 derece) döndürülmüş turuncu başlıklar
+    - Aktif faktörler için 'X' işaretleri
+    - Öğrenci bazında ve faktör bazında Genel Toplam satır/sütunları
+    """
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Sınıf Risk Haritası"
+    ws.views.sheetView[0].showGridLines = True
+
+    font_title = Font(name="Calibri", size=13, bold=True, color="1F497D")
+    font_sub = Font(name="Calibri", size=9, italic=True, color="595959")
+    font_hdr_num = Font(name="Calibri", size=10, bold=True, color="000000")
+    font_hdr_text = Font(name="Calibri", size=9, bold=True, color="000000")
+    font_data = Font(name="Calibri", size=10)
+    font_x = Font(name="Calibri", size=11, bold=True, color="C00000")
+    font_total = Font(name="Calibri", size=10, bold=True, color="000000")
+
+    fill_orange_hdr = PatternFill(start_color="F8CBAD", end_color="F8CBAD", fill_type="solid")
+    fill_num_hdr = PatternFill(start_color="FCE4D6", end_color="FCE4D6", fill_type="solid")
+    fill_active_x = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
+    fill_total = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
+    fill_zebra = PatternFill(start_color="F9FBFD", end_color="F9FBFD", fill_type="solid")
+
+    thin_border = Border(
+        left=Side(style='thin', color='B0B0B0'),
+        right=Side(style='thin', color='B0B0B0'),
+        top=Side(style='thin', color='B0B0B0'),
+        bottom=Side(style='thin', color='B0B0B0')
+    )
+    thick_bottom = Border(
+        left=Side(style='thin', color='B0B0B0'),
+        right=Side(style='thin', color='B0B0B0'),
+        top=Side(style='thin', color='B0B0B0'),
+        bottom=Side(style='medium', color='1F497D')
+    )
+
+    align_center = Alignment(horizontal="center", vertical="center")
+    align_left = Alignment(horizontal="left", vertical="center")
+    align_vertical = Alignment(horizontal="center", vertical="center", textRotation=90, wrap_text=True)
+
+    # Row 1: Title
+    ws.merge_cells("A1:AL1")
+    title_cell = ws["A1"]
+    title_cell.value = f"T.C. MİLLÎ EĞİTİM BAKANLIĞI — {school_name.upper()} {class_name} ŞUBESİ SINIF RİSK HARİTASI (S.İ.4.a)"
+    title_cell.font = font_title
+    title_cell.alignment = align_center
+    ws.row_dimensions[1].height = 25
+
+    # Row 2: Subtitle
+    ws.merge_cells("A2:AL2")
+    sub_cell = ws["A2"]
+    sub_cell.value = "Özel Eğitim ve Rehberlik Hizmetleri Genel Müdürlüğü Standart Risk Faktörleri Tablosu"
+    sub_cell.font = font_sub
+    sub_cell.alignment = align_center
+    ws.row_dimensions[2].height = 17
+
+    # Row 3: Header Numbers
+    headers_info = ["Sıra", "No", "Adı Soyadı"]
+    for c_idx, h_text in enumerate(headers_info, 1):
+        cell = ws.cell(row=3, column=c_idx, value=h_text)
+        cell.font = font_hdr_num
+        cell.fill = fill_num_hdr
+        cell.alignment = align_center
+        cell.border = thin_border
+
+    for i, f in enumerate(RISK_FACTORS, 4):
+        cell = ws.cell(row=3, column=i, value=f["id"])
+        cell.font = font_hdr_num
+        cell.fill = fill_num_hdr
+        cell.alignment = align_center
+        cell.border = thin_border
+
+    tot_col_idx = len(RISK_FACTORS) + 4
+    cell_tot_hdr = ws.cell(row=3, column=tot_col_idx, value="Toplam")
+    cell_tot_hdr.font = font_hdr_num
+    cell_tot_hdr.fill = fill_total
+    cell_tot_hdr.alignment = align_center
+    cell_tot_hdr.border = thin_border
+    ws.row_dimensions[3].height = 20
+
+    # Row 4: Header Vertical Labels
+    for c_idx, h_text in enumerate(headers_info, 1):
+        cell = ws.cell(row=4, column=c_idx, value=h_text)
+        cell.font = font_hdr_num
+        cell.fill = fill_orange_hdr
+        cell.alignment = align_center
+        cell.border = thick_bottom
+
+    for i, f in enumerate(RISK_FACTORS, 4):
+        cell = ws.cell(row=4, column=i, value=f["label"])
+        cell.font = font_hdr_text
+        cell.fill = fill_orange_hdr
+        cell.alignment = align_vertical
+        cell.border = thick_bottom
+
+    cell_tot_lbl = ws.cell(row=4, column=tot_col_idx, value="Risk Sayısı")
+    cell_tot_lbl.font = font_hdr_text
+    cell_tot_lbl.fill = fill_total
+    cell_tot_lbl.alignment = align_vertical
+    cell_tot_lbl.border = thick_bottom
+    ws.row_dimensions[4].height = 135
+
+    # Column Widths
+    ws.column_dimensions['A'].width = 5.5
+    ws.column_dimensions['B'].width = 8.5
+    ws.column_dimensions['C'].width = 24.0
+    for i in range(4, tot_col_idx):
+        col_letter = get_column_letter(i)
+        ws.column_dimensions[col_letter].width = 4.3
+    ws.column_dimensions[get_column_letter(tot_col_idx)].width = 8.0
+
+    # Data Rows
+    start_row = 5
+    col_counts = {f["id"]: 0 for f in RISK_FACTORS}
+
+    for s_idx, stu in enumerate(students, 1):
+        r_idx = start_row + s_idx - 1
+        stu_id = stu["id"]
+        active_f = risk_data.get(stu_id, set())
+
+        is_even = (s_idx % 2 == 0)
+        row_fill = fill_zebra if is_even else None
+
+        c_no = ws.cell(row=r_idx, column=1, value=s_idx)
+        c_no.font = font_data
+        c_no.alignment = align_center
+        c_no.border = thin_border
+        if row_fill: c_no.fill = row_fill
+
+        c_okno = ws.cell(row=r_idx, column=2, value=str(stu.get("school_no", "")))
+        c_okno.font = font_data
+        c_okno.alignment = align_center
+        c_okno.border = thin_border
+        if row_fill: c_okno.fill = row_fill
+
+        c_name = ws.cell(row=r_idx, column=3, value=stu.get("name", ""))
+        c_name.font = font_data
+        c_name.alignment = align_left
+        c_name.border = thin_border
+        if row_fill: c_name.fill = row_fill
+
+        stu_risk_count = 0
+        for f_idx, f in enumerate(RISK_FACTORS, 4):
+            fid = f["id"]
+            cell_f = ws.cell(row=r_idx, column=f_idx)
+            cell_f.border = thin_border
+
+            if fid in active_f:
+                cell_f.value = "X"
+                cell_f.font = font_x
+                cell_f.fill = fill_active_x
+                cell_f.alignment = align_center
+                stu_risk_count += 1
+                col_counts[fid] += 1
+            else:
+                cell_f.value = ""
+                cell_f.alignment = align_center
+                if row_fill: cell_f.fill = row_fill
+
+        c_tot = ws.cell(row=r_idx, column=tot_col_idx, value=stu_risk_count)
+        c_tot.font = font_total if stu_risk_count > 0 else font_data
+        c_tot.alignment = align_center
+        c_tot.border = thin_border
+        c_tot.fill = fill_total if stu_risk_count > 0 else (row_fill or PatternFill(fill_type=None))
+        ws.row_dimensions[r_idx].height = 19
+
+    # Total Row
+    total_r_idx = start_row + len(students)
+    ws.merge_cells(start_row=total_r_idx, start_column=1, end_row=total_r_idx, end_column=3)
+    c_tot_lbl = ws.cell(row=total_r_idx, column=1, value="GENEL TOPLAM")
+    c_tot_lbl.font = font_total
+    c_tot_lbl.fill = fill_total
+    c_tot_lbl.alignment = align_center
+    c_tot_lbl.border = thin_border
+    ws.cell(row=total_r_idx, column=2).border = thin_border
+    ws.cell(row=total_r_idx, column=3).border = thin_border
+
+    grand_total = 0
+    for f_idx, f in enumerate(RISK_FACTORS, 4):
+        fid = f["id"]
+        cnt = col_counts[fid]
+        grand_total += cnt
+        cell_c_tot = ws.cell(row=total_r_idx, column=f_idx, value=cnt)
+        cell_c_tot.font = font_total
+        cell_c_tot.fill = fill_total
+        cell_c_tot.alignment = align_center
+        cell_c_tot.border = thin_border
+
+    c_grand = ws.cell(row=total_r_idx, column=tot_col_idx, value=grand_total)
+    c_grand.font = font_total
+    c_grand.fill = fill_total
+    c_grand.alignment = align_center
+    c_grand.border = thin_border
+    ws.row_dimensions[total_r_idx].height = 22
+
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    wb.save(output_path)
+    return output_path
