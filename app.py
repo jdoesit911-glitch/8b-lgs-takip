@@ -609,22 +609,90 @@ with tab1:
     c5.caption(f"Sapma: {stats.get('std_net', 0.0):.2f} Net")
 
     st.markdown("---")
-    col_chart, col_tiers = st.columns([3, 2])
+    col_chart, col_tiers = st.columns([3.2, 1.8])
     with col_chart:
-        st.subheader("📌 Ders Bazında 8/B ve Okul Karşılaştırması")
+        st.subheader("📌 Ders Bazında 8/B, Diğer Şubeler ve Okul Karşılaştırması")
         comp_df = pd.DataFrame(comps)
         if not comp_df.empty:
-            fig, ax = plt.subplots(figsize=(8, 4))
-            x = np.arange(len(comp_df))
-            width = 0.35
-            ax.bar(x - width/2, comp_df['class_8b'], width, label='8/B Sınıfı', color='#1F497D')
-            ax.bar(x + width/2, comp_df['school_avg'], width, label='Okul Ortalaması', color='#A6ACAF')
-            ax.set_xticks(x)
-            ax.set_xticklabels(comp_df['subject'], rotation=15, ha='right')
-            ax.set_ylabel("Net")
-            ax.legend()
-            ax.grid(axis='y', linestyle='--', alpha=0.5)
-            st.pyplot(fig)
+            potential_series = [
+                {'col': 'class_8a', 'label': '8/A Sınıfı', 'color': '#2980B9'},
+                {'col': 'class_8b', 'label': '8/B Sınıfı (Biz)', 'color': '#1A365D'},
+                {'col': 'class_8c', 'label': '8/C Sınıfı', 'color': '#E67E22'},
+                {'col': 'class_8d', 'label': '8/D Sınıfı', 'color': '#8E44AD'},
+                {'col': 'school_avg', 'label': 'Okul Ortalaması', 'color': '#7F8C8D'}
+            ]
+            active_series = [s for s in potential_series if s['col'] in comp_df.columns and (comp_df[s['col']] > 0).any()]
+
+            # Toplam Net karşılaştırma kartları
+            toplam_row = comp_df[comp_df['subject'] == 'Toplam Net']
+            if not toplam_row.empty:
+                toplam_dict = toplam_row.iloc[0].to_dict()
+                m_cols = st.columns(len(active_series))
+                for m_idx, s in enumerate(active_series):
+                    val_net = toplam_dict.get(s['col'], 0.0)
+                    is_8b = '8/B' in s['label']
+                    with m_cols[m_idx]:
+                        diff_val = val_net - toplam_dict.get('school_avg', 0.0)
+                        st.metric(
+                            label=f"{'⭐ ' if is_8b else ''}{s['label']}",
+                            value=f"{val_net:.2f} Net",
+                            delta=f"{diff_val:+.2f} Okul Farkı" if s['col'] != 'school_avg' else None
+                        )
+
+            # Branşlar için çoklu sütun grafiği
+            comp_df_subj = comp_df[comp_df['subject'] != 'Toplam Net'].copy()
+            if not comp_df_subj.empty:
+                K = len(active_series)
+                bar_width = 0.82 / K
+                x = np.arange(len(comp_df_subj))
+
+                fig, ax = plt.subplots(figsize=(9, 4.5))
+
+                for i, s in enumerate(active_series):
+                    offset = (i - (K - 1) / 2) * bar_width
+                    is_our = '8/B' in s['label']
+                    bars = ax.bar(
+                        x + offset, comp_df_subj[s['col']], bar_width,
+                        label=s['label'], color=s['color'],
+                        edgecolor='#0E2F44' if is_our else 'white',
+                        linewidth=1.5 if is_our else 0.5,
+                        zorder=3 if is_our else 2
+                    )
+                    for bar in bars:
+                        h = bar.get_height()
+                        if h > 0:
+                            ax.annotate(
+                                f'{h:.1f}',
+                                xy=(bar.get_x() + bar.get_width() / 2, h),
+                                xytext=(0, 3),
+                                textcoords='offset points',
+                                ha='center', va='bottom',
+                                fontsize=7.5 if K > 3 else 8.5,
+                                fontweight='bold' if is_our else 'normal',
+                                color='#1A365D' if is_our else '#444444'
+                            )
+
+                ax.set_xticks(x)
+                ax.set_xticklabels(comp_df_subj['subject'], rotation=15, ha='right', fontsize=9, fontweight='500')
+                ax.set_ylabel("Ortalama Net", fontsize=10)
+                max_val = comp_df_subj[[s['col'] for s in active_series]].max().max() if not comp_df_subj.empty else 10
+                ax.set_ylim(0, max(max_val * 1.18, 5))
+                ax.legend(frameon=True, facecolor='white', edgecolor='#D5D8DC', fontsize=8.5)
+                ax.grid(axis='y', linestyle='--', alpha=0.5, zorder=0)
+                plt.tight_layout()
+                st.pyplot(fig)
+
+            # Ayrıntılı Karşılaştırma Tablosu
+            table_cols = {'subject': 'Ders / Alan'}
+            for s in active_series:
+                table_cols[s['col']] = f"{s['label']} Net"
+            comp_display = comp_df.copy()
+            if 'class_8b' in comp_display.columns and 'school_avg' in comp_display.columns:
+                comp_display['fark_str'] = (comp_display['class_8b'] - comp_display['school_avg']).apply(lambda v: f"{v:+.2f}")
+                table_cols['fark_str'] = "8/B Okul Farkı (Δ)"
+            df_show = comp_display[list(table_cols.keys())].rename(columns=table_cols)
+            with st.expander("📋 Tüm Şubeler ve Okul Net Karşılaştırma Tablosu", expanded=True):
+                st.dataframe(df_show, use_container_width=True, hide_index=True)
         else:
             st.info("Karşılaştırma verisi bulunmuyor.")
 
