@@ -724,8 +724,9 @@ if current_role == "student":
                                         index=0 if existing.get("tani_var","Hayır") == "Hayır" else 1)
                     tani_aciklama = ""
                     if tani_var == "Evet":
-                        tani_aciklama = st.text_input("Rahatsızlığınızı belirtmek ister misiniz? (zorunlu değil)",
-                                                      value=existing.get("tani_aciklama",""))
+                        tani_aciklama = st.text_input("Tanısı nedir? (örn: Astım, DEHB, Görme engeli vb.)",
+                                                      value=existing.get("tani_aciklama",""),
+                                                      placeholder="Örn: DEHB, Epilepsi, İşitme güçlüğü...")
 
                     ozel_egitim_opts = ["Hayır", "Evet, özel eğitim alıyorum",
                                         "Evet, kaynaştırma öğrencisiyim", "Evet, destek eğitimi alıyorum"]
@@ -794,10 +795,10 @@ if current_role == "student":
                                                internet_opts,
                                                index=internet_opts.index(existing.get("internet_erisim","Evet, evde var")) if existing.get("internet_erisim") in internet_opts else 0)
 
-                    tekno_opts = ["Tablet / Bilgisayar", "Akıllı telefon", "Hiçbiri"]
-                    teknoloji_aleti = st.radio("6.4 Kendinize ait bir teknolojik aletiniz var mı?",
-                                               tekno_opts, horizontal=True,
-                                               index=tekno_opts.index(existing.get("teknoloji_aleti","Akıllı telefon")) if existing.get("teknoloji_aleti") in tekno_opts else 1)
+                    tekno_opts = ["Tablet / Bilgisayar", "Akıllı telefon", "Akıllı saat / tablet", "Hiçbiri"]
+                    _tekno_default = _json_form.loads(existing.get("teknoloji_aleti","[]") or "[]") if existing and isinstance(existing.get("teknoloji_aleti",""), str) and existing.get("teknoloji_aleti","").startswith("[") else ([existing.get("teknoloji_aleti")] if existing.get("teknoloji_aleti") and existing.get("teknoloji_aleti") in tekno_opts else [])
+                    teknoloji_aleti = st.multiselect("6.4 Kendinize ait teknolojik aletleriniz neler? (Birden fazla seçebilirsiniz)",
+                                                     tekno_opts, default=_tekno_default)
 
                     st.markdown("---")
                     # ── BÖLÜM 7: İlgi ve Hobiler ───────────────────────────────────
@@ -808,12 +809,25 @@ if current_role == "student":
                     hobiler = st.multiselect("7.1 Ne yapmaktan hoşlanırsınız? (Birden fazla seçebilirsiniz)",
                                              hobi_opts, default=_hobi_default)
 
-                    kurs_kulup = st.radio("7.2 Okul dışında katıldığınız bir kurs, kulüp veya spor var mı?",
+                    kurs_kulup = st.radio("7.2 Okul dışında katıldığınız bir spor, sanat veya hobi kulübü var mı?",
                                           ["Hayır", "Evet"], horizontal=True,
                                           index=0 if existing.get("kurs_kulup","Hayır") == "Hayır" else 1)
                     kurs_adi = ""
+                    kurs_brans = ""
                     if kurs_kulup == "Evet":
-                        kurs_adi = st.text_input("Hangisi?", value=existing.get("kurs_adi",""))
+                        _kb1, _kb2 = st.columns(2)
+                        kurs_adi = _kb1.text_input("Kurs / Kulüb / Spor adı", value=existing.get("kurs_adi",""),
+                                                    placeholder="Örn: Yüzme, Resim, Müzik...")
+                        kurs_brans_opts = ["Spor", "Müzik", "Resim / Sanat", "Dans", "Tiyatro", "Satranç", "Kodlama", "Diğer"]
+                        kurs_brans = _kb2.selectbox("Hangi alan?", kurs_brans_opts,
+                                                     index=kurs_brans_opts.index(existing.get("kurs_brans","Diğer")) if existing.get("kurs_brans") in kurs_brans_opts else 7)
+
+                    akademik_destek_opts = ["Hayır, almıyorum", "Okul kursu (ücretsiz)", "Dershane / Etüt merkezi",
+                                            "Özel ders (bireysel)", "Online kurs / platform (Eba, YouTube vb.)"]
+                    _akad_default = _json_form.loads(existing.get("akademik_destek","[]") or "[]") if existing and isinstance(existing.get("akademik_destek",""), str) and existing.get("akademik_destek","").startswith("[") else ([existing.get("akademik_destek")] if existing.get("akademik_destek") and existing.get("akademik_destek") in akademik_destek_opts else [])
+                    akademik_destek = st.multiselect(
+                        "7.3 Okul dışında akademik destek alıyor musunuz? (Birden fazla seçebilirsiniz)",
+                        akademik_destek_opts, default=_akad_default)
 
                     st.markdown("---")
                     # ── BÖLÜM 8: Kendini Anlat ─────────────────────────────────────
@@ -883,9 +897,11 @@ if current_role == "student":
                         "okul_degistirdi": okul_degistirdi,
                         "arkadas_edinme": arkadas_edinme,
                         "calisma_durumu": calisma_durumu, "ders_ortami": ders_ortami,
-                        "internet_erisim": internet_erisim, "teknoloji_aleti": teknoloji_aleti,
+                        "internet_erisim": internet_erisim, "teknoloji_aleti": _json_form.dumps(teknoloji_aleti, ensure_ascii=False),
                         "hobiler": _json_form.dumps(hobiler, ensure_ascii=False),
                         "kurs_kulup": kurs_kulup, "kurs_adi": kurs_adi,
+                        "kurs_brans": kurs_brans,
+                        "akademik_destek": _json_form.dumps(akademik_destek, ensure_ascii=False),
                         "genel_his": genel_his, "zorlastiran_sey": zorlastiran_sey,
                         "destek_istek": destek_istek, "onemli_olay": onemli_olay,
                         "veli_adi": veli_adi, "veli_yakinligi": veli_yakinligi,
@@ -1680,8 +1696,9 @@ with tab_risk:
                                         index=0 if existing.get("tani_var","Hayır") == "Hayır" else 1)
                     tani_aciklama = ""
                     if tani_var == "Evet":
-                        tani_aciklama = st.text_input("Rahatsızlığınızı belirtmek ister misiniz? (zorunlu değil)",
-                                                      value=existing.get("tani_aciklama",""))
+                        tani_aciklama = st.text_input("Tanısı nedir? (örn: Astım, DEHB, Görme engeli vb.)",
+                                                      value=existing.get("tani_aciklama",""),
+                                                      placeholder="Örn: DEHB, Epilepsi, İşitme güçlüğü...")
 
                     ozel_egitim_opts = ["Hayır", "Evet, özel eğitim alıyorum",
                                         "Evet, kaynaştırma öğrencisiyim", "Evet, destek eğitimi alıyorum"]
@@ -1750,10 +1767,10 @@ with tab_risk:
                                                internet_opts,
                                                index=internet_opts.index(existing.get("internet_erisim","Evet, evde var")) if existing.get("internet_erisim") in internet_opts else 0)
 
-                    tekno_opts = ["Tablet / Bilgisayar", "Akıllı telefon", "Hiçbiri"]
-                    teknoloji_aleti = st.radio("6.4 Kendinize ait bir teknolojik aletiniz var mı?",
-                                               tekno_opts, horizontal=True,
-                                               index=tekno_opts.index(existing.get("teknoloji_aleti","Akıllı telefon")) if existing.get("teknoloji_aleti") in tekno_opts else 1)
+                    tekno_opts = ["Tablet / Bilgisayar", "Akıllı telefon", "Akıllı saat / tablet", "Hiçbiri"]
+                    _tekno_default = _json_form.loads(existing.get("teknoloji_aleti","[]") or "[]") if existing and isinstance(existing.get("teknoloji_aleti",""), str) and existing.get("teknoloji_aleti","").startswith("[") else ([existing.get("teknoloji_aleti")] if existing.get("teknoloji_aleti") and existing.get("teknoloji_aleti") in tekno_opts else [])
+                    teknoloji_aleti = st.multiselect("6.4 Kendinize ait teknolojik aletleriniz neler? (Birden fazla seçebilirsiniz)",
+                                                     tekno_opts, default=_tekno_default)
 
                     st.markdown("---")
                     # ── BÖLÜM 7: İlgi ve Hobiler ───────────────────────────────────
@@ -1764,12 +1781,25 @@ with tab_risk:
                     hobiler = st.multiselect("7.1 Ne yapmaktan hoşlanırsınız? (Birden fazla seçebilirsiniz)",
                                              hobi_opts, default=_hobi_default)
 
-                    kurs_kulup = st.radio("7.2 Okul dışında katıldığınız bir kurs, kulüp veya spor var mı?",
+                    kurs_kulup = st.radio("7.2 Okul dışında katıldığınız bir spor, sanat veya hobi kulübü var mı?",
                                           ["Hayır", "Evet"], horizontal=True,
                                           index=0 if existing.get("kurs_kulup","Hayır") == "Hayır" else 1)
                     kurs_adi = ""
+                    kurs_brans = ""
                     if kurs_kulup == "Evet":
-                        kurs_adi = st.text_input("Hangisi?", value=existing.get("kurs_adi",""))
+                        _kb1, _kb2 = st.columns(2)
+                        kurs_adi = _kb1.text_input("Kurs / Kulüb / Spor adı", value=existing.get("kurs_adi",""),
+                                                    placeholder="Örn: Yüzme, Resim, Müzik...")
+                        kurs_brans_opts = ["Spor", "Müzik", "Resim / Sanat", "Dans", "Tiyatro", "Satranç", "Kodlama", "Diğer"]
+                        kurs_brans = _kb2.selectbox("Hangi alan?", kurs_brans_opts,
+                                                     index=kurs_brans_opts.index(existing.get("kurs_brans","Diğer")) if existing.get("kurs_brans") in kurs_brans_opts else 7)
+
+                    akademik_destek_opts = ["Hayır, almıyorum", "Okul kursu (ücretsiz)", "Dershane / Etüt merkezi",
+                                            "Özel ders (bireysel)", "Online kurs / platform (Eba, YouTube vb.)"]
+                    _akad_default = _json_form.loads(existing.get("akademik_destek","[]") or "[]") if existing and isinstance(existing.get("akademik_destek",""), str) and existing.get("akademik_destek","").startswith("[") else ([existing.get("akademik_destek")] if existing.get("akademik_destek") and existing.get("akademik_destek") in akademik_destek_opts else [])
+                    akademik_destek = st.multiselect(
+                        "7.3 Okul dışında akademik destek alıyor musunuz? (Birden fazla seçebilirsiniz)",
+                        akademik_destek_opts, default=_akad_default)
 
                     st.markdown("---")
                     # ── BÖLÜM 8: Kendini Anlat ─────────────────────────────────────
@@ -1838,8 +1868,10 @@ with tab_risk:
                         "zor_dersler": zor_dersler, "okul_degistirdi": okul_degistirdi,
                         "arkadas_edinme": arkadas_edinme,
                         "calisma_durumu": calisma_durumu, "ders_ortami": ders_ortami,
-                        "internet_erisim": internet_erisim, "teknoloji_aleti": teknoloji_aleti,
-                        "hobiler": hobiler, "kurs_kulup": kurs_kulup, "kurs_adi": kurs_adi,
+                        "internet_erisim": internet_erisim, "teknoloji_aleti": _json_form.dumps(teknoloji_aleti, ensure_ascii=False),
+                        "kurs_kulup": kurs_kulup, "kurs_adi": kurs_adi,
+                        "kurs_brans": kurs_brans,
+                        "akademik_destek": _json_form.dumps(akademik_destek, ensure_ascii=False),
                         "genel_his": genel_his, "zorlastiran_sey": zorlastiran_sey,
                         "destek_istek": destek_istek, "onemli_olay": onemli_olay,
                         "veli_adi": veli_adi, "veli_yakinligi": veli_yakinligi,

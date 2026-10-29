@@ -67,6 +67,8 @@ def init_profile_table():
             hobiler           TEXT,   -- JSON listesi
             kurs_kulup        TEXT,
             kurs_adi          TEXT,
+            kurs_brans        TEXT,
+            akademik_destek   TEXT,   -- JSON listesi
 
             -- Bölüm 8: Kendini Anlat
             genel_his         TEXT,
@@ -114,7 +116,7 @@ def save_profile(student_id: int, data: dict):
             ilac_kullaniyor, ilac_adi, tani_var, tani_aciklama, ozel_egitim, ailede_hastalik,
             devamsizlik_gun, ders_zorluk, zor_dersler, okul_degistirdi, arkadas_edinme,
             calisma_durumu, ders_ortami, internet_erisim, teknoloji_aleti,
-            hobiler, kurs_kulup, kurs_adi,
+            hobiler, kurs_kulup, kurs_adi, kurs_brans, akademik_destek,
             genel_his, zorlastiran_sey, destek_istek, onemli_olay,
             veli_adi, veli_yakinligi, veli_telefon, veli_egitim, veli_meslek
         ) VALUES (
@@ -126,7 +128,8 @@ def save_profile(student_id: int, data: dict):
             ?,?,?,?,?,?,
             ?,?,?,?,?,
             ?,?,?,?,
-            ?,?,?,
+            ?,?,?,?,
+            ?,
             ?,?,?,?,
             ?,?,?,?,?
         )
@@ -153,6 +156,7 @@ def save_profile(student_id: int, data: dict):
             calisma_durumu=excluded.calisma_durumu, ders_ortami=excluded.ders_ortami,
             internet_erisim=excluded.internet_erisim, teknoloji_aleti=excluded.teknoloji_aleti,
             hobiler=excluded.hobiler, kurs_kulup=excluded.kurs_kulup, kurs_adi=excluded.kurs_adi,
+            kurs_brans=excluded.kurs_brans, akademik_destek=excluded.akademik_destek,
             genel_his=excluded.genel_his, zorlastiran_sey=excluded.zorlastiran_sey,
             destek_istek=excluded.destek_istek, onemli_olay=excluded.onemli_olay,
             veli_adi=excluded.veli_adi, veli_yakinligi=excluded.veli_yakinligi,
@@ -199,6 +203,8 @@ def save_profile(student_id: int, data: dict):
         jl(data.get("hobiler", [])),
         data.get("kurs_kulup", ""),
         data.get("kurs_adi", ""),
+        data.get("kurs_brans", ""),
+        jl(data.get("akademik_destek", [])),
         data.get("genel_his", ""),
         data.get("zorlastiran_sey", ""),
         data.get("destek_istek", ""),
