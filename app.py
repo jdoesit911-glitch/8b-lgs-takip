@@ -1242,8 +1242,10 @@ with tab_risk:
     st.subheader("🗺️ Sınıf Risk Haritası — S.İ.4.a")
     st.caption("Kaynaktan alindı: Özel Eğitim ve Rehberlik Hizmetleri Genel Müdurlugu")
 
-    if current_role not in ("admin", "teacher"):
-        # ─── Öğrenci Anket Bolumu ─────────────────────────────────────────────────
+    if current_role is None:
+        st.warning("🔐 Bu bölümü görmek için giriş yapmanız gerekiyor. Sol panelden PIN kodunuzla giriş yapın.")
+    elif current_role == "student":
+        # ─── Öğrenci Tanıma Formu ─────────────────────────────────────────────────
         st.info("📋 Bu bolumde sana birkaç soru sorulacak. Yanıtların gizlidir ve yalnızca sınıf öğretmenin gorebilir.")
 
 
@@ -1253,6 +1255,17 @@ with tab_risk:
         init_profile_table()
 
         stu_id_form = st.session_state.get("student_id")
+        # Fallback: student_name üzerinden ID bul
+        if not stu_id_form and st.session_state.get("student_name"):
+            import sqlite3 as _sq_fb
+            from config import DATABASE_PATH as _DB_FB
+            _row_fb = _sq_fb.connect(_DB_FB).execute(
+                "SELECT id FROM students WHERE name = ?",
+                (st.session_state.student_name,)
+            ).fetchone()
+            if _row_fb:
+                st.session_state.student_id = _row_fb[0]
+                stu_id_form = _row_fb[0]
         if not stu_id_form:
             st.warning("⚠️ Oturum bilgisi eksik. Lütfen çıkış yapıp tekrar giriş yapın.")
         else:
@@ -1527,7 +1540,7 @@ with tab_risk:
                     st.rerun()
 
 
-    else:
+    elif current_role in ("admin", "teacher"):
         # ─── Öğretmen / Admin Risk Haritası Paneli ─────────────────────────────────
         import sqlite3 as _sq
         from config import DATABASE_PATH as _DBP
