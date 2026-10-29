@@ -1660,45 +1660,95 @@ with tab_risk:
             df_risk_sorted = df_risk.sort_values("Risk Sayısı", ascending=False)
             st.dataframe(df_risk_sorted, use_container_width=True, height=500)
 
+
         with tab_export:
-            st.markdown("### 📄 Resmi Risk Haritası Dışa Aktarma")
-            st.info("Aşağıdaki butona tıklayarak Özel Eğitim ve Rehberlik Hizmetleri Genel Müdürlüğü S.İ.4.a formatında Word belgesini indirin.")
+            st.markdown("### 📄 Resmi Risk Haritası — Tek Sayfa Çıktı")
 
-            school_inp = st.text_input("Okul Adı", value="")
-            class_inp = st.text_input("Sınıf Adı", value="8/B")
+            ex1, ex2 = st.columns(2)
+            school_inp = ex1.text_input("Okul Adı", value="", key="risk_school_inp")
+            class_inp  = ex2.text_input("Sınıf Adı", value="8/B", key="risk_class_inp")
 
-            if st.button("🖨️ Resmi Risk Haritasını Oluştur (.docx)", use_container_width=True, type="primary"):
-                try:
-                    from core.risk_pdf_exporter import export_risk_pdf
-                    risk_out_path = os.path.join(EXPORTS_DIR, "8B_Sinif_Risk_Haritasi.docx")
-                    os.makedirs(EXPORTS_DIR, exist_ok=True)
-                    students_list = [{"id": s[0], "school_no": s[1], "name": s[2]} for s in _students_r]
-                    export_risk_pdf(
-                        students=students_list,
-                        risk_data=all_risk,
-                        output_path=risk_out_path,
-                        school_name=school_inp or "……",
-                        class_name=class_inp or "8/B"
+            students_list = [{"id": s[0], "school_no": s[1], "name": s[2]} for s in _students_r]
+
+            col_dl1, col_dl2 = st.columns(2)
+
+            # ── Word İndir ────────────────────────────────────────────────────
+            with col_dl1:
+                st.markdown("#### 📝 Word Belgesi (.docx)")
+                st.caption("Yatay A4, tek sayfa, renkli kategoriler, ✓ işaretleri")
+                if st.button("⚙️ Word Dosyasını Oluştur", key="btn_risk_word", use_container_width=True, type="primary"):
+                    try:
+                        from core.risk_pdf_exporter import export_risk_pdf
+                        risk_out = os.path.join(EXPORTS_DIR, "8B_Sinif_Risk_Haritasi.docx")
+                        os.makedirs(EXPORTS_DIR, exist_ok=True)
+                        export_risk_pdf(
+                            students=students_list,
+                            risk_data=all_risk,
+                            output_path=risk_out,
+                            school_name=school_inp or "……",
+                            class_name=class_inp or "8/B"
+                        )
+                        st.session_state["risk_doc_path"] = risk_out
+                        st.success("✅ Word dosyası hazır!")
+                    except Exception as e_rp:
+                        st.error(f"Hata: {e_rp}")
+
+                risk_doc_path = st.session_state.get("risk_doc_path",
+                                os.path.join(EXPORTS_DIR, "8B_Sinif_Risk_Haritasi.docx"))
+                if os.path.exists(risk_doc_path):
+                    with open(risk_doc_path, "rb") as f_rd:
+                        rd_bytes = f_rd.read()
+                    st.download_button(
+                        "📥 Risk Haritasını İndir (.docx)",
+                        data=rd_bytes,
+                        file_name="8B_Sinif_Risk_Haritasi.docx",
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        use_container_width=True,
+                        key="btn_dl_risk_word"
                     )
-                    st.session_state["risk_doc_path"] = risk_out_path
-                    st.success("✅ Risk Haritası oluşturuldu!")
-                except Exception as e_rp:
-                    st.error(f"Hata: {e_rp}")
 
-            risk_doc_path = st.session_state.get("risk_doc_path", "")
-            if not risk_doc_path:
-                risk_doc_path = os.path.join(EXPORTS_DIR, "8B_Sinif_Risk_Haritasi.docx")
+            # ── Tarayıcıda Yazdır ─────────────────────────────────────────────
+            with col_dl2:
+                st.markdown("#### 🖨️ Tarayıcıda Yazdır / PDF")
+                st.caption("Önizlemeyi açın → Ctrl+P → 'Yatay' seçin → PDF olarak kaydedin")
+                if st.button("🔍 Yazdır Önizlemesini Aç", key="btn_risk_html", use_container_width=True, type="secondary"):
+                    st.session_state["show_risk_html"] = True
 
-            if os.path.exists(risk_doc_path):
-                with open(risk_doc_path, "rb") as f_rd:
-                    rd_bytes = f_rd.read()
-                st.download_button(
-                    "📥 Risk Haritasını İndir (.docx)",
-                    data=rd_bytes,
-                    file_name="8B_Sinif_Risk_Haritasi.docx",
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    use_container_width=True
+            if st.session_state.get("show_risk_html", False):
+                from core.risk_pdf_exporter import build_risk_html
+                html_content = build_risk_html(
+                    students=students_list,
+                    risk_data=all_risk,
+                    school_name=school_inp or "……",
+                    class_name=class_inp or "8/B"
                 )
+
+                st.markdown("---")
+                st.markdown("""
+> 💡 **Nasıl PDF'e çevirirsiniz?**
+> Aşağıdaki HTML çıktısı açıldıktan sonra:
+> **Ctrl+P** → Yazıcı: **PDF olarak kaydet** → Sayfa yönü: **Yatay** → Kenar boşlukları: **Minimum** → Yazdır
+""")
+
+                # HTML içeriğini HTML dosyasına indir
+                import io as _io_r
+                html_bytes = html_content.encode("utf-8")
+                st.download_button(
+                    "📥 HTML Dosyasını İndir (Tarayıcıda Aç → Ctrl+P)",
+                    data=html_bytes,
+                    file_name="8B_Risk_Haritasi_Yazdir.html",
+                    mime="text/html",
+                    use_container_width=True,
+                    key="btn_dl_risk_html"
+                )
+
+                # Streamlit içinde önizleme
+                st.markdown("#### 👁️ Önizleme (yakınlaştırmak için sağ tıklayın)")
+                st.components.v1.html(html_content, height=520, scrolling=True)
+
+                if st.button("❌ Önizlemeyi Kapat", key="btn_close_html"):
+                    st.session_state["show_risk_html"] = False
+                    st.rerun()
 
 
         with tab_profiles:
