@@ -640,7 +640,7 @@ if current_role == "student":
 
                 import json as _json_form
 
-                with st.form("student_profile_form_main", clear_on_submit=False):
+                with st.container():
 
                     # ── BÖLÜM 1: Öğrenci Bilgileri ──────────────────────────────────
                     st.markdown("### 👤 Bölüm 1 — Öğrenci Bilgileri")
@@ -712,21 +712,23 @@ if current_role == "student":
                     st.markdown("---")
                     # ── BÖLÜM 4: Sağlık ─────────────────────────────────────────────
                     st.markdown("### 🏥 Bölüm 4 — Sağlık Bilgileri")
-                    ilac_kullaniyor = st.radio("4.1 Sürekli kullandığınız bir ilaç veya tıbbi cihazınız var mı?",
-                                               ["Hayır", "Evet"], horizontal=True,
-                                               index=0 if existing.get("ilac_kullaniyor","Hayır") == "Hayır" else 1)
-                    ilac_adi = ""
-                    if ilac_kullaniyor == "Evet":
-                        ilac_adi = st.text_input("İlaç/cihaz adı (zorunlu değil)", value=existing.get("ilac_adi",""))
+                    _ilac_c1, _ilac_c2 = st.columns([1, 2])
+                    ilac_kullaniyor = _ilac_c1.radio("4.1 Sürekli kullandığınız bir ilaç veya tıbbi cihazınız var mı?",
+                                                    ["Hayır", "Evet"], horizontal=True,
+                                                    index=0 if existing.get("ilac_kullaniyor","Hayır") == "Hayır" else 1)
+                    ilac_adi = _ilac_c2.text_input("İlaç / cihaz adı",
+                                                   value=existing.get("ilac_adi","") if ilac_kullaniyor == "Evet" else "",
+                                                   disabled=(ilac_kullaniyor != "Evet"),
+                                                   placeholder="İlaç veya cihaz adını yazınız..." if ilac_kullaniyor == "Evet" else "('Evet' seçilince aktif olur)")
 
-                    tani_var = st.radio("4.2 Tanısı konulmuş bir hastalığınız ya da engel durumunuz var mı?",
-                                        ["Hayır", "Evet"], horizontal=True,
-                                        index=0 if existing.get("tani_var","Hayır") == "Hayır" else 1)
-                    tani_aciklama = ""
-                    if tani_var == "Evet":
-                        tani_aciklama = st.text_input("Tanısı nedir? (örn: Astım, DEHB, Görme engeli vb.)",
-                                                      value=existing.get("tani_aciklama",""),
-                                                      placeholder="Örn: DEHB, Epilepsi, İşitme güçlüğü...")
+                    _tani_c1, _tani_c2 = st.columns([1, 2])
+                    tani_var = _tani_c1.radio("4.2 Tanısı konulmuş bir hastalığınız ya da engel durumunuz var mı?",
+                                             ["Hayır", "Evet"], horizontal=True,
+                                             index=0 if existing.get("tani_var","Hayır") == "Hayır" else 1)
+                    tani_aciklama = _tani_c2.text_input("Tanısı nedir?",
+                                                        value=existing.get("tani_aciklama","") if tani_var == "Evet" else "",
+                                                        disabled=(tani_var != "Evet"),
+                                                        placeholder="Örn: DEHB, Astım, Görme engeli..." if tani_var == "Evet" else "('Evet' seçilince aktif olur)")
 
                     ozel_egitim_opts = ["Hayır", "Evet, özel eğitim alıyorum",
                                         "Evet, kaynaştırma öğrencisiyim", "Evet, destek eğitimi alıyorum"]
@@ -734,9 +736,14 @@ if current_role == "student":
                                            ozel_egitim_opts,
                                            index=ozel_egitim_opts.index(existing.get("ozel_egitim","Hayır")) if existing.get("ozel_egitim") in ozel_egitim_opts else 0)
 
-                    ailede_hastalik = st.radio("4.4 Ailenizde uzun süreli bir hastalığı ya da engel durumu olan biri var mı?",
-                                               ["Hayır", "Evet"], horizontal=True,
-                                               index=0 if existing.get("ailede_hastalik","Hayır") == "Hayır" else 1)
+                    _aile_c1, _aile_c2 = st.columns([1, 2])
+                    ailede_hastalik = _aile_c1.radio("4.4 Ailenizde uzun süreli bir hastalığı ya da engel durumu olan biri var mı?",
+                                                     ["Hayır", "Evet"], horizontal=True,
+                                                     index=0 if existing.get("ailede_hastalik","Hayır") == "Hayır" else 1)
+                    ailede_aciklama = _aile_c2.text_input("Kim, ne hastalığı?",
+                                                          value=existing.get("ailede_aciklama","") if ailede_hastalik == "Evet" else "",
+                                                          disabled=(ailede_hastalik != "Evet"),
+                                                          placeholder="Örn: Annem - şeker hastalığı / Babam - kalp..." if ailede_hastalik == "Evet" else "('Evet' seçilince aktif olur)")
 
                     st.markdown("---")
                     # ── BÖLÜM 5: Okul Hayatı ────────────────────────────────────────
@@ -809,18 +816,15 @@ if current_role == "student":
                     hobiler = st.multiselect("7.1 Ne yapmaktan hoşlanırsınız? (Birden fazla seçebilirsiniz)",
                                              hobi_opts, default=_hobi_default)
 
-                    kurs_kulup = st.radio("7.2 Okul dışında katıldığınız bir spor, sanat veya hobi kulübü var mı?",
-                                          ["Hayır", "Evet"], horizontal=True,
-                                          index=0 if existing.get("kurs_kulup","Hayır") == "Hayır" else 1)
-                    kurs_adi = ""
-                    kurs_brans = ""
-                    if kurs_kulup == "Evet":
-                        _kb1, _kb2 = st.columns(2)
-                        kurs_adi = _kb1.text_input("Kurs / Kulüb / Spor adı", value=existing.get("kurs_adi",""),
-                                                    placeholder="Örn: Yüzme, Resim, Müzik...")
-                        kurs_brans_opts = ["Spor", "Müzik", "Resim / Sanat", "Dans", "Tiyatro", "Satranç", "Kodlama", "Diğer"]
-                        kurs_brans = _kb2.selectbox("Hangi alan?", kurs_brans_opts,
-                                                     index=kurs_brans_opts.index(existing.get("kurs_brans","Diğer")) if existing.get("kurs_brans") in kurs_brans_opts else 7)
+                    _kurs_c1, _kurs_c2 = st.columns([1, 2])
+                    kurs_kulup = _kurs_c1.radio("7.2 Okul dışında katıldığınız bir spor, sanat veya hobi kulübü var mı?",
+                                                ["Hayır", "Evet"], horizontal=True,
+                                                index=0 if existing.get("kurs_kulup","Hayır") == "Hayır" else 1)
+                    kurs_brans = _kurs_c2.text_input("Hangi branş(lar)? (Birden fazlaysa araya tire '-' koyun)",
+                                                     value=existing.get("kurs_brans","") if kurs_kulup == "Evet" else "",
+                                                     disabled=(kurs_kulup != "Evet"),
+                                                     placeholder="Örn: Yüzme - Basketbol (Tire ile ayırınız)" if kurs_kulup == "Evet" else "('Evet' seçilince aktif olur)")
+                    kurs_adi = kurs_brans
 
                     akademik_destek_opts = ["Hayır, almıyorum", "Okul kursu (ücretsiz)", "Dershane / Etüt merkezi",
                                             "Özel ders (bireysel)", "Online kurs / platform (Eba, YouTube vb.)"]
@@ -873,7 +877,7 @@ if current_role == "student":
                     veli_meslek    = b9c1.text_input("Mesleği", value=existing.get("veli_meslek",""))
 
                     st.markdown("---")
-                    submitted_profile = st.form_submit_button("✅ Formu Kaydet", use_container_width=True, type="primary")
+                    submitted_profile = st.button("✅ Formu Kaydet", use_container_width=True, type="primary", key="btn_submit_prof_main")
 
                 if submitted_profile:
                     profile_data = {
@@ -891,7 +895,7 @@ if current_role == "student":
                         "okula_giden_kardes": okula_giden_kardes,
                         "ilac_kullaniyor": ilac_kullaniyor, "ilac_adi": ilac_adi,
                         "tani_var": tani_var, "tani_aciklama": tani_aciklama,
-                        "ozel_egitim": ozel_egitim, "ailede_hastalik": ailede_hastalik,
+                        "ozel_egitim": ozel_egitim, "ailede_hastalik": ailede_hastalik, "ailede_aciklama": ailede_aciklama,
                         "devamsizlik_gun": devamsizlik_gun, "ders_zorluk": ders_zorluk,
                         "zor_dersler": _json_form.dumps(zor_dersler, ensure_ascii=False),
                         "okul_degistirdi": okul_degistirdi,
@@ -1611,7 +1615,7 @@ with tab_risk:
             if not profile_done or st.session_state.get("edit_profile", False):
                 st.info("📋 Lütfen aşağıdaki formu eksiksiz ve doğru doldurun. Bilgileriniz yalnızca öğretmeniniz tarafından görülecektir.")
 
-                with st.form("student_profile_form", clear_on_submit=False):
+                with st.container():
 
                     # ── BÖLÜM 1: Öğrenci Bilgileri ──────────────────────────────────
                     st.markdown("### 👤 Bölüm 1 — Öğrenci Bilgileri")
@@ -1684,21 +1688,23 @@ with tab_risk:
                     st.markdown("---")
                     # ── BÖLÜM 4: Sağlık ─────────────────────────────────────────────
                     st.markdown("### 🏥 Bölüm 4 — Sağlık Bilgileri")
-                    ilac_kullaniyor = st.radio("4.1 Sürekli kullandığınız bir ilaç veya tıbbi cihazınız var mı?",
-                                               ["Hayır", "Evet"], horizontal=True,
-                                               index=0 if existing.get("ilac_kullaniyor","Hayır") == "Hayır" else 1)
-                    ilac_adi = ""
-                    if ilac_kullaniyor == "Evet":
-                        ilac_adi = st.text_input("İlaç/cihaz adı (zorunlu değil)", value=existing.get("ilac_adi",""))
+                    _ilac_c1, _ilac_c2 = st.columns([1, 2])
+                    ilac_kullaniyor = _ilac_c1.radio("4.1 Sürekli kullandığınız bir ilaç veya tıbbi cihazınız var mı?",
+                                                    ["Hayır", "Evet"], horizontal=True,
+                                                    index=0 if existing.get("ilac_kullaniyor","Hayır") == "Hayır" else 1)
+                    ilac_adi = _ilac_c2.text_input("İlaç / cihaz adı",
+                                                   value=existing.get("ilac_adi","") if ilac_kullaniyor == "Evet" else "",
+                                                   disabled=(ilac_kullaniyor != "Evet"),
+                                                   placeholder="İlaç veya cihaz adını yazınız..." if ilac_kullaniyor == "Evet" else "('Evet' seçilince aktif olur)")
 
-                    tani_var = st.radio("4.2 Tanısı konulmuş bir hastalığınız ya da engel durumunuz var mı?",
-                                        ["Hayır", "Evet"], horizontal=True,
-                                        index=0 if existing.get("tani_var","Hayır") == "Hayır" else 1)
-                    tani_aciklama = ""
-                    if tani_var == "Evet":
-                        tani_aciklama = st.text_input("Tanısı nedir? (örn: Astım, DEHB, Görme engeli vb.)",
-                                                      value=existing.get("tani_aciklama",""),
-                                                      placeholder="Örn: DEHB, Epilepsi, İşitme güçlüğü...")
+                    _tani_c1, _tani_c2 = st.columns([1, 2])
+                    tani_var = _tani_c1.radio("4.2 Tanısı konulmuş bir hastalığınız ya da engel durumunuz var mı?",
+                                             ["Hayır", "Evet"], horizontal=True,
+                                             index=0 if existing.get("tani_var","Hayır") == "Hayır" else 1)
+                    tani_aciklama = _tani_c2.text_input("Tanısı nedir?",
+                                                        value=existing.get("tani_aciklama","") if tani_var == "Evet" else "",
+                                                        disabled=(tani_var != "Evet"),
+                                                        placeholder="Örn: DEHB, Astım, Görme engeli..." if tani_var == "Evet" else "('Evet' seçilince aktif olur)")
 
                     ozel_egitim_opts = ["Hayır", "Evet, özel eğitim alıyorum",
                                         "Evet, kaynaştırma öğrencisiyim", "Evet, destek eğitimi alıyorum"]
@@ -1706,9 +1712,14 @@ with tab_risk:
                                            ozel_egitim_opts,
                                            index=ozel_egitim_opts.index(existing.get("ozel_egitim","Hayır")) if existing.get("ozel_egitim") in ozel_egitim_opts else 0)
 
-                    ailede_hastalik = st.radio("4.4 Ailenizde uzun süreli bir hastalığı ya da engel durumu olan biri var mı?",
-                                               ["Hayır", "Evet"], horizontal=True,
-                                               index=0 if existing.get("ailede_hastalik","Hayır") == "Hayır" else 1)
+                    _aile_c1, _aile_c2 = st.columns([1, 2])
+                    ailede_hastalik = _aile_c1.radio("4.4 Ailenizde uzun süreli bir hastalığı ya da engel durumu olan biri var mı?",
+                                                     ["Hayır", "Evet"], horizontal=True,
+                                                     index=0 if existing.get("ailede_hastalik","Hayır") == "Hayır" else 1)
+                    ailede_aciklama = _aile_c2.text_input("Kim, ne hastalığı?",
+                                                          value=existing.get("ailede_aciklama","") if ailede_hastalik == "Evet" else "",
+                                                          disabled=(ailede_hastalik != "Evet"),
+                                                          placeholder="Örn: Annem - şeker hastalığı / Babam - kalp..." if ailede_hastalik == "Evet" else "('Evet' seçilince aktif olur)")
 
                     st.markdown("---")
                     # ── BÖLÜM 5: Okul Hayatı ────────────────────────────────────────
@@ -1781,18 +1792,15 @@ with tab_risk:
                     hobiler = st.multiselect("7.1 Ne yapmaktan hoşlanırsınız? (Birden fazla seçebilirsiniz)",
                                              hobi_opts, default=_hobi_default)
 
-                    kurs_kulup = st.radio("7.2 Okul dışında katıldığınız bir spor, sanat veya hobi kulübü var mı?",
-                                          ["Hayır", "Evet"], horizontal=True,
-                                          index=0 if existing.get("kurs_kulup","Hayır") == "Hayır" else 1)
-                    kurs_adi = ""
-                    kurs_brans = ""
-                    if kurs_kulup == "Evet":
-                        _kb1, _kb2 = st.columns(2)
-                        kurs_adi = _kb1.text_input("Kurs / Kulüb / Spor adı", value=existing.get("kurs_adi",""),
-                                                    placeholder="Örn: Yüzme, Resim, Müzik...")
-                        kurs_brans_opts = ["Spor", "Müzik", "Resim / Sanat", "Dans", "Tiyatro", "Satranç", "Kodlama", "Diğer"]
-                        kurs_brans = _kb2.selectbox("Hangi alan?", kurs_brans_opts,
-                                                     index=kurs_brans_opts.index(existing.get("kurs_brans","Diğer")) if existing.get("kurs_brans") in kurs_brans_opts else 7)
+                    _kurs_c1, _kurs_c2 = st.columns([1, 2])
+                    kurs_kulup = _kurs_c1.radio("7.2 Okul dışında katıldığınız bir spor, sanat veya hobi kulübü var mı?",
+                                                ["Hayır", "Evet"], horizontal=True,
+                                                index=0 if existing.get("kurs_kulup","Hayır") == "Hayır" else 1)
+                    kurs_brans = _kurs_c2.text_input("Hangi branş(lar)? (Birden fazlaysa araya tire '-' koyun)",
+                                                     value=existing.get("kurs_brans","") if kurs_kulup == "Evet" else "",
+                                                     disabled=(kurs_kulup != "Evet"),
+                                                     placeholder="Örn: Yüzme - Basketbol (Tire ile ayırınız)" if kurs_kulup == "Evet" else "('Evet' seçilince aktif olur)")
+                    kurs_adi = kurs_brans
 
                     akademik_destek_opts = ["Hayır, almıyorum", "Okul kursu (ücretsiz)", "Dershane / Etüt merkezi",
                                             "Özel ders (bireysel)", "Online kurs / platform (Eba, YouTube vb.)"]
@@ -1845,7 +1853,7 @@ with tab_risk:
                     veli_meslek    = b9c1.text_input("Mesleği", value=existing.get("veli_meslek",""))
 
                     st.markdown("---")
-                    submitted_profile = st.form_submit_button("✅ Formu Kaydet", use_container_width=True, type="primary")
+                    submitted_profile = st.button("✅ Formu Kaydet", use_container_width=True, type="primary", key="btn_submit_prof_tab")
 
                 if submitted_profile:
                     profile_data = {
@@ -1863,7 +1871,7 @@ with tab_risk:
                         "okula_giden_kardes": okula_giden_kardes,
                         "ilac_kullaniyor": ilac_kullaniyor, "ilac_adi": ilac_adi,
                         "tani_var": tani_var, "tani_aciklama": tani_aciklama,
-                        "ozel_egitim": ozel_egitim, "ailede_hastalik": ailede_hastalik,
+                        "ozel_egitim": ozel_egitim, "ailede_hastalik": ailede_hastalik, "ailede_aciklama": ailede_aciklama,
                         "devamsizlik_gun": devamsizlik_gun, "ders_zorluk": ders_zorluk,
                         "zor_dersler": zor_dersler, "okul_degistirdi": okul_degistirdi,
                         "arkadas_edinme": arkadas_edinme,
@@ -2186,7 +2194,9 @@ with tab_risk:
 - İlaç kullanımı: {sel_prof_data.get('ilac_kullaniyor','-')} {('('+sel_prof_data.get('ilac_adi','')+')'  ) if sel_prof_data.get('ilac_adi') else ''}
 - Tanı: {sel_prof_data.get('tani_var','-')} {('('+sel_prof_data.get('tani_aciklama','')+')'  ) if sel_prof_data.get('tani_aciklama') else ''}
 - Özel eğitim: {sel_prof_data.get('ozel_egitim','-')}
-- Ailede hastalık: {sel_prof_data.get('ailede_hastalik','-')}
+- Ailede hastalık: {sel_prof_data.get('ailede_hastalik','-')} {('('+sel_prof_data.get('ailede_aciklama','')+')') if sel_prof_data.get('ailede_aciklama') else ''}
+- Kulüp / Spor: {sel_prof_data.get('kurs_kulup','-')} {('('+sel_prof_data.get('kurs_brans','')+')') if sel_prof_data.get('kurs_brans') else ''}
+- Akademik destek: {', '.join(_pjson.loads(sel_prof_data.get('akademik_destek','[]') or '[]')) if sel_prof_data.get('akademik_destek') else '-'}
 
 **🏫 Okul Hayatı**
 - Devamsızlık: {sel_prof_data.get('devamsizlik_gun','-')}

@@ -49,6 +49,7 @@ def init_profile_table():
             tani_aciklama     TEXT,
             ozel_egitim       TEXT,
             ailede_hastalik   TEXT,
+            ailede_aciklama   TEXT,
 
             -- Bölüm 5: Okul Hayatı
             devamsizlik_gun   TEXT,   -- '0' / '1-3' / '4-9' / '10+'
@@ -113,7 +114,7 @@ def save_profile(student_id: int, data: dict):
             baba_adi, baba_sag, baba_egitim, baba_meslek,
             ebeveyn_birlikte, mevsimlik_isci,
             kardes_sayisi, kacinci_cocuk, okula_giden_kardes,
-            ilac_kullaniyor, ilac_adi, tani_var, tani_aciklama, ozel_egitim, ailede_hastalik,
+            ilac_kullaniyor, ilac_adi, tani_var, tani_aciklama, ozel_egitim, ailede_hastalik, ailede_aciklama,
             devamsizlik_gun, ders_zorluk, zor_dersler, okul_degistirdi, arkadas_edinme,
             calisma_durumu, ders_ortami, internet_erisim, teknoloji_aleti,
             hobiler, kurs_kulup, kurs_adi, kurs_brans, akademik_destek,
@@ -125,7 +126,7 @@ def save_profile(student_id: int, data: dict):
             ?,?,?,?,
             ?,?,
             ?,?,?,
-            ?,?,?,?,?,?,
+            ?,?,?,?,?,?,?,
             ?,?,?,?,?,
             ?,?,?,?,
             ?,?,?,?,
@@ -149,7 +150,7 @@ def save_profile(student_id: int, data: dict):
             okula_giden_kardes=excluded.okula_giden_kardes,
             ilac_kullaniyor=excluded.ilac_kullaniyor, ilac_adi=excluded.ilac_adi,
             tani_var=excluded.tani_var, tani_aciklama=excluded.tani_aciklama,
-            ozel_egitim=excluded.ozel_egitim, ailede_hastalik=excluded.ailede_hastalik,
+            ozel_egitim=excluded.ozel_egitim, ailede_hastalik=excluded.ailede_hastalik, ailede_aciklama=excluded.ailede_aciklama,
             devamsizlik_gun=excluded.devamsizlik_gun, ders_zorluk=excluded.ders_zorluk,
             zor_dersler=excluded.zor_dersler, okul_degistirdi=excluded.okul_degistirdi,
             arkadas_edinme=excluded.arkadas_edinme,
@@ -191,6 +192,7 @@ def save_profile(student_id: int, data: dict):
         data.get("tani_aciklama", ""),
         data.get("ozel_egitim", ""),
         data.get("ailede_hastalik", ""),
+        data.get("ailede_aciklama", ""),
         data.get("devamsizlik_gun", ""),
         data.get("ders_zorluk", ""),
         jl(data.get("zor_dersler", [])),
