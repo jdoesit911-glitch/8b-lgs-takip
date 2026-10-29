@@ -13,6 +13,10 @@ from core.student_card_gen import generate_all_student_cards, generate_single_st
 from core.branch_report_gen import generate_branch_word_report, generate_all_branch_reports, analyze_branch_data
 from config import EXPORTS_DIR, SUBJECTS
 from core.youtube_recommender import render_lgs_youtube_table_html, render_yt_buttons_html
+from core.risk_mapper import (RISK_FACTORS, STUDENT_SURVEY_QUESTIONS, STUDENT_VISIBLE_IDS,
+                               FACTOR_DICT, init_risk_table, set_risk_factor,
+                               get_student_risk_factors, get_all_risk_data, get_risk_summary,
+                               save_student_survey)
 
 st.set_page_config(
     page_title="LGS Akademik Başarı ve Takip Otomasyonu",
@@ -138,6 +142,12 @@ if st.session_state.role is None:
                         st.session_state.role = "student"
                         st.session_state.student_name = row[0]
                         st.session_state.student_no = row[1]
+                        # student_id'yi de kaydet (risk haritasi icin)
+                        conn2 = sqlite3.connect(DATABASE_PATH)
+                        row2 = conn2.execute("SELECT id FROM students WHERE UPPER(pin) = UPPER(?)", (pin_input.strip(),)).fetchone()
+                        conn2.close()
+                        if row2:
+                            st.session_state.student_id = row2[0]
                         st.rerun()
                     else:
                         st.error("❌ Hatalı giriş kodu! Lütfen öğretmeninizden aldığınız 4 haneli kodu kontrol edin.")
@@ -588,9 +598,10 @@ tabs_list = [
     "👤 Bireysel Öğrenci Karneleri",
     "📚 Branş Öğretmen Raporları",
     "📈 Çoklu Deneme Gelişim Takibi",
+    "🗺️ Risk Haritası",
     "⚡ Otomatik Rapor & Karne Üretici"
 ]
-tab1, tab2, tab3, tab_branch, tab4, tab5 = st.tabs(tabs_list)
+tab1, tab2, tab3, tab_branch, tab4, tab_risk, tab5 = st.tabs(tabs_list)
 
 # ----------------- TAB 1: Sınıf Genel Görünümü -----------------
 with tab1:
@@ -1223,6 +1234,265 @@ with tab4:
         st.pyplot(fig_h)
     else:
         st.info(f"{sel_student_trend} adlı öğrencinin yalnızca 1 sınav kaydı var.")
+
+
+# ----------------- TAB RISK: Sinif Risk Haritasi -----------------
+with tab_risk:
+    init_risk_table()
+    st.subheader("🗺️ Sınıf Risk Haritası — S.İ.4.a")
+    st.caption("Kaynaktan alindı: Özel Eğitim ve Rehberlik Hizmetleri Genel Müdurlugu")
+
+    if current_role not in ("admin", "teacher"):
+        # ─── Öğrenci Anket Bolumu ─────────────────────────────────────────────────
+        st.info("📋 Bu bolumde sana birkaç soru sorulacak. Yanıtların gizlidir ve yalnızca sınıf öğretmenin gorebilir.")
+
+        if "risk_survey_done" not in st.session_state:
+            st.session_state.risk_survey_done = False
+
+        if st.session_state.risk_survey_done:
+            st.success("✅ Yanıtların kaydedildi! Teşekkür ederiz.")
+        else:
+            with st.form("student_risk_form"):
+                st.markdown("**Lütfen aşağıdaki soruları düzgünce yanıtla. Hiçbir yanıt yanlış değildir.**")
+
+                q_kardes = st.radio(
+                    "1️⃣ Ailende kaç kardeşin var?",
+                    ["Tek çocuğum (kardeşim yok)", "1-2 kardeşim var", "3-4 kardeşim var", "5 veya daha fazla kardeşim var"],
+                    index=None
+                )
+                q_aile = st.radio(
+                    "2️⃣ Şu an evde kimlerle yaşıyorsun?",
+                    ["Annem ve babamla birlikte", "Yalnızca annemle", "Yalnızca babamla",
+                     "Büyükanne/büyükbabamla", "Diğer akrabalarımla"],
+                    index=None
+                )
+                q_devams = st.radio(
+                    "3️⃣ Bu donem kaç gun okula gidemedin? (hastalık, zorunluluk vb.)",
+                    ["Hiç devamsızlığım yok", "1-3 gun", "4-9 gun", "10 gun ve üzeri"],
+                    index=None
+                )
+                q_calis = st.radio(
+                    "4️⃣ Okul dışında bir işte ya da tezgahta çalışıyor musun?",
+                    ["Hayır", "Evet, bazen yardım ediyorum", "Evet, düzenli çalışıyorum"],
+                    index=None
+                )
+                q_akademik = st.radio(
+                    "5️⃣ Dersleri yetiştirmekte ya da anlamakta ciddi zorluk çekiyor musun?",
+                    ["Hayır, genel olarak takip edebiliyorum", "Bazı derslerde zorlanıyorum", "Evet, çoğu dersde zorlanıyorum"],
+                    index=None
+                )
+                q_diger = st.text_area(
+                    "6️⃣ Paylaşmak istediğin başka bir durum var mı? (İsteğe bağlı, boş bırakabilirsin)",
+                    placeholder="Örn: ulaşım problemi, okul malzemesi eksikliği, arkadaşlık sorunları..."
+                )
+
+                submitted = st.form_submit_button("✅ Yanıtlarımı Kaydet", use_container_width=True, type="primary")
+                if submitted:
+                    if "student_id" in st.session_state:
+                        answers = {}
+                        # Kardes
+                        if q_kardes == "Tek çocuğum (kardeşim yok)":
+                            set_risk_factor(st.session_state.student_id, 3, True, source="student")
+                        elif q_kardes == "5 veya daha fazla kardeşim var":
+                            set_risk_factor(st.session_state.student_id, 4, True, source="student")
+                        # Aile yapısı
+                        aile_map = {
+                            "Yalnızca annemle": 7,
+                            "Yalnızca babamla": 8,
+                            "Büyükanne/büyükbabamla": 13,
+                            "Diğer akrabalarımla": 14,
+                        }
+                        if q_aile in aile_map:
+                            set_risk_factor(st.session_state.student_id, aile_map[q_aile], True, source="student")
+                        # Devamsızlık
+                        if q_devams == "10 gun ve üzeri":
+                            set_risk_factor(st.session_state.student_id, 31, True, source="student")
+                        # Çalışma
+                        if q_calis and q_calis != "Hayır":
+                            set_risk_factor(st.session_state.student_id, 32, True, source="student")
+                        # Akademik
+                        if q_akademik and q_akademik != "Hayır, genel olarak takip edebiliyorum":
+                            set_risk_factor(st.session_state.student_id, 33, True, source="student")
+                        # Diğer
+                        if q_diger and q_diger.strip():
+                            set_risk_factor(st.session_state.student_id, 35, True, source="student", note=q_diger[:200])
+                        st.session_state.risk_survey_done = True
+                        st.rerun()
+                    else:
+                        st.error("Oturum hatası. Lütfen tekrar giriş yapın.")
+
+    else:
+        # ─── Öğretmen / Admin Risk Haritası Paneli ─────────────────────────────────
+        import sqlite3 as _sq
+        from config import DATABASE_PATH as _DBP
+
+        _conn_r = _sq.connect(_DBP)
+        _students_r = _conn_r.execute(
+            "SELECT id, school_no, name FROM students ORDER BY CAST(school_no AS INTEGER) ASC, id ASC"
+        ).fetchall()
+        _conn_r.close()
+
+        all_risk = get_all_risk_data()
+
+        # --- Özet Metrik Kutuları ---
+        total_students = len(_students_r)
+        total_at_risk = sum(1 for sid, _ in [(s[0], all_risk.get(s[0], set())) for s in _students_r] if all_risk.get(s[0]))
+        risk_summary = get_risk_summary()
+
+        rm1, rm2, rm3 = st.columns(3)
+        rm1.metric("📌 Toplam Öğrenci", total_students)
+        rm2.metric("⚠️ Risk Faktoru Olan", total_at_risk,
+                   help="En az 1 risk faktörü işaretlenmiş öğrenci sayısı")
+        top_factor = max(risk_summary, key=risk_summary.get) if risk_summary else None
+        rm3.metric("🔥 En Yaygın Faktör",
+                   FACTOR_DICT[top_factor]["label"][:30] + "..." if top_factor else "—",
+                   f"{risk_summary.get(top_factor, 0)} öğrenci" if top_factor else "")
+
+        st.markdown("---")
+
+        # --- Risk Faktoru Giris Ekrani ---
+        tab_grid, tab_summary, tab_export = st.tabs([
+            "📝 Risk Faktoru Girişi",
+            "📊 Ozet & Analiz",
+            "📥 Resmi PDF İndir"
+        ])
+
+        with tab_grid:
+            st.markdown("**Öğrenci seçin ve risk faktörlerini işaretleyin:**")
+
+            # Öğrenci seçimi
+            student_names_r = [f"{s[1]} — {s[2]}" for s in _students_r]
+            sel_student_risk = st.selectbox("Öğrenci Seç", student_names_r, key="risk_stu_sel")
+            sel_idx_r = student_names_r.index(sel_student_risk)
+            sel_stu_id_r = _students_r[sel_idx_r][0]
+            sel_stu_name_r = _students_r[sel_idx_r][2]
+
+            cur_factors = get_student_risk_factors(sel_stu_id_r)
+
+            st.markdown(f"**{sel_stu_name_r}** — Mevcut risk faktörleri: {len(cur_factors)}")
+
+            # Kategori gruplarına gore göster
+            categories = {}
+            for f in RISK_FACTORS:
+                categories.setdefault(f["category"], []).append(f)
+
+            cat_icons = {
+                "Aile Yapısı":    "🏠",
+                "Özel Durum":     "🚨",
+                "Aile Sağlığı":   "❤️",
+                "Öğrenci Durumu": "🎓",
+            }
+
+            updated_factors = set(cur_factors)
+
+            with st.form(f"risk_form_{sel_stu_id_r}"):
+                for cat, factors in categories.items():
+                    icon = cat_icons.get(cat, "•")
+                    st.markdown(f"**{icon} {cat}**")
+                    cols_f = st.columns(2)
+                    for i, f in enumerate(factors):
+                        default_val = f["id"] in cur_factors
+                        label = f["label"]
+                        if f["teacher_only"]:
+                            label += " 🔒"
+                        checked = cols_f[i % 2].checkbox(label, value=default_val, key=f"rf_{sel_stu_id_r}_{f['id']}")
+                        if checked:
+                            updated_factors.add(f["id"])
+                        else:
+                            updated_factors.discard(f["id"])
+
+                note_r = st.text_area("Not (isteğe bağlı)", placeholder="Bu öğrenci için ek açıklama...")
+                save_btn = st.form_submit_button("💾 Risk Faktörlerini Kaydet", use_container_width=True, type="primary")
+
+                if save_btn:
+                    # Tum mevcut faktorleri sil ve yeniden kaydet
+                    import sqlite3 as _sq2
+                    conn_save = _sq2.connect(_DBP)
+                    conn_save.execute("DELETE FROM student_risk_factors WHERE student_id = ?", (sel_stu_id_r,))
+                    conn_save.commit()
+                    conn_save.close()
+                    for fid in updated_factors:
+                        set_risk_factor(sel_stu_id_r, fid, True, source="teacher", note=note_r if note_r else "")
+                    st.success(f"✅ {sel_stu_name_r} için {len(updated_factors)} risk faktörü kaydedildi!")
+                    st.rerun()
+
+        with tab_summary:
+            st.markdown("### 📊 Sınıf Risk Özet Tablosu")
+
+            if not risk_summary:
+                st.info("Henüz hiç risk faktörü girilmemiş. Risk Faktörü Girişi sekmesinden başlayın.")
+            else:
+                # En yaygın faktörler grafiği
+                top_factors = sorted(risk_summary.items(), key=lambda x: x[1], reverse=True)[:15]
+                labels_g = [FACTOR_DICT[fid]["label"][:35] for fid, _ in top_factors]
+                counts_g = [cnt for _, cnt in top_factors]
+
+                fig_r, ax_r = plt.subplots(figsize=(10, 5))
+                bars = ax_r.barh(labels_g[::-1], counts_g[::-1], color="#C00000")
+                ax_r.set_xlabel("Öğrenci Sayısı")
+                ax_r.set_title("En Yaygın 15 Risk Faktörü")
+                for bar, cnt in zip(bars, counts_g[::-1]):
+                    ax_r.text(bar.get_width() + 0.05, bar.get_y() + bar.get_height() / 2,
+                              str(cnt), va="center", fontsize=9)
+                plt.tight_layout()
+                st.pyplot(fig_r)
+                plt.close(fig_r)
+
+            # Öğrenci bazlı risk tablosu
+            st.markdown("### 👥 Öğrenci Bazlı Risk Durumu")
+            risk_rows = []
+            for sid, sno, sname in _students_r:
+                fids = all_risk.get(sid, set())
+                risk_rows.append({
+                    "Okul No": sno,
+                    "Adı Soyadı": sname,
+                    "Risk Sayısı": len(fids),
+                    "Risk Faktörleri": ", ".join(FACTOR_DICT[fid]["label"] for fid in sorted(fids)) if fids else "—"
+                })
+            df_risk = pd.DataFrame(risk_rows)
+            df_risk_sorted = df_risk.sort_values("Risk Sayısı", ascending=False)
+            st.dataframe(df_risk_sorted, use_container_width=True, height=500)
+
+        with tab_export:
+            st.markdown("### 📄 Resmi Risk Haritası Dışa Aktarma")
+            st.info("Aşağıdaki butona tıklayarak Özel Eğitim ve Rehberlik Hizmetleri Genel Müdürlüğü S.İ.4.a formatında Word belgesini indirin.")
+
+            school_inp = st.text_input("Okul Adı", value="")
+            class_inp = st.text_input("Sınıf Adı", value="8/B")
+
+            if st.button("🖨️ Resmi Risk Haritasını Oluştur (.docx)", use_container_width=True, type="primary"):
+                try:
+                    from core.risk_pdf_exporter import export_risk_pdf
+                    risk_out_path = os.path.join(EXPORTS_DIR, "8B_Sinif_Risk_Haritasi.docx")
+                    os.makedirs(EXPORTS_DIR, exist_ok=True)
+                    students_list = [{"id": s[0], "school_no": s[1], "name": s[2]} for s in _students_r]
+                    export_risk_pdf(
+                        students=students_list,
+                        risk_data=all_risk,
+                        output_path=risk_out_path,
+                        school_name=school_inp or "……",
+                        class_name=class_inp or "8/B"
+                    )
+                    st.session_state["risk_doc_path"] = risk_out_path
+                    st.success("✅ Risk Haritası oluşturuldu!")
+                except Exception as e_rp:
+                    st.error(f"Hata: {e_rp}")
+
+            risk_doc_path = st.session_state.get("risk_doc_path", "")
+            if not risk_doc_path:
+                risk_doc_path = os.path.join(EXPORTS_DIR, "8B_Sinif_Risk_Haritasi.docx")
+
+            if os.path.exists(risk_doc_path):
+                with open(risk_doc_path, "rb") as f_rd:
+                    rd_bytes = f_rd.read()
+                st.download_button(
+                    "📥 Risk Haritasını İndir (.docx)",
+                    data=rd_bytes,
+                    file_name="8B_Sinif_Risk_Haritasi.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    use_container_width=True
+                )
+
 
 # ----------------- TAB 5: Rapor & Karne Üretici -----------------
 with tab5:
