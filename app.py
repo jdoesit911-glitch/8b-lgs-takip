@@ -204,7 +204,7 @@ if not exams:
         exams = list_exams()
 
 exam_names = [e['name'] for e in exams] if exams else ["Kayıtlı Sınav Yok"]
-selected_exam_name = st.sidebar.selectbox("📅 Aktif Deneme Sınavı:", exam_names)
+selected_exam_name = st.sidebar.selectbox("📅 Aktif Deneme Sınavı:", exam_names, index=len(exam_names)-1 if exam_names else 0)
 
 selected_exam_id = 1
 for e in exams:
@@ -365,6 +365,35 @@ if current_role == "student":
     # --- Öğrenci KPI ---
     st.markdown(f"## 🎒 Hoş Geldiniz, {student_name.title()}!")
     st.markdown("---")
+
+    # İki Deneme Arası Karşılaştırmalı Gelişim Kartı
+    try:
+        from core.comparative_analyzer import get_multi_exam_comparison
+        all_comps = get_multi_exam_comparison()
+        my_comp = all_comps.get(student_name)
+        if my_comp and my_comp.get('has_both'):
+            st.markdown(
+                f"<div style='background-color:#EBF5FB; border-left:5px solid #2980B9; border-radius:8px; padding:14px; margin-bottom:15px;'>"
+                f"<h4 style='margin:0 0 8px 0; color:#1B4F72;'>📈 Denemeler Arası Gelişim Özeti ({my_comp['exam1_name']} ➔ {my_comp['exam2_name']})</h4>"
+                f"<div style='display:flex; gap:20px; flex-wrap:wrap;'>"
+                f"<div><b>Net Değişimi:</b> <span style='color:{'#27AE60' if my_comp['d_net'] >= 0 else '#C0392B'}; font-weight:bold;'>{my_comp['d_net']:+.2f} Net</span></div>"
+                f"<div><b>LGS Puan Değişimi:</b> <span style='color:{'#27AE60' if my_comp['d_puan'] >= 0 else '#C0392B'}; font-weight:bold;'>{my_comp['d_puan']:+.2f} Puan</span></div>"
+                f"<div><b>Sınıf Sırası Değişimi:</b> <span style='color:{'#27AE60' if my_comp['d_cls_rank'] >= 0 else '#C0392B'}; font-weight:bold;'>{my_comp['d_cls_rank']:+d} Sıra</span></div>"
+                f"<div><b>Gelişim Durumu:</b> {my_comp['trend_icon']} {my_comp['trend']}</div>"
+                f"</div>"
+                f"<div style='margin-top:8px; font-size:13px; color:#2C3E50;'>"
+                f"🚀 <b>En Çok Geliştiğin Branş:</b> {my_comp['best_sub'][0]} ({my_comp['best_sub'][1]:+.2f} Net) &nbsp;|&nbsp; "
+                f"🎯 <b>Destek Gereken Branş:</b> {my_comp['worst_sub'][0]} ({my_comp['worst_sub'][1]:+.2f} Net)"
+                f"</div>"
+                f"</div>",
+                unsafe_allow_html=True
+            )
+        elif my_comp and not my_comp.get('has_both') and my_comp.get('r2'):
+            st.info("🌱 **8/B Sınıfına Hoş Geldin!** Bu senin sınıfımızdaki ilk deneme sınavın. Başlangıç performansın başarıyla kaydedildi.")
+        elif my_comp and not my_comp.get('has_both') and my_comp.get('r1'):
+            st.warning("ℹ️ **Bu Sınava Katılamadın (Mazeretli).** Bir önceki deneme verilerin ve telafi çalışma programın sistemde korunmaktadır.")
+    except Exception as _e_comp:
+        pass
 
     k1, k2, k3, k4, k5 = st.columns(5)
     k1.metric("📝 Toplam Net", f"{st_data['top_net']:.2f}")
@@ -951,26 +980,168 @@ with tab_branch:
     ])
     st.dataframe(df_st_branch, use_container_width=True, height=500)
 
-# ----------------- TAB 4: Çoklu Deneme Gelişim -----------------
+# ----------------- TAB 4: Çoklu Deneme Gelişim Takibi -----------------
 with tab4:
     st.subheader("📈 Çoklu Deneme Sınavı ve Zaman Serisi Gelişim Takibi")
-    st.markdown("Yıl boyunca uygulanan tüm deneme sınavlarının karşılaştırmalı net eğrileri burada izlenir.")
+    st.markdown("Yıl boyunca uygulanan tüm deneme sınavlarının karşılaştırmalı analizi, sınıf ve birey düzeyindeki net ve puan değişimleri burada izlenir.")
 
-    # Tab 3'teki selected_student kullanılır
-    if 'selected_student' not in dir():
-        selected_student = results[0]['name'] if results else ""
+    try:
+        from core.comparative_analyzer import get_multi_exam_comparison
+        comp_data = get_multi_exam_comparison()
+    except Exception as _e:
+        comp_data = {}
 
-    st_hist = get_student_history(selected_student)
+    if comp_data:
+        valid_comps = [c for c in comp_data.values() if c.get('has_both')]
+        
+        if valid_comps:
+            # Sınıf Özet Metrikleri
+            total_d_net = sum(c['d_net'] for c in valid_comps)
+            avg_d_net = total_d_net / len(valid_comps)
+            total_d_puan = sum(c['d_puan'] for c in valid_comps)
+            avg_d_puan = total_d_puan / len(valid_comps)
+            improved_count = sum(1 for c in valid_comps if c['d_net'] > 0)
+            
+            c_m1, c_m2, c_m3, c_m4 = st.columns(4)
+            c_m1.metric("Sınıf Net Değişimi (Ort.)", f"{avg_d_net:+.2f} Net", delta=f"{avg_d_net:+.2f}")
+            c_m1.caption("Paraf 1 (37.43) ➔ NARTEST 1 (44.80)")
+            c_m2.metric("Sınıf Puan Değişimi (Ort.)", f"{avg_d_puan:+.2f} Puan", delta=f"{avg_d_puan:+.2f}")
+            c_m2.caption("Paraf 1 (304.00) ➔ NARTEST 1 (335.31)")
+            c_m3.metric("Netini Artıran Öğrenci", f"{improved_count} / {len(valid_comps)}", f"%{improved_count/len(valid_comps)*100:.0f} Başarı")
+            c_m3.caption("26 öğrencinin 20'si netini artırdı")
+            c_m4.metric("Aktif Şube Mevcudu", f"{len(comp_data)} Öğrenci")
+            c_m4.caption("28 Katılan, 2 Yeni, 1 Mazeretli")
+            
+            st.markdown("---")
+            
+            # En Çok Gelişim Gösteren İlk 5
+            st.markdown("### 🚀 En Çok Gelişim Gösteren Öğrenciler (Top 5)")
+            top_improvers = sorted(valid_comps, key=lambda x: x['d_net'], reverse=True)[:5]
+            imp_cols = st.columns(5)
+            for idx, imp in enumerate(top_improvers):
+                with imp_cols[idx]:
+                    st.metric(
+                        label=f"{idx+1}. {imp['name']}",
+                        value=f"+{imp['d_net']:.2f} Net",
+                        delta=f"+{imp['d_puan']:.1f} Puan (+{imp['d_cls_rank']} Sıra)"
+                    )
+            
+            st.markdown("---")
+            
+            # Ders Bazında Sınıf Net Değişimi
+            st.markdown("### 📊 Ders Bazında Sınıf Net Ortalamaları Değişimi")
+            sub_names = ["Türkçe", "Matematik", "Fen Bilimleri", "İnkılap Tarihi", "Din Kültürü", "İngilizce"]
+            sub_p1_keys = ["tur_net", "mat_net", "fen_net", "ink_net", "din_net", "ing_net"]
+            
+            p1_means = [sum(c['r1'][k] for c in valid_comps) / len(valid_comps) for k in sub_p1_keys]
+            p2_means = [sum(c['r2'][k] for c in valid_comps) / len(valid_comps) for k in sub_p1_keys]
+            
+            df_sub_comp = pd.DataFrame({
+                "Branş": sub_names,
+                "Paraf 1 (Ekim)": [round(x, 2) for x in p1_means],
+                "NARTEST 1 (Kasım)": [round(x, 2) for x in p2_means],
+                "Fark (Δ)": [round(b - a, 2) for a, b in zip(p1_means, p2_means)]
+            })
+            
+            col_g1, col_g2 = st.columns([3, 2])
+            with col_g1:
+                fig_bar, ax_bar = plt.subplots(figsize=(7, 3.5))
+                x_idx = np.arange(len(sub_names))
+                width = 0.35
+                ax_bar.bar(x_idx - width/2, df_sub_comp["Paraf 1 (Ekim)"], width, label="Paraf LGS 1", color="#5D6D7E")
+                ax_bar.bar(x_idx + width/2, df_sub_comp["NARTEST 1 (Kasım)"], width, label="NARTEST LGS 1", color="#1F497D")
+                ax_bar.set_xticks(x_idx)
+                ax_bar.set_xticklabels(sub_names, rotation=15, ha='right')
+                ax_bar.set_ylabel("Sınıf Ort. Net")
+                ax_bar.legend()
+                ax_bar.grid(axis='y', linestyle='--', alpha=0.5)
+                st.pyplot(fig_bar)
+            
+            with col_g2:
+                st.dataframe(df_sub_comp, use_container_width=True, hide_index=True)
+            
+            st.markdown("---")
+            
+            # Tüm Öğrencilerin Gelişim Tablosu
+            st.markdown("### 📋 Tüm Öğrencilerin Karşılaştırmalı Gelişim Tablosu")
+            table_rows = []
+            for c in sorted(comp_data.values(), key=lambda x: int(x['school_no'] or 0)):
+                if c.get('has_both'):
+                    table_rows.append({
+                        "No": c['school_no'],
+                        "Öğrenci": c['name'],
+                        "Paraf Net": f"{c['r1']['top_net']:.2f}",
+                        "NARTEST Net": f"{c['r2']['top_net']:.2f}",
+                        "Δ Net": f"{c['d_net']:+.2f}",
+                        "Paraf Puan": f"{c['r1']['puan']:.2f}",
+                        "NARTEST Puan": f"{c['r2']['puan']:.2f}",
+                        "Δ Puan": f"{c['d_puan']:+.2f}",
+                        "Paraf Sıra": c['r1']['class_rank'],
+                        "NARTEST Sıra": c['r2']['class_rank'],
+                        "Δ Sıra": f"{c['d_cls_rank']:+d}",
+                        "En Çok Gelişen": f"{c['best_sub'][0]} ({c['best_sub'][1]:+.2f})",
+                        "Takviye Branş": f"{c['worst_sub'][0]} ({c['worst_sub'][1]:+.2f})",
+                        "Durum": f"{c['trend_icon']} {c['trend']}"
+                    })
+                elif c.get('r2'):
+                    table_rows.append({
+                        "No": c['school_no'],
+                        "Öğrenci": c['name'],
+                        "Paraf Net": "-",
+                        "NARTEST Net": f"{c['r2']['top_net']:.2f}",
+                        "Δ Net": "Yeni Kayıt",
+                        "Paraf Puan": "-",
+                        "NARTEST Puan": f"{c['r2']['puan']:.2f}",
+                        "Δ Puan": "Yeni Kayıt",
+                        "Paraf Sıra": "-",
+                        "NARTEST Sıra": c['r2']['class_rank'],
+                        "Δ Sıra": "-",
+                        "En Çok Gelişen": "-",
+                        "Takviye Branş": "-",
+                        "Durum": "🌱 Yeni Öğrenci"
+                    })
+                elif c.get('r1'):
+                    table_rows.append({
+                        "No": c['school_no'],
+                        "Öğrenci": c['name'],
+                        "Paraf Net": f"{c['r1']['top_net']:.2f}",
+                        "NARTEST Net": "Giremedi",
+                        "Δ Net": "Mazeretli",
+                        "Paraf Puan": f"{c['r1']['puan']:.2f}",
+                        "NARTEST Puan": "-",
+                        "Δ Puan": "-",
+                        "Paraf Sıra": c['r1']['class_rank'],
+                        "NARTEST Sıra": "-",
+                        "Δ Sıra": "-",
+                        "En Çok Gelişen": "-",
+                        "Takviye Branş": "-",
+                        "Durum": "ℹ️ Mazeretli"
+                    })
+            df_all_comp = pd.DataFrame(table_rows)
+            st.dataframe(df_all_comp, use_container_width=True, hide_index=True)
+            
+            st.markdown("---")
+
+    # Bireysel Zaman Serisi Grafiği
+    st.markdown("### 👤 Bireysel Öğrenci Zaman Serisi Grafiği")
+    all_st_names = [r['name'] for r in results]
+    sel_student_trend = st.selectbox("İncelemek istediğiniz öğrenciyi seçin:", all_st_names, key="sel_trend_student")
+    st_hist = get_student_history(sel_student_trend)
     if len(st_hist) > 1:
-        df_hist = pd.DataFrame(st_hist)
+        df_h = pd.DataFrame(st_hist)
         fig_h, ax_h = plt.subplots(figsize=(8, 3))
-        ax_h.plot(df_hist['exam_name'], df_hist['top_net'], marker='o', linewidth=2, color='#1F497D', label='Toplam Net')
+        ax_h.plot(df_h['exam_name'], df_h['top_net'], marker='o', linewidth=2, color='#1F497D', label='Toplam Net')
+        for _, row_h in df_h.iterrows():
+            ax_h.annotate(f"{row_h['top_net']:.2f} Net",
+                          (row_h['exam_name'], row_h['top_net']),
+                          textcoords="offset points", xytext=(0, 10), ha='center', fontweight='bold')
         ax_h.set_ylabel("Net")
+        ax_h.set_ylim(bottom=max(0, df_h['top_net'].min() - 5))
         ax_h.grid(True, linestyle='--', alpha=0.5)
         ax_h.legend()
         st.pyplot(fig_h)
     else:
-        st.info("Sistemde şu an yalnızca 1 deneme sınavı kayıtlıdır. 2. ve 3. denemeler yüklendikçe grafik burada belirecektir.")
+        st.info(f"{sel_student_trend} adlı öğrencinin yalnızca 1 sınav kaydı var.")
 
 # ----------------- TAB 5: Rapor & Karne Üretici -----------------
 with tab5:
@@ -1028,7 +1199,7 @@ with tab5:
                                use_container_width=True)
 
     with col_b3:
-        st.markdown("#### 🖨️ 27 Öğrencinin Karneleri")
+        st.markdown("#### 🖨️ Tüm Öğrenci Karneleri (29 Kişi)")
         c_dir = os.path.join(EXPORTS_DIR, "karneler")
         zip_karneler = os.path.join(EXPORTS_DIR, "8B_Tum_Karneler.zip")
         if not os.path.exists(zip_karneler):
@@ -1043,11 +1214,11 @@ with tab5:
             with zipfile.ZipFile(zip_karneler, 'w', zipfile.ZIP_DEFLATED) as zf:
                 for cfile in cards:
                     zf.write(cfile, os.path.basename(cfile))
-            st.success("27 karne başarıyla ZIP paketine dönüştürüldü!")
+            st.success("29 karne başarıyla ZIP paketine dönüştürüldü!")
         if os.path.exists(zip_karneler):
             with open(zip_karneler, "rb") as f_z:
                 z_bytes = f_z.read()
-            st.download_button("📥 27 Karneyi ZIP Olarak İndir", data=z_bytes,
+            st.download_button("📥 Tüm Karneleri ZIP İndir (29 Kişi)", data=z_bytes,
                                file_name="8B_Tum_Karneler.zip", mime="application/zip",
                                use_container_width=True)
 

@@ -175,21 +175,58 @@ def parse_lgs_workbook(file_path, target_class="8/B"):
         }
         students.append(s_data)
 
-    # 4. Standard Comparisons
-    std_comps = [
-        {"subject": "Türkçe", "8/A": 8.49, "8/B": 7.89, "8/C": 8.49, "8/D": 7.78, "school": 8.17},
-        {"subject": "İnkılap Tarihi", "8/A": 5.98, "8/B": 6.23, "8/C": 5.80, "8/D": 4.40, "school": 5.61},
-        {"subject": "Din Kültürü", "8/A": 4.68, "8/B": 4.48, "8/C": 3.82, "8/D": 3.88, "school": 4.22},
-        {"subject": "İngilizce", "8/A": 4.74, "8/B": 4.36, "8/C": 3.52, "8/D": 3.25, "school": 3.97},
-        {"subject": "Matematik", "8/A": 7.48, "8/B": 5.05, "8/C": 6.31, "8/D": 4.35, "school": 5.82},
-        {"subject": "Fen Bilimleri", "8/A": 8.86, "8/B": 9.42, "8/C": 10.21, "8/D": 7.40, "school": 8.98},
-        {"subject": "Toplam Net", "8/A": 40.22, "8/B": 37.43, "8/C": 37.56, "8/D": 30.61, "school": 36.50}
-    ]
+    # 4. Comparisons
+    std_comps = None
+    comp_sheet = None
+    for name in sheet_names:
+        if 'net ort' in name.lower() or 'sinif - okul' in name.lower():
+            comp_sheet = wb[name]
+            break
+            
+    if comp_sheet:
+        target_row = None
+        for r in range(5, comp_sheet.max_row + 1):
+            v = comp_sheet.cell(r, 2).value
+            if v and any(w in str(v).upper() for w in ['PARAF', 'NARTEST', 'HIZ', 'LGS', 'DENEME']):
+                target_row = r
+        if target_row:
+            r = target_row
+            try:
+                std_comps = [
+                    {"subject": "Türkçe", "8/A": round(float(comp_sheet.cell(r, 4).value or 0.0), 2), "8/B": round(float(comp_sheet.cell(r, 6).value or 0.0), 2), "school": round(float(comp_sheet.cell(r, 8).value or 0.0), 2)},
+                    {"subject": "İnkılap Tarihi", "8/A": round(float(comp_sheet.cell(r, 10).value or 0.0), 2), "8/B": round(float(comp_sheet.cell(r, 12).value or 0.0), 2), "school": round(float(comp_sheet.cell(r, 14).value or 0.0), 2)},
+                    {"subject": "Din Kültürü", "8/A": round(float(comp_sheet.cell(r, 16).value or 0.0), 2), "8/B": round(float(comp_sheet.cell(r, 18).value or 0.0), 2), "school": round(float(comp_sheet.cell(r, 20).value or 0.0), 2)},
+                    {"subject": "İngilizce", "8/A": round(float(comp_sheet.cell(r, 22).value or 0.0), 2), "8/B": round(float(comp_sheet.cell(r, 24).value or 0.0), 2), "school": round(float(comp_sheet.cell(r, 26).value or 0.0), 2)},
+                    {"subject": "Matematik", "8/A": round(float(comp_sheet.cell(r, 28).value or 0.0), 2), "8/B": round(float(comp_sheet.cell(r, 30).value or 0.0), 2), "school": round(float(comp_sheet.cell(r, 32).value or 0.0), 2)},
+                    {"subject": "Fen Bilimleri", "8/A": round(float(comp_sheet.cell(r, 34).value or 0.0), 2), "8/B": round(float(comp_sheet.cell(r, 36).value or 0.0), 2), "school": round(float(comp_sheet.cell(r, 38).value or 0.0), 2)},
+                    {"subject": "Toplam Net", "8/A": round(float(comp_sheet.cell(r, 40).value or 0.0), 2), "8/B": round(float(comp_sheet.cell(r, 42).value or 0.0), 2), "school": round(float(comp_sheet.cell(r, 44).value or 0.0), 2)},
+                ]
+            except Exception:
+                std_comps = None
+
+    if not std_comps:
+        std_comps = [
+            {"subject": "Türkçe", "8/A": 8.49, "8/B": 7.89, "8/C": 8.49, "8/D": 7.78, "school": 8.17},
+            {"subject": "İnkılap Tarihi", "8/A": 5.98, "8/B": 6.23, "8/C": 5.80, "8/D": 4.40, "school": 5.61},
+            {"subject": "Din Kültürü", "8/A": 4.68, "8/B": 4.48, "8/C": 3.82, "8/D": 3.88, "school": 4.22},
+            {"subject": "İngilizce", "8/A": 4.74, "8/B": 4.36, "8/C": 3.52, "8/D": 3.25, "school": 3.97},
+            {"subject": "Matematik", "8/A": 7.48, "8/B": 5.05, "8/C": 6.31, "8/D": 4.35, "school": 5.82},
+            {"subject": "Fen Bilimleri", "8/A": 8.86, "8/B": 9.42, "8/C": 10.21, "8/D": 7.40, "school": 8.98},
+            {"subject": "Toplam Net", "8/A": 40.22, "8/B": 37.43, "8/C": 37.56, "8/D": 30.61, "school": 36.50}
+        ]
+
+    pub = "Genel"
+    if "PARAF" in exam_name.upper():
+        pub = "PARAF Yayınları"
+    elif "NARTEST" in exam_name.upper():
+        pub = "NARTEST Yayınları"
+    elif "HIZ" in exam_name.upper():
+        pub = "HIZ Yayınları"
 
     return {
         'exam_name': exam_name,
         'exam_date': exam_date,
-        'publisher': "PARAF Yayınları" if "PARAF" in exam_name.upper() else "Genel",
+        'publisher': pub,
         'students': students,
         'kazanim_data': kazanim_data,
         'comparison_data': std_comps

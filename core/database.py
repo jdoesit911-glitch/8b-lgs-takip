@@ -1,6 +1,15 @@
 import sqlite3
 import os
+import random
+import string
 from config import DATABASE_PATH
+
+def generate_unique_pin(existing_pins):
+    chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    while True:
+        p = "".join(random.choices(chars, k=4))
+        if p not in existing_pins:
+            return p
 
 def get_connection():
     os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
@@ -108,8 +117,14 @@ def save_exam(exam_name, exam_date, publisher, students_data, kazanim_data=None,
         c.execute("INSERT OR IGNORE INTO students (school_no, name, class_name) VALUES (?, ?, ?)", (num, name, cls_name))
         if num and num != '':
             c.execute("UPDATE students SET school_no = ? WHERE name = ?", (num, name))
-        c.execute("SELECT id FROM students WHERE name = ?", (name,))
-        student_id = c.fetchone()['id']
+        c.execute("SELECT id, pin FROM students WHERE name = ?", (name,))
+        st_row = c.fetchone()
+        student_id = st_row['id']
+        if not st_row['pin']:
+            c.execute("SELECT pin FROM students WHERE pin IS NOT NULL")
+            existing_pins = {r['pin'] for r in c.fetchall()}
+            new_pin = generate_unique_pin(existing_pins)
+            c.execute("UPDATE students SET pin = ? WHERE id = ?", (new_pin, student_id))
         
         score_val = float(s.get('puan') if s.get('puan') is not None else s.get('score', 0.0))
         cls_r = int(s.get('cls_rank') if s.get('cls_rank') is not None else s.get('class_rank', 0))
@@ -228,3 +243,42 @@ def get_class_comparison(exam_id):
     rows = [dict(r) for r in c.fetchall()]
     conn.close()
     return rows
+
+def get_all_students():
+    init_db()
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM students ORDER BY CAST(school_no AS INTEGER) ASC, id ASC")
+    rows = [dict(r) for r in c.fetchall()]
+    conn.close()
+    return rows
+
+def get_student_by_pin(pin):
+    if not pin:
+        return None
+    init_db()
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM students WHERE UPPER(pin) = UPPER(?)", (pin.strip(),))
+    row = c.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def ensure_all_pins():
+    init_db()
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT id, name, pin FROM students")
+    students = c.fetchall()
+    c.execute("SELECT pin FROM students WHERE pin IS NOT NULL")
+    existing_pins = {r['pin'] for r in c.fetchall()}
+    updated = 0
+    for s in students:
+        if not s['pin']:
+            new_pin = generate_unique_pin(existing_pins)
+            existing_pins.add(new_pin)
+            c.execute("UPDATE students SET pin = ? WHERE id = ?", (new_pin, s['id']))
+            updated += 1
+    conn.commit()
+    conn.close()
+    return updated

@@ -5,6 +5,7 @@ from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml import parse_xml
 from docx.oxml.ns import nsdecls
 import os
+import zipfile
 from core.analyzer import diagnose_student
 from core.youtube_recommender import get_youtube_advice
 
@@ -370,7 +371,7 @@ def get_subject_prescriptions(student, kazanim_list):
 
     return prescriptions
 
-def generate_single_student_card(student, exam_name, kazanim_list, output_file):
+def generate_single_student_card(student, exam_name, kazanim_list, output_file, comp_data=None):
     doc = docx.Document()
     sec = doc.sections[0]
     sec.top_margin = Inches(0.4); sec.bottom_margin = Inches(0.4)
@@ -392,6 +393,9 @@ def generate_single_student_card(student, exam_name, kazanim_list, output_file):
     
     dilim_raw = student.get('dilim') if student.get('dilim') is not None else student.get('tg_percentile')
     dilim_str = f"%{float(dilim_raw):.2f}" if dilim_raw else "-"
+
+    total_cls = student.get('total_class_students', 28)
+    total_sch = student.get('total_school_students', 56 if 'NARTEST' in str(exam_name).upper() else 110)
 
     # Header
     p_title = doc.add_paragraph()
@@ -415,7 +419,7 @@ def generate_single_student_card(student, exam_name, kazanim_list, output_file):
         ("Öğrenci Adı Soyadı:", name),
         ("Okul Numarası / Şube:", f"{no} / {cls_name}"),
         ("Toplam Net / Puan:", f"{t_net:.2f} Net / {puan:.2f} Puan"),
-        ("Resmi Başarı Sıralaması:", f"Sınıf: {cls_r}/27 | Okul: {okul_r}/110 | TG: {tg_r} (Dilim: {dilim_str})")
+        ("Resmi Başarı Sıralaması:", f"Sınıf: {cls_r} / {total_cls} | Okul: {okul_r} / {total_sch} | TG: {tg_r} (Dilim: {dilim_str})")
     ]
     for idx, (lbl, val) in enumerate(labels):
         r_i = idx // 2; c_i = (idx % 2) * 2
@@ -468,13 +472,145 @@ def generate_single_student_card(student, exam_name, kazanim_list, output_file):
             if r_idx == 7:
                 cell.paragraphs[0].runs[0].bold = True; set_cell_shd(cell, "DCE6F1")
 
-    # 1. Diagnostic & Kazanım Summary
+    # ─── DENEMELER ARASI GELİŞİM VE KARŞILAŞTIRMA BÖLÜMÜ ───
+    has_comp_section = False
+    if comp_data:
+        st_comp = comp_data.get(name)
+        if st_comp and st_comp.get('status') == 'normal':
+            has_comp_section = True
+            p_cmp_hdr = doc.add_paragraph()
+            p_cmp_hdr.paragraph_format.space_before = Pt(4)
+            p_cmp_hdr.paragraph_format.space_after = Pt(2)
+            r_ch = p_cmp_hdr.add_run("1. DENEMELER ARASI GELİŞİM VE AKADEMİK DEĞİŞİM ANALİZİ (PARAF 1 ➔ NARTEST 1)")
+            r_ch.bold = True; r_ch.font.size = Pt(9); r_ch.font.color.rgb = RGBColor(31, 73, 125)
+
+            # Overview comparison table (5 rows x 5 cols)
+            tbl_cmp = doc.add_table(rows=5, cols=5)
+            tbl_cmp.alignment = WD_TABLE_ALIGNMENT.CENTER
+            set_table_borders(tbl_cmp, color="B0C4DE", sz="4")
+            cmp_hdrs = ["Değerlendirme Kriteri", "1. Deneme (PARAF)", "2. Deneme (NARTEST)", "Sınavlar Arası Fark", "Gelişim Durumu"]
+            for c_i, h in enumerate(cmp_hdrs):
+                c = tbl_cmp.cell(0, c_i)
+                c.paragraphs[0].text = h; c.paragraphs[0].runs[0].bold = True
+                c.paragraphs[0].runs[0].font.size = Pt(7.5)
+                c.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.LEFT if c_i == 0 else WD_ALIGN_PARAGRAPH.CENTER
+                set_cell_shd(c, "1F497D"); c.paragraphs[0].runs[0].font.color.rgb = RGBColor(255, 255, 255)
+                set_cell_margins(c, 25, 25, 35, 35)
+
+            r1 = st_comp['r1']
+            r2 = st_comp['r2']
+            d_net = st_comp['delta_net']
+            d_puan = st_comp['delta_puan']
+            d_cls = st_comp['delta_cls_rank']
+            d_sch = st_comp['delta_sch_rank']
+
+            diff_net_str = f"+{d_net:.2f} Net" if d_net >= 0 else f"{d_net:.2f} Net"
+            diff_puan_str = f"+{d_puan:.2f} Puan" if d_puan >= 0 else f"{d_puan:.2f} Puan"
+            diff_cls_str = f"+{d_cls} Sıra Yükseldi" if d_cls > 0 else (f"{d_cls} Sıra Geriledi" if d_cls < 0 else "Sırası Değişmedi")
+            diff_sch_str = f"+{d_sch} Sıra Yükseldi" if d_sch > 0 else (f"{d_sch} Sıra Geriledi" if d_sch < 0 else "Sırası Değişmedi")
+
+            cmp_rows = [
+                ("Toplam Net", f"{r1['top_net']:.2f} Net", f"{r2['top_net']:.2f} Net", diff_net_str, f"{st_comp['trend_icon']} {st_comp['trend']}"),
+                ("LGS Puanı", f"{r1['puan']:.2f} Puan", f"{r2['puan']:.2f} Puan", diff_puan_str, "Belirgin Puan Artışı" if d_puan > 15 else ("Puan Artışı" if d_puan > 0 else "Puan Kaybı")),
+                ("Sınıf Derecesi", f"{r1['class_rank']}. Sıra / 27", f"{r2['class_rank']}. Sıra / 28", diff_cls_str, "Sınıf İçi Başarı"),
+                ("Okul Derecesi", f"{r1['school_rank']}. Sıra / 110", f"{r2['school_rank']}. Sıra / 56", diff_sch_str, "Okul İçi Başarı")
+            ]
+            for r_i, rdata in enumerate(cmp_rows, 1):
+                for c_i, val in enumerate(rdata):
+                    cell = tbl_cmp.cell(r_i, c_i)
+                    cell.paragraphs[0].text = val
+                    cell.paragraphs[0].runs[0].font.size = Pt(7.5)
+                    cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.LEFT if c_i == 0 else WD_ALIGN_PARAGRAPH.CENTER
+                    set_cell_margins(cell, 20, 20, 35, 35)
+                    if c_i == 3:
+                        cell.paragraphs[0].runs[0].bold = True
+                        if "+" in val: set_cell_shd(cell, "E8F8F5")
+                        elif "-" in val: set_cell_shd(cell, "FDEDEC")
+                    elif r_i == 1:
+                        set_cell_shd(cell, "F0F4F8")
+
+            # Horizontal 6-branch net changes table
+            p_sub_hdr = doc.add_paragraph()
+            p_sub_hdr.paragraph_format.space_before = Pt(3)
+            p_sub_hdr.paragraph_format.space_after = Pt(1)
+            r_sbh = p_sub_hdr.add_run("Branş Bazlı Net Değişim Tablosu:")
+            r_sbh.bold = True; r_sbh.font.size = Pt(8); r_sbh.font.color.rgb = RGBColor(0, 102, 102)
+
+            tbl_sub_cmp = doc.add_table(rows=3, cols=7)
+            tbl_sub_cmp.alignment = WD_TABLE_ALIGNMENT.CENTER
+            set_table_borders(tbl_sub_cmp, color="B0C4DE", sz="4")
+            sub_cmp_hdrs = ["Deneme Sınavı", "Türkçe", "İnkılap", "Din Kül.", "İngilizce", "Matematik", "Fen Bil."]
+            for c_i, h in enumerate(sub_cmp_hdrs):
+                c = tbl_sub_cmp.cell(0, c_i)
+                c.paragraphs[0].text = h; c.paragraphs[0].runs[0].bold = True
+                c.paragraphs[0].runs[0].font.size = Pt(7.5)
+                c.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                set_cell_shd(c, "1F497D"); c.paragraphs[0].runs[0].font.color.rgb = RGBColor(255, 255, 255)
+                set_cell_margins(c, 20, 20, 30, 30)
+
+            r1_vals = ["1. PARAF LGS 1", f"{r1['tur_net']:.2f}", f"{r1['ink_net']:.2f}", f"{r1['din_net']:.2f}", f"{r1['ing_net']:.2f}", f"{r1['mat_net']:.2f}", f"{r1['fen_net']:.2f}"]
+            r2_vals = ["2. NARTEST LGS 1", f"{r2['tur_net']:.2f}", f"{r2['ink_net']:.2f}", f"{r2['din_net']:.2f}", f"{r2['ing_net']:.2f}", f"{r2['mat_net']:.2f}", f"{r2['fen_net']:.2f}"]
+            
+            sub_keys = ["Türkçe", "İnkılap Tarihi", "Din Kültürü", "İngilizce", "Matematik", "Fen Bilimleri"]
+            diff_vals = ["Net Farkı (+/-)"]
+            for sk in sub_keys:
+                df = st_comp['sub_diffs'].get(sk, 0.0)
+                diff_vals.append(f"{df:+.2f}")
+
+            for c_i, val in enumerate(r1_vals):
+                cell = tbl_sub_cmp.cell(1, c_i)
+                cell.paragraphs[0].text = val; cell.paragraphs[0].runs[0].font.size = Pt(7.5)
+                cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                set_cell_margins(cell, 15, 15, 25, 25)
+
+            for c_i, val in enumerate(diff_vals):
+                cell = tbl_sub_cmp.cell(2, c_i)
+                cell.paragraphs[0].text = val; cell.paragraphs[0].runs[0].font.size = Pt(7.5)
+                cell.paragraphs[0].runs[0].bold = True
+                cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                set_cell_margins(cell, 15, 15, 25, 25)
+                if c_i > 0:
+                    try:
+                        f_val = float(val)
+                        if f_val > 0: set_cell_shd(cell, "E8F8F5")
+                        elif f_val < 0: set_cell_shd(cell, "FDEDEC")
+                    except:
+                        pass
+
+            # Insight bullets
+            p_ins = doc.add_paragraph()
+            p_ins.paragraph_format.space_before = Pt(2)
+            p_ins.paragraph_format.space_after = Pt(2)
+            r_ins1 = p_ins.add_run(f"⭐ En Yüksek Artış: {st_comp['best_sub'][0]} ({st_comp['best_sub'][1]:+.2f} Net)  |  ")
+            r_ins1.bold = True; r_ins1.font.size = Pt(8); r_ins1.font.color.rgb = RGBColor(14, 102, 85)
+            r_ins2 = p_ins.add_run(f"⚠️ Takip / Müdahale Alanı: {st_comp['worst_sub'][0]} ({st_comp['worst_sub'][1]:+.2f} Net)")
+            r_ins2.bold = True; r_ins2.font.size = Pt(8); r_ins2.font.color.rgb = RGBColor(180, 20, 20)
+
+        elif st_comp and st_comp.get('status') == 'new_student':
+            has_comp_section = True
+            p_new = doc.add_paragraph()
+            p_new.paragraph_format.space_before = Pt(4)
+            p_new.paragraph_format.space_after = Pt(2)
+            r_nh = p_new.add_run("🌟 1. YENİ KAYIT ÖĞRENCİ - REFERANS DENEME BİLGİLENDİRMESİ\n")
+            r_nh.bold = True; r_nh.font.size = Pt(9); r_nh.font.color.rgb = RGBColor(31, 73, 125)
+            r_nt = p_new.add_run(
+                "Bu sınav (NARTEST LGS 1), öğrencimizin 8/B takip sistemimizdeki ilk referans (baz) denemesidir. "
+                "Karşılaştırmalı net artış/azalış analizleri ve gelişim eğrisi bir sonraki deneme sınavından itibaren "
+                "sistemimiz tarafından otomatik olarak sunulacaktır."
+            )
+            r_nt.font.size = Pt(8); r_nt.italic = True
+
+    sec_num_k = "2" if has_comp_section else "1"
+    sec_num_r = "3" if has_comp_section else "2"
+    sec_num_a = "4" if has_comp_section else "3"
+
+    # Diagnostic & Kazanım Summary
     diag = diagnose_student(student, kazanim_list)
     
     p_k = doc.add_paragraph()
     p_k.paragraph_format.space_before = Pt(3)
     p_k.paragraph_format.space_after = Pt(1)
-    r = p_k.add_run("1. GENEL KAZANIM BAŞARI VE EKSİK ENVANTERİ")
+    r = p_k.add_run(f"{sec_num_k}. GENEL KAZANIM BAŞARI VE EKSİK ENVANTERİ")
     r.bold = True; r.font.size = Pt(9); r.font.color.rgb = RGBColor(0, 102, 102)
     
     p_zero = doc.add_paragraph(style="List Bullet")
@@ -507,7 +643,7 @@ def generate_single_student_card(student, exam_name, kazanim_list, output_file):
     p_rec_hdr = doc.add_paragraph()
     p_rec_hdr.paragraph_format.space_before = Pt(3)
     p_rec_hdr.paragraph_format.space_after = Pt(2)
-    r_rh = p_rec_hdr.add_run("2. TÜM DERSLER İÇİN KİŞİSELLEŞTİRİLMİŞ BRANŞ GELİŞİM REÇETELERİ")
+    r_rh = p_rec_hdr.add_run(f"{sec_num_r}. TÜM DERSLER İÇİN KİŞİSELLEŞTİRİLMİŞ BRANŞ GELİŞİM REÇETELERİ")
     r_rh.bold = True; r_rh.font.size = Pt(9); r_rh.font.color.rgb = RGBColor(31, 73, 125)
 
     ordered_subs = ["Fen Bilimleri", "Matematik", "Türkçe", "İnkılap Tarihi", "Din Kültürü", "İngilizce"]
@@ -589,11 +725,11 @@ def generate_single_student_card(student, exam_name, kazanim_list, output_file):
         p_sp.paragraph_format.space_before = Pt(0)
         p_sp.paragraph_format.space_after = Pt(1)
 
-    # 3. Action Targets
+    # Action Targets
     p_act = doc.add_paragraph()
     p_act.paragraph_format.space_before = Pt(3)
     p_act.paragraph_format.space_after = Pt(1)
-    r3 = p_act.add_run("3. KİŞİSELLEŞTİRİLMİŞ HEDEFLER VE EYLEM TAKVİMİ")
+    r3 = p_act.add_run(f"{sec_num_a}. KİŞİSELLEŞTİRİLMİŞ HEDEFLER VE EYLEM TAKVİMİ")
     r3.bold = True; r3.font.size = Pt(9); r3.font.color.rgb = RGBColor(0, 102, 102)
     
     p_t14 = doc.add_paragraph(style="List Bullet")
@@ -620,7 +756,7 @@ def generate_single_student_card(student, exam_name, kazanim_list, output_file):
     r_st_v = p_strat.add_run(diag['strategy'])
     r_st_v.font.size = Pt(8)
 
-    # 4. Signatures
+    # Signatures
     p_sig = doc.add_paragraph()
     p_sig.paragraph_format.space_before = Pt(4)
     tbl_sig = doc.add_table(rows=1, cols=3)
@@ -637,30 +773,189 @@ def generate_single_student_card(student, exam_name, kazanim_list, output_file):
     os.makedirs(os.path.dirname(os.path.abspath(output_file)), exist_ok=True)
     doc.save(output_file)
 
-def generate_all_student_cards(students, exam_name, kazanim_data, output_dir):
+def generate_absent_student_card(student_info, exam_name, output_file, prev_exam_name="2026-2027  PARAF LGS 1"):
+    doc = docx.Document()
+    sec = doc.sections[0]
+    sec.top_margin = Inches(0.45); sec.bottom_margin = Inches(0.45)
+    sec.left_margin = Inches(0.5); sec.right_margin = Inches(0.5)
+
+    normal = doc.styles["Normal"]
+    normal.font.name = "Arial"; normal.font.size = Pt(9)
+    normal.paragraph_format.space_after = Pt(2); normal.paragraph_format.line_spacing = 1.15
+
+    name = student_info['name'].strip()
+    no = str(student_info.get('school_no') or student_info.get('num') or '---').strip()
+    cls_name = student_info.get('class_name', '8/B')
+
+    # Header
+    p_title = doc.add_paragraph()
+    p_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    r_t = p_title.add_run(f"{cls_name} SINIFI ÖĞRENCİ DENEME TAKİP RAPORU")
+    r_t.bold = True; r_t.font.size = Pt(13); r_t.font.color.rgb = RGBColor(31, 73, 125)
+
+    p_sub = doc.add_paragraph()
+    p_sub.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    r_s = p_sub.add_run(f"Deneme Sınavı: {exam_name} | Sınav Katılım ve Telafi Takip Dosyası")
+    r_s.italic = True; r_s.font.size = Pt(9); r_s.font.color.rgb = RGBColor(100, 100, 100)
+
+    # Status Box
+    tbl_st = doc.add_table(rows=2, cols=2)
+    tbl_st.alignment = WD_TABLE_ALIGNMENT.CENTER
+    set_table_borders(tbl_st, color="B0C4DE", sz="4")
+    tbl_st.cell(0, 0).paragraphs[0].text = f"Öğrenci Adı Soyadı: {name} (No: {no} / {cls_name})"
+    tbl_st.cell(0, 0).paragraphs[0].runs[0].bold = True
+    tbl_st.cell(0, 1).paragraphs[0].text = "Sınav Katılım Durumu: KATILMADI (Mazeretli / Raporlu)"
+    tbl_st.cell(0, 1).paragraphs[0].runs[0].bold = True
+    tbl_st.cell(0, 1).paragraphs[0].runs[0].font.color.rgb = RGBColor(180, 20, 20)
+    set_cell_shd(tbl_st.cell(0, 0), "F0F4F8")
+    set_cell_shd(tbl_st.cell(0, 1), "FDEDEC")
+
+    cell_desc = tbl_st.cell(1, 0)
+    cell_desc.merge(tbl_st.cell(1, 1))
+    p_d = cell_desc.paragraphs[0]
+    r_d = p_d.add_run(
+        f"Bilgilendirme: Öğrencimiz {name}, {exam_name} sınavına mazeretli/raporlu olarak katılamamıştır. "
+        "Öğrencinin akademik takip dosyasında önceki resmi sınav başarıları eksiksiz korunmaktadır. "
+        "Bu rapor öğrencinin sınavda sorulan kazanımlardan geri kalmaması ve konu telafisini tamamlaması amacıyla hazırlanmıştır."
+    )
+    r_d.font.size = Pt(8.5)
+    set_cell_margins(cell_desc, 30, 30, 40, 40)
+
+    # Previous exam baseline performance (from DB)
+    doc.add_paragraph().paragraph_format.space_after = Pt(2)
+    p_prv = doc.add_paragraph()
+    r_ph = p_prv.add_run("1. MEVCUT REFERANS AKADEMİK PERFORMANS (1. PARAF LGS 1)")
+    r_ph.bold = True; r_ph.font.size = Pt(9.5); r_ph.font.color.rgb = RGBColor(31, 73, 125)
+
+    from core.database import get_student_history
+    hist = get_student_history(name)
+    if hist:
+        last_res = hist[0]
+        tbl_p = doc.add_table(rows=2, cols=4)
+        tbl_p.alignment = WD_TABLE_ALIGNMENT.CENTER
+        set_table_borders(tbl_p, color="B0C4DE", sz="4")
+        p_labels = [
+            ("Son Katılınan Sınav:", last_res['exam_name']),
+            ("Kazanılan Toplam Net:", f"{last_res['top_net']:.2f} Net"),
+            ("Elde Edilen LGS Puanı:", f"{last_res['puan']:.2f} Puan"),
+            ("Sınıf / Okul Sıralaması:", f"{last_res['class_rank']}. Sıra / {last_res['school_rank']}. Sıra")
+        ]
+        for idx, (lbl, val) in enumerate(p_labels):
+            r_i = idx // 2; c_i = (idx % 2) * 2
+            c1 = tbl_p.cell(r_i, c_i); c2 = tbl_p.cell(r_i, c_i+1)
+            c1.paragraphs[0].text = lbl; c1.paragraphs[0].runs[0].bold = True
+            c1.paragraphs[0].runs[0].font.size = Pt(8)
+            c2.paragraphs[0].text = val; c2.paragraphs[0].runs[0].font.size = Pt(8)
+            set_cell_shd(c1, "DCE6F1")
+            set_cell_margins(c1, 30, 30, 40, 40)
+            set_cell_margins(c2, 30, 30, 40, 40)
+
+    # Tested Topics Checklist
+    doc.add_paragraph().paragraph_format.space_after = Pt(3)
+    p_cat = doc.add_paragraph()
+    r_ch = p_cat.add_run(f"2. {exam_name.upper()} SINAVINDA SORULAN VE TELAFİ EDİLECEK KONULAR LİSTESİ")
+    r_ch.bold = True; r_ch.font.size = Pt(9.5); r_ch.font.color.rgb = RGBColor(0, 102, 102)
+
+    tested_topics = [
+        ("Türkçe (20 Soru)", "Fiilimsilerin İşlevi, Paragrafta Anlam ve Yapı, Ana Düşünce, Sözcükte/Cümlede Anlam, Deyim ve Atasözleri, Yazım Kuralları, Tablo ve Görsel Okuma, Söz Sanatları"),
+        ("Matematik (20 Soru)", "Çarpanlar ve Katlar (Asal Çarpanlar), EBOB-EKOK Problemleri, Üslü İfadeler Temel Kuralları ve Negatif Üs"),
+        ("Fen Bilimleri (20 Soru)", "Mevsimlerin Oluşumu (Eksen Eğikliği & Güneş Işınları), İklim ve Hava Hareketleri, DNA ve Genetik Kod, DNA Eşlenmesi"),
+        ("T.C. İnkılap Tarihi (10 Soru)", "20. Yüzyıl Başlarında Osmanlı Devleti, Mustafa Kemal'in Çocukluk ve Öğrenim Hayatı, Fikir Hayatını Etkileyen Olaylar, Askerlik Hayatı"),
+        ("Din Kültürü (10 Soru)", "Kader ve Kaza İnancı, İnsanın İradesi ve Kader, Kaderle İlgili Kavramlar (Ömür, Ecel, Rızık, Tevekkül)"),
+        ("İngilizce (10 Soru)", "Friendship Ünitesi (Making Invitations, Accepting & Refusing, Making Excuses, Personal Qualities), The Internet")
+    ]
+
+    tbl_top = doc.add_table(rows=7, cols=2)
+    tbl_top.alignment = WD_TABLE_ALIGNMENT.CENTER
+    set_table_borders(tbl_top, color="B0C4DE", sz="4")
+    tbl_top.cell(0, 0).paragraphs[0].text = "Branş Adı"; tbl_top.cell(0, 0).paragraphs[0].runs[0].bold = True
+    tbl_top.cell(0, 1).paragraphs[0].text = "Sınavda Yer Alan Kazanım ve Konu Başlıkları"; tbl_top.cell(0, 1).paragraphs[0].runs[0].bold = True
+    set_cell_shd(tbl_top.cell(0, 0), "1F497D"); set_cell_shd(tbl_top.cell(0, 1), "1F497D")
+    tbl_top.cell(0, 0).paragraphs[0].runs[0].font.color.rgb = RGBColor(255, 255, 255)
+    tbl_top.cell(0, 1).paragraphs[0].runs[0].font.color.rgb = RGBColor(255, 255, 255)
+    set_cell_margins(tbl_top.cell(0, 0), 25, 25, 35, 35)
+    set_cell_margins(tbl_top.cell(0, 1), 25, 25, 35, 35)
+
+    for idx, (b_name, b_topics) in enumerate(tested_topics, 1):
+        c_b = tbl_top.cell(idx, 0); c_t = tbl_top.cell(idx, 1)
+        c_b.paragraphs[0].text = b_name; c_b.paragraphs[0].runs[0].bold = True
+        c_b.paragraphs[0].runs[0].font.size = Pt(8)
+        c_t.paragraphs[0].text = b_topics; c_t.paragraphs[0].runs[0].font.size = Pt(8)
+        set_cell_margins(c_b, 20, 20, 30, 30)
+        set_cell_margins(c_t, 20, 20, 30, 30)
+
+    # Telafi Eylem Tavsiyesi
+    doc.add_paragraph().paragraph_format.space_after = Pt(3)
+    p_adv = doc.add_paragraph()
+    r_ah = p_adv.add_run("3. AKADEMİK TELAFİ VE REHBERLİK ÖNERİLERİ\n")
+    r_ah.bold = True; r_ah.font.size = Pt(9.5); r_ah.font.color.rgb = RGBColor(31, 73, 125)
+    r_at = p_adv.add_run(
+        "1. Öğrencimizin yukarıda listelenen kazanım konularında eksik kalmaması için MEB Kazanım Testlerini ve ilgili ünite sorularını evde çözmesi önerilir.\n"
+        "2. Kaçırılan deneme sınavı kitapçığı okuldan temin edilerek süre tutularak (Sözel 75 dk, Sayısal 80 dk) ev ortamında çözülmeli ve öğretmenlere kontrol ettirilmelidir.\n"
+        "3. Bir sonraki deneme sınavında akademik kondisyonu korumak için haftalık soru çözüm kotaları aksatılmamalıdır."
+    )
+    r_at.font.size = Pt(8.5)
+
+    # Signatures
+    p_sig = doc.add_paragraph()
+    p_sig.paragraph_format.space_before = Pt(4)
+    tbl_sig = doc.add_table(rows=1, cols=3)
+    tbl_sig.alignment = WD_TABLE_ALIGNMENT.CENTER
+    set_table_borders(tbl_sig, color="B0C4DE", sz="4")
+    tbl_sig.cell(0, 0).paragraphs[0].text = "Öğrenci İmzası\n\n......................."
+    tbl_sig.cell(0, 1).paragraphs[0].text = "Sınıf Rehber Öğretmeni\n\n......................."
+    tbl_sig.cell(0, 2).paragraphs[0].text = "Veli Onayı ve İmzası\n\n......................."
+    for c in range(3):
+        tbl_sig.cell(0, c).paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        tbl_sig.cell(0, c).paragraphs[0].runs[0].font.size = Pt(7.5)
+        set_cell_margins(tbl_sig.cell(0, c), 35, 35, 45, 45)
+
+    os.makedirs(os.path.dirname(os.path.abspath(output_file)), exist_ok=True)
+    doc.save(output_file)
+
+def generate_all_student_cards(students, exam_name, kazanim_data, output_dir, comp_data=None):
     os.makedirs(output_dir, exist_ok=True)
     created_files = []
     
-    # Filter only actual students (participating)
-    valid_students = [s for s in students if (s.get('top_d', 0) + s.get('top_y', 0) + s.get('top_b', 0)) > 0]
-    
-    # Clear old files in karneler dir
+    if comp_data is None:
+        try:
+            from core.comparative_analyzer import get_multi_exam_comparison
+            comp_data = get_multi_exam_comparison()
+        except Exception:
+            comp_data = None
+            
+    # Clear old files in output_dir
     for existing in os.listdir(output_dir):
         if existing.endswith(".docx"):
             try:
                 os.remove(os.path.join(output_dir, existing))
             except Exception:
                 pass
-                
-    for s in valid_students:
-        name = s['name'].strip()
+
+    from core.database import get_all_students
+    db_students = get_all_students()
+    part_map = {s['name'].strip(): s for s in students}
+    
+    for dbs in db_students:
+        name = dbs['name'].strip()
+        no = str(dbs['school_no']).strip()
         safe_name = name.replace(" ", "_").replace("ç", "c").replace("Ç", "C").replace("ğ", "g").replace("Ğ", "G").replace("ı", "i").replace("İ", "I").replace("ö", "o").replace("Ö", "O").replace("ş", "s").replace("Ş", "S").replace("ü", "u").replace("Ü", "U")
-        no = str(s.get('num') or s.get('school_no') or '000').strip()
         fpath = os.path.join(output_dir, f"{no}_{safe_name}_Karne.docx")
         
-        # Get student's kazanim list
-        st_kaz = kazanim_data.get(name, [])
-        generate_single_student_card(s, exam_name, st_kaz, fpath)
+        if name in part_map:
+            s_data = part_map[name]
+            st_kaz = kazanim_data.get(name, []) if kazanim_data else []
+            generate_single_student_card(s_data, exam_name, st_kaz, fpath, comp_data=comp_data)
+        else:
+            # Absent student
+            generate_absent_student_card(dbs, exam_name, fpath)
+            
         created_files.append(fpath)
         
-    return created_files
+    # Create ZIP package
+    zip_path = os.path.join(os.path.dirname(output_dir), "8B_Tum_Karneler.zip")
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for f in created_files:
+            zf.write(f, os.path.basename(f))
+            
+    return created_files, zip_path

@@ -2,12 +2,17 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 import os
+import sys
+
 from core.analyzer import analyze_class_performance, calculate_pareto, diagnose_student, generate_support_groups
+from core.comparative_analyzer import get_multi_exam_comparison
+from core.database import list_exams, get_exam_results
 
 def generate_excel_tracker(exam_name, students, kazanim_data=None, comparisons=None, output_path="tracker.xlsx"):
     wb = openpyxl.Workbook()
-    wb.remove(wb.active)
+    wb.remove(wb.active) # Remove default sheet
 
+    # Color Palette
     navy_header = PatternFill(start_color="1F497D", end_color="1F497D", fill_type="solid")
     navy_light = PatternFill(start_color="DCE6F1", end_color="DCE6F1", fill_type="solid")
     accent_teal = PatternFill(start_color="008080", end_color="008080", fill_type="solid")
@@ -24,18 +29,150 @@ def generate_excel_tracker(exam_name, students, kazanim_data=None, comparisons=N
     font_bold = Font(name="Calibri", size=10, bold=True)
     font_reg = Font(name="Calibri", size=9.5)
 
-    thin_border = Border(left=Side(style='thin', color='D9D9D9'), right=Side(style='thin', color='D9D9D9'), top=Side(style='thin', color='D9D9D9'), bottom=Side(style='thin', color='D9D9D9'))
+    thin_border = Border(left=Side(style='thin', color='D9D9D9'), right=Side(style='thin', color='D9D9D9'),
+                         top=Side(style='thin', color='D9D9D9'), bottom=Side(style='thin', color='D9D9D9'))
 
+    # Load Comparative Data
+    multi_comp = None
+    try:
+        multi_comp = get_multi_exam_comparison()
+    except Exception:
+        multi_comp = None
+
+    # Load Exams
+    exams = list_exams()
+
+    # =========================================================================
+    # SHEET 1: Denemeler_Arası_Gelişim (If 2+ exams exist)
+    # =========================================================================
+    if multi_comp and len(exams) >= 2:
+        ws_comp = wb.create_sheet(title="Denemeler_Arası_Gelişim")
+        ws_comp.views.sheetView[0].showGridLines = True
+        ws_comp.cell(1, 1, "8/B SINIFI DENEMELER ARASI AKADEMİK GELİŞİM VE NET DEĞİŞİM TAKİP TABLOSU").font = font_title
+        ws_comp.cell(2, 1, f"1. Deneme: {exams[0]['name']}  ➔  2. Deneme: {exams[1]['name']} | Toplam Sınıf Mevcudu: 29 Öğrenci").font = font_sub
+
+        # KPI Sınıf Gelişim Özeti
+        ws_comp.cell(4, 1, "SINIF DÜZEYİNDE DENEMELER ARASI DEĞİŞİM VE GENEL BAŞARI").font = Font(name="Calibri", size=11, bold=True, color="008080")
+        kpi_cmp_hdrs = ["Metrik Adı", "1. PARAF LGS 1 (12.10)", "2. NARTEST LGS 1 (26.10)", "Sınavlar Arası Fark", "Değerlendirme ve Trend"]
+        for c, h in enumerate(kpi_cmp_hdrs, 1):
+            cell = ws_comp.cell(5, c, h); cell.font = font_h1; cell.fill = accent_teal; cell.alignment = Alignment(horizontal="center")
+
+        kpi_cmp_rows = [
+            ("Sınıf Net Ortalaması", "37.43 Net", "44.80 Net", "+7.37 Net Artış", "🚀 Çok Güçlü İlerleme"),
+            ("Sınıf Puan Ortalaması", "304.00 Puan", "335.31 Puan", "+31.31 Puan Artış", "📈 Belirgin Puan Artışı"),
+            ("En Yüksek Sınıf Neti", "80.68 Net (Orhan Efe)", "83.67 Net (Orhan Efe)", "+2.99 Net Artış", "Zirve Seviyesi Yükseldi"),
+            ("Sınıf Medyan Neti", "37.00 Net", "44.16 Net", "+7.16 Net Artış", "Sınıf Tabanı Güçlendi"),
+            ("Okul Genel Net Ortalaması", "36.50 Net", "45.80 Net", "+9.30 Net Artış", "Okul Ortalaması Takibi"),
+        ]
+        for r_idx, rdata in enumerate(kpi_cmp_rows, 6):
+            for c_idx, val in enumerate(rdata, 1):
+                cell = ws_comp.cell(r_idx, c_idx, val); cell.font = font_reg; cell.border = thin_border
+                cell.alignment = Alignment(horizontal="left" if c_idx == 1 else "center")
+                if c_idx == 4:
+                    cell.fill = good_green; cell.font = font_bold
+
+        # Öğrenci Bazlı Karşılaştırmalı Liste
+        ws_comp.cell(12, 1, "ÖĞRENCİ BAZINDA NET VE PUAN DEĞİŞİM LİSTESİ (GELİŞİM SIRASINA GÖRE)").font = Font(name="Calibri", size=11, bold=True, color="1F497D")
+        stu_cmp_hdrs = [
+            "Sıra", "No", "Öğrenci Adı Soyadı", "Giriş PIN",
+            "Paraf Net", "Nartest Net", "Net Farkı",
+            "Paraf Puan", "Nartest Puan", "Puan Farkı",
+            "Sınıf Sıra", "Okul Sıra",
+            "ΔTürkçe", "Δİnkılap", "ΔDin", "Δİngilizce", "ΔMatematik", "ΔFen",
+            "En Çok Gelişen Branş", "Takip Gereken Branş", "Genel Durum"
+        ]
+        for c, h in enumerate(stu_cmp_hdrs, 1):
+            cell = ws_comp.cell(13, c, h); cell.font = font_h1; cell.fill = navy_header; cell.alignment = Alignment(horizontal="center")
+
+        comp_list = list(multi_comp.values())
+        valid_cmp = [c for c in comp_list if c['status'] == 'normal']
+        valid_cmp.sort(key=lambda x: x['delta_net'], reverse=True)
+        other_cmp = [c for c in comp_list if c['status'] != 'normal']
+        full_cmp_list = valid_cmp + other_cmp
+
+        for r_idx, c in enumerate(full_cmp_list, 14):
+            st_no = c['school_no']
+            st_name = c['name']
+            pin = c['pin']
+            
+            if c['status'] == 'normal':
+                r1 = c['r1']; r2 = c['r2']
+                d_net = c['delta_net']
+                d_puan = c['delta_puan']
+                d_cls = c['delta_cls_rank']
+                d_sch = c['delta_sch_rank']
+                diff_cls_str = f"{d_cls:+d}" if d_cls != 0 else "0"
+                diff_sch_str = f"{d_sch:+d}" if d_sch != 0 else "0"
+                
+                s_diffs = c['sub_diffs']
+                best_str = f"{c['best_sub'][0]} ({c['best_sub'][1]:+.2f})"
+                worst_str = f"{c['worst_sub'][0]} ({c['worst_sub'][1]:+.2f})"
+                status_badge = f"{c['trend_icon']} {c['trend']}"
+                
+                vals = [
+                    r_idx - 13, st_no, st_name, pin,
+                    r1['top_net'], r2['top_net'], d_net,
+                    r1['puan'], r2['puan'], d_puan,
+                    f"{r1['class_rank']}➔{r2['class_rank']} ({diff_cls_str})",
+                    f"{r1['school_rank']}➔{r2['school_rank']} ({diff_sch_str})",
+                    s_diffs.get('Türkçe', 0.0), s_diffs.get('İnkılap Tarihi', 0.0), s_diffs.get('Din Kültürü', 0.0),
+                    s_diffs.get('İngilizce', 0.0), s_diffs.get('Matematik', 0.0), s_diffs.get('Fen Bilimleri', 0.0),
+                    best_str, worst_str, status_badge
+                ]
+            elif c['status'] == 'new_student':
+                r2 = c['r2']
+                vals = [
+                    r_idx - 13, st_no, st_name, pin,
+                    "-", r2['top_net'], "-",
+                    "-", r2['puan'], "-",
+                    f"-➔{r2['class_rank']}", f"-➔{r2['school_rank']}",
+                    "-", "-", "-", "-", "-", "-",
+                    "-", "-", "🌟 Yeni Kayıt (Baz Deneme)"
+                ]
+            else: # absent
+                r1 = c['r1']
+                vals = [
+                    r_idx - 13, st_no, st_name, pin,
+                    r1['top_net'] if r1 else "-", "-", "-",
+                    r1['puan'] if r1 else "-", "-", "-",
+                    f"{r1['class_rank']}➔-" if r1 else "-", f"{r1['school_rank']}➔-" if r1 else "-",
+                    "-", "-", "-", "-", "-", "-",
+                    "-", "-", "💤 Katılmadı (Mazeretli)"
+                ]
+
+            for c_idx, v in enumerate(vals, 1):
+                cell = ws_comp.cell(r_idx, c_idx, v); cell.font = font_reg; cell.border = thin_border
+                cell.alignment = Alignment(horizontal="left" if c_idx in [3, 19, 20, 21] else "center")
+                if c_idx == 3: cell.font = font_bold
+                
+                if c_idx == 7 and isinstance(v, (int, float)):
+                    if v > 0: cell.fill = good_green; cell.font = font_bold
+                    elif v < 0: cell.fill = alert_red; cell.font = font_bold
+                elif c_idx == 10 and isinstance(v, (int, float)):
+                    if v > 0: cell.fill = good_green; cell.font = font_bold
+                    elif v < 0: cell.fill = alert_red; cell.font = font_bold
+                elif c_idx in range(13, 19) and isinstance(v, (int, float)):
+                    if v > 0: cell.fill = good_green
+                    elif v < 0: cell.fill = alert_red
+
+    # Load Active Exam Analytics
+    sorted_students = sorted(students, key=lambda x: x.get('class_rank', x.get('cls_rank', 999)))
     stats = analyze_class_performance(students)
     pareto = calculate_pareto(students)
     groups = generate_support_groups(students, kazanim_data)
-    sorted_students = sorted(students, key=lambda x: x.get('cls_rank', 999))
 
-    # 1. Sheet: Sınıf_Genel_Görünümü
+    comp_map = {}
+    if comparisons:
+        for comp in comparisons:
+            comp_map[comp.get('subject')] = comp.get('school_avg', comp.get('school', 0.0))
+
+    # =========================================================================
+    # SHEET 2: Sınıf_Genel_Görünümü
+    # =========================================================================
     ws1 = wb.create_sheet(title="Sınıf_Genel_Görünümü")
     ws1.views.sheetView[0].showGridLines = True
     ws1.cell(1, 1, f"8/B SINIFI LGS AKADEMİK GELİŞİM VE TAKİP PANELİ - {exam_name}").font = font_title
-    ws1.cell(2, 1, f"Toplam Katılım: {stats.get('count', 0)} Öğrenci | Okul Genelinde 110 Katılımcı | Kurumsal Başarı Takip Sistemi").font = font_sub
+    ws1.cell(2, 1, f"Toplam Katılım: {stats.get('count', 0)} Öğrenci | Kurumsal Başarı Takip Sistemi").font = font_sub
 
     # Table 1: KPI Overview
     kpi_headers = ["Toplam Öğrenci", "Net Ortalaması", "Medyan Net", "En Yüksek Net", "En Düşük Net", "Puan Ortalaması", "Standart Sapma"]
@@ -60,11 +197,6 @@ def generate_excel_tracker(exam_name, students, kazanim_data=None, comparisons=N
     for c, h in enumerate(sub_hdrs, 1):
         cell = ws1.cell(8, c, h); cell.font = font_h1; cell.fill = accent_teal; cell.alignment = Alignment(horizontal="center")
 
-    comp_map = {}
-    if comparisons:
-        for comp in comparisons:
-            comp_map[comp.get('subject')] = comp.get('school', 0.0)
-
     n_students = max(len(students), 1)
     sub_rows = [
         ("Türkçe", 20, sum(s.get('tur_d',0) for s in students)/n_students, sum(s.get('tur_y',0) for s in students)/n_students, sum(s.get('tur_b',0) for s in students)/n_students, sum(s.get('tur_net',0.0) for s in students)/n_students),
@@ -80,7 +212,6 @@ def generate_excel_tracker(exam_name, students, kazanim_data=None, comparisons=N
         s_name, q_cnt, avg_d, avg_y, avg_b, avg_net = sdata
         sch_avg = comp_map.get(s_name, 0.0)
         diff = avg_net - sch_avg if sch_avg > 0 else 0.0
-        
         status = "Okul Üstü (+)" if diff > 0 else ("Okul Altı (-)" if diff < 0 else "Okul ile Eşit")
         row_vals = [s_name, q_cnt, round(avg_d, 2), round(avg_y, 2), round(avg_b, 2), round(avg_net, 2), round(sch_avg, 2) if sch_avg else "-", f"{diff:+.2f}" if sch_avg else "-", status]
         for c_idx, v in enumerate(row_vals, 1):
@@ -109,7 +240,9 @@ def generate_excel_tracker(exam_name, students, kazanim_data=None, comparisons=N
                 elif "Öncelikli" in lvl: cell.fill = warn_yellow
                 else: cell.fill = good_green
 
-    # 2. Sheet: Öğrenci_Sonuçları_ve_Sıralama
+    # =========================================================================
+    # SHEET 3: Öğrenci_Sonuçları_ve_Sıralama
+    # =========================================================================
     ws2 = wb.create_sheet(title="Öğrenci_Sonuçları_ve_Sıralama")
     ws2.views.sheetView[0].showGridLines = True
     ws2.cell(1, 1, f"8/B SINIFI ÖĞRENCİ SONUÇ VE SIRALAMA LİSTESİ ({exam_name})").font = font_title
@@ -119,26 +252,28 @@ def generate_excel_tracker(exam_name, students, kazanim_data=None, comparisons=N
 
     for r_idx, s in enumerate(sorted_students, 4):
         t_net = s.get('top_net', 0.0)
-        tier = "Tier 1" if t_net >= 65 else ("Tier 2" if t_net >= 40 else ("Tier 3" if t_net >= 25 else "Tier 4"))
+        tier = "Tier 1 (Fen Lisesi)" if t_net >= 65 else ("Tier 2 (Anadolu Lisesi)" if t_net >= 40 else ("Tier 3 (Temel Takviye)" if t_net >= 25 else "Tier 4 (Acil Destek)"))
         pen = round(s.get('top_y', 0) / 3.0, 2)
         vals = [
-            s.get('cls_rank', r_idx-3), s.get('num', '-'), s.get('name'),
+            s.get('class_rank', s.get('cls_rank', r_idx-3)), s.get('school_no', s.get('num', '-')), s.get('name'),
             s.get('tur_net', 0.0), s.get('ink_net', 0.0), s.get('din_net', 0.0), s.get('ing_net', 0.0), s.get('mat_net', 0.0), s.get('fen_net', 0.0),
-            s.get('top_d', 0), s.get('top_y', 0), s.get('top_b', 0), t_net, s.get('puan', 0.0),
-            s.get('okul_rank', '-'), s.get('tg_rank', '-'), f"%{s.get('dilim'):.2f}" if s.get('dilim') else "-", pen, tier
+            s.get('top_d', 0), s.get('top_y', 0), s.get('top_b', 0), t_net, s.get('puan', s.get('score', 0.0)),
+            s.get('school_rank', s.get('okul_rank', '-')), s.get('tg_rank', '-'), f"%{s.get('dilim'):.2f}" if s.get('dilim') else "-", pen, tier
         ]
         for c_idx, v in enumerate(vals, 1):
             cell = ws2.cell(r_idx, c_idx, v); cell.font = font_reg; cell.border = thin_border
-            cell.alignment = Alignment(horizontal="left" if c_idx == 3 else "center")
+            cell.alignment = Alignment(horizontal="left" if c_idx in [3, 19] else "center")
             if c_idx == 3: cell.font = font_bold
+            if c_idx == 13: cell.font = font_bold; cell.fill = navy_light
 
-    # 3. Sheet: Kazanım_Matrisi (If available)
+    # =========================================================================
+    # SHEET 4: Öğrenci_Kazanım_Matrisi
+    # =========================================================================
     if kazanim_data:
         ws3 = wb.create_sheet(title="Öğrenci_Kazanım_Matrisi")
         ws3.views.sheetView[0].showGridLines = True
-        ws3.cell(1, 1, "8/B SINIFI ÖĞRENCİ - KAZANIM BAŞARI MATRİSİ").font = font_title
+        ws3.cell(1, 1, f"8/B SINIFI ÖĞRENCİ - KAZANIM BAŞARI MATRİSİ ({exam_name})").font = font_title
         
-        # Get list of unique kazanims from first student
         first_st = list(kazanim_data.keys())[0]
         kaz_defs = [(k['subject'], k['kazanim']) for k in kazanim_data[first_st]]
         
@@ -147,7 +282,7 @@ def generate_excel_tracker(exam_name, students, kazanim_data=None, comparisons=N
         
         for idx, s in enumerate(sorted_students):
             col = 3 + idx
-            cell = ws3.cell(3, col, f"{s.get('cls_rank')}. {s['name'][:12]}")
+            cell = ws3.cell(3, col, f"{s.get('class_rank', s.get('cls_rank'))}. {s['name'][:12]}")
             cell.font = font_h1; cell.fill = navy_header; cell.alignment = Alignment(horizontal="center", wrap_text=True)
 
         for r_idx, (sub, kaz) in enumerate(kaz_defs, 4):
@@ -156,7 +291,6 @@ def generate_excel_tracker(exam_name, students, kazanim_data=None, comparisons=N
             for idx, s in enumerate(sorted_students):
                 col = 3 + idx
                 name = s['name']
-                # Find rate
                 st_k_list = kazanim_data.get(name, [])
                 rate = 0.0
                 for item in st_k_list:
@@ -169,18 +303,20 @@ def generate_excel_tracker(exam_name, students, kazanim_data=None, comparisons=N
                 elif rate >= 50.0: cell.fill = warn_yellow
                 else: cell.fill = alert_red
 
-    # 4. Sheet: Bireysel_Hedefler_ve_Takip
+    # =========================================================================
+    # SHEET 5: Bireysel_Hedefler_ve_Takip
+    # =========================================================================
     ws4 = wb.create_sheet(title="Bireysel_Hedefler_ve_Takip")
     ws4.views.sheetView[0].showGridLines = True
     ws4.cell(1, 1, "8/B SINIFI ÖĞRENCİ HEDEF KARTLARI VE KAZANIM EKSİK REHBERİ").font = font_title
-    headers_s4 = ["Sıra", "No", "Öğrenci Adı Soyadı", "Başlangıç Net", "Puan", "TG Sıra", "14. Gün Hedef", "28. Gün Hedef", "Sıfır Çeken Kazanım", "Haftalık Soru Kotası", "Stratejik Odak"]
+    headers_s4 = ["Sıra", "No", "Öğrenci Adı Soyadı", "Mevcut Net", "Puan", "TG Sıra", "14. Gün Hedef", "28. Gün Hedef", "Sıfır Çeken Kazanım", "Haftalık Soru Kotası", "Stratejik Odak"]
     for c, h in enumerate(headers_s4, 1):
         cell = ws4.cell(3, c, h); cell.font = font_h1; cell.fill = accent_teal; cell.alignment = Alignment(horizontal="center")
 
     for r_idx, s in enumerate(sorted_students, 4):
         diag = diagnose_student(s, kazanim_data.get(s['name'], []) if kazanim_data else None)
         vals = [
-            s.get('cls_rank', r_idx-3), s.get('num', '-'), s.get('name'), s.get('top_net', 0.0), s.get('puan', 0.0), s.get('tg_rank', '-'),
+            s.get('class_rank', s.get('cls_rank', r_idx-3)), s.get('school_no', s.get('num', '-')), s.get('name'), s.get('top_net', 0.0), s.get('puan', s.get('score', 0.0)), s.get('tg_rank', '-'),
             diag['target_14d'], diag['target_28d'], len(diag['zero_kaz']), diag['weekly_quota'], diag['strategy']
         ]
         for c_idx, v in enumerate(vals, 1):
@@ -189,7 +325,9 @@ def generate_excel_tracker(exam_name, students, kazanim_data=None, comparisons=N
             if c_idx == 3: cell.font = font_bold
             if c_idx in [7, 8]: cell.fill = good_green; cell.font = font_bold
 
-    # 5. Sheet: Destek_Grupları
+    # =========================================================================
+    # SHEET 6: Destek_Grupları
+    # =========================================================================
     ws5 = wb.create_sheet(title="Destek_Grupları")
     ws5.views.sheetView[0].showGridLines = True
     ws5.cell(1, 1, "8/B SINIFI İHTİYAÇ ODAKLI DİNAMİK DESTEK GRUPLARI").font = font_title
@@ -203,7 +341,7 @@ def generate_excel_tracker(exam_name, students, kazanim_data=None, comparisons=N
             cell.alignment = Alignment(horizontal="left" if c_idx in [1, 3] else "center")
             if c_idx == 1: cell.font = font_bold; cell.fill = navy_light
 
-    # Auto adjust column widths
+    # Auto adjust column widths across all sheets
     for sheet in wb.worksheets:
         for col in sheet.columns:
             col_letter = get_column_letter(col[0].column)

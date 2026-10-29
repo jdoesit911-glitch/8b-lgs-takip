@@ -520,13 +520,13 @@ def generate_branch_word_report(subject_name, exam_name, students, kazanim_data=
     p_head = doc.add_paragraph()
     p_head.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p_head.paragraph_format.space_before = Pt(0)
-    p_head.paragraph_format.space_after  = Pt(2)
+    p_head.paragraph_format.space_after  = Pt(1)
 
     r_h1 = p_head.add_run(
         f"8/B SINIFI {real_subject.upper()} BRANŞI AKADEMİK TEŞHİS VE ÖĞRENCİ ANALİZ RAPORU\n"
     )
     r_h1.bold = True
-    r_h1.font.size = Pt(16)
+    r_h1.font.size = Pt(14.5)
     r_h1.font.color.rgb = RGBColor(31, 73, 125)
 
     r_h2 = p_head.add_run(
@@ -534,7 +534,7 @@ def generate_branch_word_report(subject_name, exam_name, students, kazanim_data=
         f"({b_data['questions']} Soru - Katsayı: {b_data['weight']}x) | Örneklem: {b_data['total_students']} Öğrenci"
     )
     r_h2.italic = True
-    r_h2.font.size = Pt(11)
+    r_h2.font.size = Pt(10)
     r_h2.font.color.rgb = RGBColor(90, 90, 90)
 
     # ── 2. KPI + DAVRANIŞ TEŞHİSİ (Table 0) ─────────────────────────────
@@ -560,15 +560,15 @@ def generate_branch_word_report(subject_name, exam_name, students, kazanim_data=
         cell = tbl_kpi.cell(0, c_idx)
         set_cell_width(cell, 2148)
         set_cell_shading(cell, bg)
-        set_cell_margins(cell, top=30, bottom=30, left=50, right=50)
+        set_cell_margins(cell, top=15, bottom=15, left=40, right=40)
         p = cell.paragraphs[0]
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         r1 = p.add_run(f"{label}\n")
-        r1.font.size = Pt(11)
+        r1.font.size = Pt(10)
         r1.font.color.rgb = RGBColor(90, 90, 90)
         r2 = p.add_run(val)
         r2.bold = True
-        r2.font.size = Pt(12)
+        r2.font.size = Pt(11)
         r2.font.color.rgb = RGBColor(31, 73, 125)
 
     # Satır 1: Davranış teşhisi (Sol 8592 dxa, Sağ 6444 dxa)
@@ -579,49 +579,49 @@ def generate_branch_word_report(subject_name, exam_name, students, kazanim_data=
     cell_y.merge(tbl_kpi.cell(1, 3))
     set_cell_width(cell_y, 8592)
     set_cell_shading(cell_y, "FDEDEC")
-    set_cell_margins(cell_y, top=25, bottom=25, left=60, right=60)
+    set_cell_margins(cell_y, top=12, bottom=12, left=40, right=40)
     p_y = cell_y.paragraphs[0]
     r_yt = p_y.add_run("🔴 Negatif Net Kaybı Yaşayanlar (Aşırı Yanlış):\n")
     r_yt.bold = True
-    r_yt.font.size = Pt(11)
+    r_yt.font.size = Pt(10)
     r_yt.font.color.rgb = RGBColor(144, 12, 63)
     y_str = (", ".join([f"{s['name'].title()} ({s['y']}Y)" for s in high_y[:12]])
              if high_y else "Aşırı yanlış yapan öğrenci bulunmuyor.")
     r_yd = p_y.add_run(y_str)
-    r_yd.font.size = Pt(11)
+    r_yd.font.size = Pt(10)
 
     cell_b = tbl_kpi.cell(1, 4)
     cell_b.merge(tbl_kpi.cell(1, 6))
     set_cell_width(cell_b, 6444)
     set_cell_shading(cell_b, "FEF9E7")
-    set_cell_margins(cell_b, top=25, bottom=25, left=60, right=60)
+    set_cell_margins(cell_b, top=12, bottom=12, left=40, right=40)
     p_b = cell_b.paragraphs[0]
     r_bt = p_b.add_run("🟡 Süre / Çekinme Yaşayanlar (Aşırı Boş):\n")
     r_bt.bold = True
-    r_bt.font.size = Pt(11)
+    r_bt.font.size = Pt(10)
     r_bt.font.color.rgb = RGBColor(125, 102, 8)
     b_str = (", ".join([f"{s['name'].title()} ({s['b']}B)" for s in high_b[:12]])
              if high_b else "Aşırı boş bırakan öğrenci bulunmuyor.")
     r_bd = p_b.add_run(b_str)
-    r_bd.font.size = Pt(11)
+    r_bd.font.size = Pt(10)
 
     # ── 3. KAZANIM TABLOSU (Table 1) ────────────────────────────────────
     p_khead = doc.add_paragraph()
-    p_khead.paragraph_format.space_before = Pt(4)
-    p_khead.paragraph_format.space_after  = Pt(1)
+    p_khead.paragraph_format.space_before = Pt(2)
+    p_khead.paragraph_format.space_after  = Pt(0)
     r_kh = p_khead.add_run(
         f"📌 {real_subject.upper()} KAZANIM BAŞARI ORANLARI VE KRİTİK AÇIĞI OLAN ÖĞRENCİLER"
     )
     r_kh.bold = True
-    r_kh.font.size = Pt(12)
+    r_kh.font.size = Pt(11)
     r_kh.font.color.rgb = RGBColor(31, 73, 125)
 
     if b_data["kazanims"]:
         all_k = b_data["kazanims"]
-        if len(all_k) > 8:
+        if len(all_k) > 4:
             actionable = [k for k in all_k if k["avg_rate"] < 60.0]
-            if len(actionable) > 8:
-                actionable = actionable[:8]
+            if len(actionable) > 4:
+                actionable = actionable[:4]
             mastered = [k for k in all_k if k not in actionable]
         else:
             actionable = all_k
@@ -642,7 +642,7 @@ def generate_branch_word_report(subject_name, exam_name, students, kazanim_data=
             cell = tbl_kaz.cell(0, c)
             set_cell_width(cell, kaz_col_widths[c])
             set_cell_shading(cell, "1F497D")
-            set_cell_margins(cell, top=22, bottom=22, left=40, right=40)
+            set_cell_margins(cell, top=12, bottom=12, left=35, right=35)
             p = cell.paragraphs[0]
             p.text = h
             p.runs[0].bold = True
@@ -670,7 +670,7 @@ def generate_branch_word_report(subject_name, exam_name, students, kazanim_data=
                 cell = row_cells[c_idx]
                 set_cell_width(cell, kaz_col_widths[c_idx])
                 set_cell_shading(cell, bg_col)
-                set_cell_margins(cell, top=18, bottom=18, left=30, right=30)
+                set_cell_margins(cell, top=4, bottom=4, left=20, right=20)
                 p = cell.paragraphs[0]
                 p.text = str(val)
                 # 4. SÜTUN: 12.5 PUNTO
@@ -692,7 +692,7 @@ def generate_branch_word_report(subject_name, exam_name, students, kazanim_data=
             for c_i, cell in enumerate(row_cells):
                 set_cell_width(cell, kaz_col_widths[c_i])
                 set_cell_shading(cell, "E8F8F5")
-                set_cell_margins(cell, top=18, bottom=18, left=30, right=30)
+                set_cell_margins(cell, top=4, bottom=4, left=20, right=20)
             m_text = ", ".join([f"{k['kazanim']} (%{k['avg_rate']:.0f})" for k in mastered])
             row_cells[0].paragraphs[0].text = "🟢 Güçlü Kazanımlar (Tam Hakimiyet)"
             row_cells[0].paragraphs[0].runs[0].font.size = Pt(10)
@@ -712,13 +712,13 @@ def generate_branch_word_report(subject_name, exam_name, students, kazanim_data=
 
     # ── 4. ÖĞRENCİ PERFORMANS TABLOSU (Table 2) ─────────────────────────
     p_shead = doc.add_paragraph()
-    p_shead.paragraph_format.space_before = Pt(4)
-    p_shead.paragraph_format.space_after  = Pt(1)
+    p_shead.paragraph_format.space_before = Pt(2)
+    p_shead.paragraph_format.space_after  = Pt(0)
     r_sh = p_shead.add_run(
         f"👥 8/B SINIFI TÜM ÖĞRENCİLERİN BRANŞ PERFORMANS VE DAVRANIŞ SIRALAMASI ({b_data['total_students']} ÖĞRENCİ)"
     )
     r_sh.bold = True
-    r_sh.font.size = Pt(12)
+    r_sh.font.size = Pt(11)
     r_sh.font.color.rgb = RGBColor(31, 73, 125)
 
     half          = (len(b_data["students"]) + 1) // 2
@@ -739,11 +739,11 @@ def generate_branch_word_report(subject_name, exam_name, students, kazanim_data=
         cell = tbl_st.cell(0, c)
         set_cell_width(cell, 1503)
         set_cell_shading(cell, "4A4A4A" if c < 5 else "595959")
-        set_cell_margins(cell, top=25, bottom=25, left=35, right=35)
+        set_cell_margins(cell, top=12, bottom=12, left=25, right=25)
         p = cell.paragraphs[0]
         p.text = h
         p.runs[0].bold = True
-        p.runs[0].font.size = Pt(10)
+        p.runs[0].font.size = Pt(9.5)
         p.runs[0].font.color.rgb = RGBColor(255, 255, 255)
         if c in [0, 1, 3, 4, 5, 6, 8, 9]:
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -762,10 +762,10 @@ def generate_branch_word_report(subject_name, exam_name, students, kazanim_data=
                 cell = row_cells[c_idx]
                 set_cell_width(cell, 1503)
                 set_cell_shading(cell, bg)
-                set_cell_margins(cell, top=22, bottom=22, left=30, right=30)
+                set_cell_margins(cell, top=4, bottom=4, left=20, right=20)
                 p = cell.paragraphs[0]
                 p.text = val
-                p.runs[0].font.size = Pt(10)
+                p.runs[0].font.size = Pt(9)
                 if c_idx in [0, 1, 3, 4]: p.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 if c_idx == 4: p.runs[0].bold = True
 
@@ -780,10 +780,10 @@ def generate_branch_word_report(subject_name, exam_name, students, kazanim_data=
                 cell = row_cells[c_idx + 5]
                 set_cell_width(cell, 1503)
                 set_cell_shading(cell, bg)
-                set_cell_margins(cell, top=22, bottom=22, left=30, right=30)
+                set_cell_margins(cell, top=4, bottom=4, left=20, right=20)
                 p = cell.paragraphs[0]
                 p.text = val
-                p.runs[0].font.size = Pt(10)
+                p.runs[0].font.size = Pt(9)
                 if c_idx in [0, 1, 3, 4]: p.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 if c_idx == 4: p.runs[0].bold = True
         else:
@@ -792,6 +792,15 @@ def generate_branch_word_report(subject_name, exam_name, students, kazanim_data=
                 set_cell_width(cell, 1503)
                 row_cells[c_idx].paragraphs[0].text = ""
                 set_cell_shading(row_cells[c_idx], "FFFFFF")
+
+    # Prevent empty trailing paragraph from overflowing to Page 2
+    if doc.paragraphs:
+        p_last = doc.paragraphs[-1]
+        p_last.paragraph_format.space_before = Pt(0)
+        p_last.paragraph_format.space_after = Pt(0)
+        p_last.paragraph_format.line_spacing = Pt(1)
+        r_l = p_last.add_run()
+        r_l.font.size = Pt(1)
 
     if output_path:
         os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
@@ -815,9 +824,17 @@ def generate_all_branch_reports(exam_name, students, kazanim_data=None, comparis
         generated_files.append(out_p)
 
     # ZIP Paketi
-    zip_path = os.path.join(EXPORTS_DIR, "8B_Tum_Brans_Ogretmen_Raporlari.zip")
+    zip_dir = os.path.dirname(output_dir) if output_dir else EXPORTS_DIR
+    zip_path = os.path.join(zip_dir, "8B_Tum_Brans_Ogretmen_Raporlari.zip")
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
         for f in generated_files:
             zf.write(f, os.path.basename(f))
 
+    if zip_dir != EXPORTS_DIR:
+        try:
+            import shutil
+            exports_zip = os.path.join(EXPORTS_DIR, "8B_Tum_Brans_Ogretmen_Raporlari.zip")
+            shutil.copy2(zip_path, exports_zip)
+        except Exception:
+            pass
     return generated_files, zip_path
