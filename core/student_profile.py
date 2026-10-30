@@ -279,13 +279,17 @@ def profile_to_risk_factors(student_id: int, data: dict):
     # F2: Baba en fazla ilkokul mezunu
     sf(2, data.get("baba_egitim") in ("Okuryazar değil", "İlkokul"))
 
-    evde = data.get("evde_kimseler", [])
-    if isinstance(evde, str):
+    evde_raw = data.get("evde_kimseler") or []
+    if isinstance(evde_raw, str):
         import json
         try:
-            evde = json.loads(evde)
+            evde = json.loads(evde_raw)
         except Exception:
-            evde = []
+            evde = [x.strip() for x in evde_raw.split(",") if x.strip()]
+    elif isinstance(evde_raw, (list, tuple, set)):
+        evde = list(evde_raw)
+    else:
+        evde = []
 
     anne_baba_birlikte = data.get("ebeveyn_birlikte", "")
 
@@ -362,6 +366,19 @@ def profile_to_risk_factors(student_id: int, data: dict):
     sf(30, maddi_ipucu)
 
     # ── Bölüm 8: Kendini Anlat ────────────────────────────────
-    # F35: Diğer (paylaşmak istediği bir şey varsa)
-    zorl = data.get("zorlastiran_sey", "")
-    sf(35, bool(zorl and zorl.strip()), note=zorl[:200] if zorl else "")
+    # F35: Diğer (özel risk veya rehberlik müdahalesi gerektiren durumlar)
+    zorl = (data.get("zorlastiran_sey") or "").strip()
+    onemli = (data.get("onemli_olay") or "").strip()
+
+    # "yok", "yoktur", "hayır", "-" gibi cevaplar veya genel "ödev" risk faktörü sayılmaz
+    _gecersiz = {"yok", "yok.", "yoktur", "yoktur.", "hayır", "hayir", "-", "none", "nan", "ödev", "odev"}
+    zorl_risk = bool(zorl) and (zorl.lower().strip() not in _gecersiz)
+
+    f35_notlar = []
+    if zorl_risk:
+        f35_notlar.append(f"Zorlayan: {zorl}")
+    if onemli.startswith("Evet"):
+        f35_notlar.append("Son 1-2 yılda derinden etkileyen önemli olay yaşandı")
+
+    is_f35 = zorl_risk or onemli.startswith("Evet")
+    sf(35, is_f35, note=" | ".join(f35_notlar)[:200] if is_f35 else "")
