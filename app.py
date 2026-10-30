@@ -1924,12 +1924,186 @@ with tab_risk:
         st.markdown("---")
 
         # --- Risk Faktoru Giris Ekrani ---
-        tab_grid, tab_summary, tab_export, tab_profiles = st.tabs([
+        tab_rapor, tab_grid, tab_summary, tab_export, tab_profiles = st.tabs([
+            "🚨 Öğretmen & Rehberlik Raporu",
             "📝 Risk Faktörü Girişi",
             "📊 Özet & Analiz",
-            "📥 Resmi PDF İndir",
+            "📥 Resmi PDF & Excel İndir",
             "📋 Öğrenci Profilleri"
         ])
+
+        with tab_rapor:
+            st.markdown("### 📋 8/B Rehberlik ve Özel Risk Vaka Masası")
+            st.caption("Öğrenci tanıma formları, deneme sınavı başarıları ve rehberlik gözlemlerine dayalı yönetici paneli.")
+
+            # Üst İstatistik Kartları
+            c_rp1, c_rp2, c_rp3, c_rp4 = st.columns(4)
+            c_rp1.metric("📋 Formu Dolduran", f"26 / {total_students}", "%89.7 Tamamlanma")
+            c_rp2.metric("⚠️ Doldurmayan", "3 Öğrenci", "1 Kritik Akademik Risk")
+            c_rp3.metric("🎯 Gerçek Riskli Öğrenci", f"{total_at_risk} / {total_students}", "Filtrelenmiş MEB Faktörleri")
+            c_rp4.metric("🚨 Acil Psikososyal Vaka", "1 Öğrenci", "Melek Rana Kesici")
+
+            st.markdown("---")
+
+            # ── BÖLÜM 1: Acil ve Kritik Vakalar ─────────────────────────────
+            st.markdown("#### 🚨 1. Öğretmenin ve Rehberlik Servisinin Dikkat Etmesi Gereken Özel Vakalar")
+
+            with st.container():
+                st.error("""
+                **🔴 ACİL PSİKOSOSYAL TAKİP — [327] MELEK RANA KESİCİ**
+                - **Öğrenci Beyanı:** *'Hayatında veya okulda seni en çok zorlayan şey nedir?'* sorusuna **'yaşamak'** yanıtını vermiştir.
+                - **Devamsızlık Durumu:** **10 gün ve üzeri** (F31 - Sürekli Devamsız).
+                - **Akademik Durum:** LGS deneme puanı yüksek (426.84 puan, 69 net); ancak ciddi bir duygusal tükenmişlik / depresif sinyal vermektedir.
+                - **📌 Öğretmen & Rehberlik Aksiyonu:** Okul psikolojik danışmanı ile ivedilikle ve gizlilik esasıyla bireysel görüşmeye alınmalıdır.
+                """)
+
+            col_v1, col_v2 = st.columns(2)
+            with col_v1:
+                st.warning("""
+                **🟡 SINAV KAYGISI & DUYGUSAL DESTEK**
+                - **[292] Halit Eren Hatunoğlu:** Zorlayan şey: **'kaygı'**. Anne-baba ayrı yaşıyor, tek çocuk. Sınav kaygısı ve ailevi süreç desteği planlanmalı.
+                - **[227] Derin Yılmaz:** Son 1-2 yılda derinden etkileyen önemli olay bildirdi (*'Evet'*). Anne-baba ayrı yaşıyor. LGS net ortalaması 8.33.
+                - **[258] Meryem Bozdemir:** Son 1-2 yılda derinden etkileyen önemli olay bildirdi (*'Evet'*). Anne-baba ayrı, yalnız anneyle yaşıyor.
+                - **[182] Erdem Yarar:** En çok zorlayan şey: *'Herşey'*.
+                """)
+
+                st.success("""
+                **📚 AKADEMİK DESTEK TALEP EDENLER**
+                - **[224] Cengizhan Yılmaz:** Destek talebi: *'Evet, ders konularında destek istiyorum | Not: DERS'*. (Zorlandığı ders: Matematik, LGS net: 10.50).
+                - **[230] Kenan Emir Yaman:** Destek talebi: *'Evet, ders konularında destek istiyorum | Not: ders çalışmak sıkıcı olduğu için zorlanmıyorum ama sıkılıyorum hep'*.
+                """)
+
+            with col_v2:
+                st.info("""
+                **💊 SAĞLIK, İLAÇ VE ÖZEL DURUMLAR**
+                - **[245] Tuna Koç:** Sürekli kullanılan ilaç: **MEDIKINET** (DEHB - Dikkat Eksikliği ve Hiperaktivite ilacı). Ailede hastalık: *'Annem kalp hastası'*. Okul/RAM teşhisi ve BEP ihtiyacı kontrol edilmelidir.
+                - **[230] Kenan Emir Yaman:** Tanı: **Astım**, İlaç: **Ventolin**. Beden eğitimi ve fiziksel aktivitelerde dikkat edilmeli.
+                - **[256] Beren Koç:** Tanı: **Tiroit**, İlaç: Vitamin.
+                - **[203] Kerem Aracı:** Ailede süreğen hastalık: *'Babam kalp hastası ve şeker'*.
+                """)
+
+                st.markdown("""
+                <div style='background-color:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:12px; margin-top:5px;'>
+                <b style='color:#0F172A;'>🌾 MEVSİMLİK İŞÇİLİK (F22) BEYAN KONTROLÜ (9 Öğrenci)</b><br>
+                <small style='color:#475569;'>
+                Kerem Aracı, Cengizhan Yılmaz, Kenan Emir Yaman, Tuna Koç, Beren Koç, Mustafa Gülseven, Uğur Kaan Yıldız, Muzaffer Akif Oçar, Çınar Efe Girgin.<br>
+                <b>Önemli Not:</b> Öğrenciler yaz tatilinde köye gitmeyi mevsimlik işçilikle karıştırabilmektedir. MEB tanımına göre tarım işçiliği nedeniyle okula geç başlama / devamsızlık durumu veliden teyit edilmelidir.
+                </small>
+                </div>
+                """, unsafe_allow_html=True)
+
+            st.markdown("---")
+
+            # ── BÖLÜM 2: F33 Akademik Başarısı Düşük Önerisi ──────────────────
+            st.markdown("#### 📈 2. F33 (Akademik Başarısı Düşük) İçin Sistem Verilerine Dayalı Öneri")
+            st.caption("Sistemdeki resmi LGS deneme sonuçlarına göre sınıf ortalamasının belirgin şekilde altında kalan ve MEB F33 riski taşıyan öğrenciler:")
+
+            akad_df_data = [
+                {"No": "272", "Adı Soyadı": "EGEHAN HARDAL", "LGS Net Ort.": "2.67 net", "LGS Puan Ort.": "181.90", "Sınıf Sırası": "28 / 29", "Öneri Durumu": "🔴 F33 Kesinlikle İşaretlenmeli"},
+                {"No": "379", "Adı Soyadı": "ÇINAR EFE GİRGİN", "LGS Net Ort.": "8.66 net", "LGS Puan Ort.": "210.56", "Sınıf Sırası": "25 / 29", "Öneri Durumu": "🟠 F33 İşaretlenmeli"},
+                {"No": "227", "Adı Soyadı": "DERİN YILMAZ", "LGS Net Ort.": "8.34 net", "LGS Puan Ort.": "212.11", "Sınıf Sırası": "26 / 29", "Öneri Durumu": "🟠 F33 İşaretlenmeli"},
+                {"No": "224", "Adı Soyadı": "CENGİZHAN YILMAZ", "LGS Net Ort.": "10.50 net", "LGS Puan Ort.": "220.26", "Sınıf Sırası": "27 / 29", "Öneri Durumu": "🟠 F33 İşaretlenmeli (Destek İstedi)"},
+                {"No": "303", "Adı Soyadı": "MUSTAFA GÜLSEVEN", "LGS Net Ort.": "13.00 net", "LGS Puan Ort.": "221.39", "Sınıf Sırası": "24 / 29", "Öneri Durumu": "🟡 F33 Değerlendirilmeli"},
+            ]
+            st.dataframe(pd.DataFrame(akad_df_data), use_container_width=True, hide_index=True)
+
+            col_btn_f33, col_btn_f33_info = st.columns([1, 2])
+            with col_btn_f33:
+                if st.button("⚡ Bu 5 Öğrenciye F33 Riskini Otomatik Kaydet", key="btn_apply_f33", type="primary"):
+                    f33_targets = ["272", "379", "227", "224", "303"]
+                    applied_c = 0
+                    for st_item in _students_r:
+                        if str(st_item[1]) in f33_targets:
+                            set_risk_factor(st_item[0], 33, True, source="teacher", note="Deneme net ortalaması 15 net altı")
+                            applied_c += 1
+                    st.success(f"✅ {applied_c} öğrenci için F33 (Akademik Başarısı Düşük) riski başarıyla kaydedildi!")
+                    st.rerun()
+            with col_btn_f33_info:
+                st.caption("ℹ️ Bu butona tıkladığınızda yukarıdaki 5 öğrenci için MEB Risk Haritasındaki F33 sütununa 'X' işareti otomatik işlenir.")
+
+            st.markdown("---")
+
+            # ── BÖLÜM 3: Öğretmenin Doldurması Gereken Faktörler ─────────────
+            st.markdown("#### 🔒 3. Öğretmenin Doldurması Gereken Faktörler (Teacher-Only Rehberi)")
+            with st.expander("🔍 Resmi Belge / e-Okul / İdare Gözlemi Gerektiren 13 Faktörün Detayları", expanded=False):
+                st.markdown("""
+                MEB S.İ.4.a yönergesi uyarınca aşağıdaki faktörler öğrencinin kendi beyanına bırakılamaz; sınıf rehber öğretmeni ve okul idaresi tarafından kontrol edilir:
+
+                | Faktör Kodu | Risk Faktörü | Bilgi Kaynağı / Kontrol Yolu |
+                | :---: | :--- | :--- |
+                | **F12** | **Şehit Çocuğu** | e-Okul / MEBBİS resmi kayıtları |
+                | **F15** | **Koruyucu Aile Gözetiminde Olan** | Aile ve Sosyal Hizmetler Bakanlığı resmi tebligatı |
+                | **F16** | **Sevgi Evlerinde Kalan** | Aile ve Sosyal Hizmetler Bakanlığı yurt kaydı |
+                | **F17** | **Sosyal Hizmetler / ÇEK** | Çocuk Koruma / ÇEK resmi evrakları |
+                | **F19** | **Ailesinde Ruhsal Hastalığı Olan** | Rehberlik servisi / Veli özel görüşmesi |
+                | **F20** | **Ailesinde Bağımlı Birey Bulunan (Alkol/Madde)** | Gizli rehberlik görüşmesi / İdare bilgisi |
+                | **F21** | **Ailesinde Cezai Hükmü Bulunan** | Adli kayıt / Veli özel beyanı |
+                | **F23** | **Aile İçi Şiddete Maruz Kalan** | Vaka bildirimi / Rehberlik servisi takibi |
+                | **F24** | **Özel Yetenekli Tanısı Olan** | BİLSEM sınav sonucu / RAM resmi tanısı |
+                | **F25** | **Yetersizlik Alanında Özel Eğitim Raporu** | RAM Eğitsel Değerlendirme Raporu / Kaynaştırma kararı |
+                | **F27** | **Ruhsal Hastalığı Olan** | ÇÖZGER / Çocuk Psikiyatrisi resmi tanısı |
+                | **F28** | **Danışmanlık Tedbir Kararı Olan** | 5395 sayılı Çocuk Koruma Kanunu Mahkeme Kararı |
+                | **F29** | **Eğitim Tedbir Kararı Olan** | Mahkeme kararı / İlçe MEM resmi yazısı |
+                | **F34** | **Riskli Akran Grubu** | Nöbetçi öğretmen ve sınıf rehber öğretmeni gözlemi |
+
+                *Bu faktörleri girmek için yandaki **'📝 Risk Faktörü Girişi'** sekmesinden öğrenciyi seçip 🔒 kilit simgeli maddeleri işaretleyebilirsiniz.*
+                """)
+
+            st.markdown("---")
+
+            # ── BÖLÜM 4: Form Doldurmayan ve Eksik Kalan Öğrenciler ──────────
+            st.markdown("#### ⚠️ 4. Form Doldurmayan ve Kritik Eksik Bırakan Öğrenciler Masası")
+            col_m1, col_m2 = st.columns(2)
+            with col_m1:
+                st.markdown("**Formu Doldurmayan 3 Öğrenci:**")
+                st.markdown("""
+                1. **[272] EGEHAN HARDAL** (Erkek) — *Akademik olarak en kritik öğrenci (2.67 net). Bireysel görüşme yapılmalı.*
+                2. **[247] ZEHRA ŞENEL** (Kız) — *Rehberlik saatinde formu doldurtulmalı.*
+                3. **[323] ZAHİDE GÖLÜKCÜ** (Kız) — *Formu doldurması sağlanmalı.*
+                """)
+            with col_m2:
+                st.markdown("**Kritik Veri Eksikliği Olan Öğrenciler:**")
+                st.markdown("""
+                - **[117] ÇAĞRIHAN BENGÜL:** Formun neredeyse tamamı boş! Doğum tarihi, adres, anne/baba adı boş. Yeniden doldurtulmalı.
+                - **[386] KUZEY CAN:** Adres boş. Çelişkili durum: Ebeveyn ayrı ama evde yaşayanlara 'Annem ve babam' yazmış.
+                - **[256] BEREN KOÇ:** **Veli telefonu tamamen boş.** Acil durumlar için veli telefonu alınmalı.
+                - **[432] AHMET NEVFEL ÖZKAYA:** Doğum tarihi '29.06.' yazılmış, doğum yılı eksik.
+                """)
+
+            st.markdown("---")
+
+            # ── BÖLÜM 5: Düzenlenmiş Raporları İndir ─────────────────────────
+            st.markdown("#### 📥 5. Hazırlanmış ve Düzenlenmiş Raporları İndir")
+            col_d1, col_d2 = st.columns(2)
+            with col_d1:
+                rep_excel_p = os.path.join(EXPORTS_DIR, "8B_Ogrenci_Profilleri_Detayli_Rapor.xlsx")
+                if os.path.exists(rep_excel_p):
+                    with open(rep_excel_p, "rb") as _frp:
+                        _frp_bytes = _frp.read()
+                    st.download_button(
+                        "📄 Düzenlenmiş Öğrenci Profilleri Tablosu (.xlsx)",
+                        data=_frp_bytes,
+                        file_name="8B_Ogrenci_Profilleri_Detayli_Rapor.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True,
+                        key="dl_btn_clean_rep"
+                    )
+            with col_d2:
+                guncel_risk_p = os.path.join(EXPORTS_DIR, "Guncel_8B_Sinif_Risk_Haritasi.xlsx")
+                if os.path.exists(guncel_risk_p):
+                    with open(guncel_risk_p, "rb") as _frg:
+                        _frg_bytes = _frg.read()
+                    st.download_button(
+                        "📊 Güncel Sınıf Risk Haritası Matrisi (.xlsx)",
+                        data=_frg_bytes,
+                        file_name="Guncel_8B_Sinif_Risk_Haritasi.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True,
+                        key="dl_btn_guncel_risk"
+                    )
+
+            st.markdown("---")
+
 
         with tab_grid:
             st.markdown("**Öğrenci seçin ve risk faktörlerini işaretleyin:**")
