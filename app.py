@@ -2227,6 +2227,18 @@ with tab_risk:
             df_risk_sorted = df_risk.sort_values("Risk Sayısı", ascending=False)
             st.dataframe(df_risk_sorted, use_container_width=True, height=500)
 
+            st.info("""
+            📌 **Tablodaki 35. Faktör ("Diğer") Ne Anlama Geliyor?**  
+            MEB Özel Eğitim ve Rehberlik Hizmetleri Genel Müdürlüğü standart S.İ.4.a yönergesine göre **"Diğer"** sütunu:  
+            İlk 34 standart MEB risk kategorisinde (anne-baba ayrılığı, hastalık, devamsızlık vb.) yer almayan; ancak öğrencinin akademik ve psikososyal takibini gerektiren **özel ve istisnai durumları** ifade eder.
+
+            **Sistemimizde bu faktör şu durumlarda işlenir:**
+            - **Duygusal / Psikososyal Alarm:** Öğrencinin *"Seni en çok zorlayan şey nedir?"* sorusuna verdiği kritik cevaplar *(Örn: Melek Rana Kesici — "yaşamak", Halit Eren Hatunoğlu — "kaygı")*.
+            - **Travmatik / Ailevi Olaylar:** Öğrencinin *"Son 1-2 yılda seni veya aileni derinden etkileyen önemli bir olay yaşandı mı?"* sorusuna *"Evet"* demesi *(Örn: Derin Yılmaz, Meryem Bozdemir)*.
+            - **Özel Zorluklar:** Ulaşım, akran çatışması veya çalışma ortamı sıkıntısı gibi bireysel rehberlik gerektiren durumlar.  
+            *(Not: "Yok", "Hayır", "Ödev" gibi genel ifadeler filtrelenerek risk haritasından çıkarılmıştır).*
+            """)
+
 
         with tab_export:
             st.markdown("### 📄 Resmi Risk Haritası — Tek Sayfa Çıktı")

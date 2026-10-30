@@ -283,6 +283,14 @@ def export_risk_pdf(students: list, risk_data: dict, output_path: str,
             run.font.color.rgb = TICK_COLOR
 
     # ── Altbilgi ──────────────────────────────────────────────────────────────
+    foot_diger = doc.add_paragraph()
+    foot_diger.paragraph_format.space_before = Pt(3)
+    foot_diger.paragraph_format.space_after  = Pt(0)
+    foot_diger.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    r_fd = foot_diger.add_run("📌 * NOT (35. Faktör — 'Diğer'): İlk 34 standart MEB risk kategorisinde tanımlanmamış; ancak rehberlik takibini gerektiren durumları (ağır sınav kaygısı, son 1-2 yılda yaşanan travmatik/önemli olaylar, duygusal tükenmişlik veya öğrencinin bildirdiği özel güçlükler) ifade eder.")
+    r_fd.font.size = Pt(5)
+    r_fd.italic = True
+
     foot = doc.add_paragraph()
     foot.paragraph_format.space_before = Pt(2)
     foot.paragraph_format.space_after  = Pt(0)
@@ -386,6 +394,9 @@ th, td {{ border: 0.3pt solid #AAAAAA; vertical-align: middle; padding: 0 1px; o
 <span style="color:#833C00">■</span> Özel Durum &nbsp;
 <span style="color:#9C2323">■</span> Aile Sağlığı &nbsp;
 <span style="color:#375623">■</span> Öğrenci Durumu
+</div>
+<div style="font-size: 5pt; text-align: left; margin-top: 3px; color: #1F497D; line-height: 1.3;">
+  <b>📌 35. Faktör ("Diğer") Açıklaması:</b> İlk 34 standart MEB risk kategorisinde tanımlanmamış; ancak öğrencinin rehberlik takibini gerektiren istisnai durumları ifade eder (Ağır sınav kaygısı, son 1-2 yılda yaşanan travmatik/önemli olaylar, duygusal tükenmişlik veya öğrencinin bildirdiği özel güçlükler).
 </div>
 </body></html>""")
 
@@ -597,6 +608,23 @@ def export_risk_excel(students: list, risk_data: dict, output_path: str,
     c_grand.alignment = align_center
     c_grand.border = thin_border
     ws.row_dimensions[total_r_idx].height = 22
+
+    # Note / Legend Row for F35 (Diğer)
+    note_r1 = total_r_idx + 2
+    ws.merge_cells(start_row=note_r1, start_column=1, end_row=note_r1, end_column=tot_col_idx)
+    c_note1 = ws.cell(row=note_r1, column=1)
+    c_note1.value = "📌 35. FAKTÖR ('DİĞER') AÇIKLAMASI: İlk 34 standart MEB risk kategorisinde yer almayan; ancak öğrencinin akademik ve psikososyal takibini gerektiren özel durumları ifade eder (Ağır sınav kaygısı, son 1-2 yılda yaşanan travmatik/önemli olaylar, duygusal tükenmişlik veya öğrencinin bildirdiği özel güçlükler)."
+    c_note1.font = Font(name="Calibri", size=9, italic=True, bold=True, color="1F497D")
+    c_note1.alignment = align_left
+    ws.row_dimensions[note_r1].height = 22
+
+    note_r2 = total_r_idx + 3
+    ws.merge_cells(start_row=note_r2, start_column=1, end_row=note_r2, end_column=tot_col_idx)
+    c_note2 = ws.cell(row=note_r2, column=1)
+    c_note2.value = "* 8/B Sınıfı 'Diğer' Kapsamındaki Durumlar: Melek Rana Kesici ('yaşamak' - psikososyal takip), Halit Eren Hatunoğlu ('kaygı'), Derin Yılmaz (önemli ailevi olay), Meryem Bozdemir (önemli ailevi olay), Tuna Koç (akran uyumu), Sümeyye Taşkın & Beren Koç (ulaşım problemi)."
+    c_note2.font = Font(name="Calibri", size=8.5, italic=True, color="404040")
+    c_note2.alignment = align_left
+    ws.row_dimensions[note_r2].height = 20
 
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     wb.save(output_path)
