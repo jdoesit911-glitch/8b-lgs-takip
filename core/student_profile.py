@@ -5,6 +5,31 @@ risk haritası faktörlerine otomatik olarak dönüştürür.
 import sqlite3
 from config import DATABASE_PATH
 from core.risk_mapper import set_risk_factor, init_risk_table
+import json
+
+def safe_parse_list(val):
+    if not val:
+        return []
+    if isinstance(val, (list, tuple, set)):
+        return list(val)
+    if isinstance(val, str):
+        s = val.strip()
+        if not s or s == "[]":
+            return []
+        if s.startswith("[") and s.endswith("]"):
+            try:
+                parsed = json.loads(s)
+                if isinstance(parsed, list):
+                    return [str(x) for x in parsed]
+            except Exception:
+                pass
+        return [x.strip() for x in s.split(",") if x.strip()]
+    return [str(val)]
+
+def safe_format_list(val, empty_str="-"):
+    items = safe_parse_list(val)
+    return ", ".join(items) if items else empty_str
+
 
 
 # ─── Tablo Oluştur ─────────────────────────────────────────────────────────────

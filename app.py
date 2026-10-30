@@ -18,6 +18,32 @@ from core.risk_mapper import (RISK_FACTORS, STUDENT_SURVEY_QUESTIONS, STUDENT_VI
                                get_student_risk_factors, get_all_risk_data, get_risk_summary,
                                save_student_survey)
 
+import json
+
+def safe_parse_list(val):
+    if not val:
+        return []
+    if isinstance(val, (list, tuple, set)):
+        return list(val)
+    if isinstance(val, str):
+        s = val.strip()
+        if not s or s == "[]":
+            return []
+        if s.startswith("[") and s.endswith("]"):
+            try:
+                parsed = json.loads(s)
+                if isinstance(parsed, list):
+                    return [str(x) for x in parsed]
+            except Exception:
+                pass
+        return [x.strip() for x in s.split(",") if x.strip()]
+    return [str(val)]
+
+def safe_format_list(val, empty_str="-"):
+    items = safe_parse_list(val)
+    return ", ".join(items) if items else empty_str
+
+
 st.set_page_config(
     page_title="LGS Akademik Başarı ve Takip Otomasyonu",
     page_icon="🎓",
@@ -662,7 +688,7 @@ if current_role == "student":
                     kimler_opts = ["Annem ve babam", "Yalnızca annem", "Yalnızca babam",
                                    "Büyükanne / büyükbabam", "Diğer akrabalarım (hala, amca, dayı vb.)",
                                    "Abim / ablam / kardeşlerim", "Diğer"]
-                    _ev_default = _json_form.loads(existing.get("evde_kimseler", "[]") or "[]") if existing else []
+                    _ev_default = [x for x in safe_parse_list(existing.get("evde_kimseler")) if x in kimler_opts] if existing else []
                     evde_kimseler = st.multiselect("2.1 Evde kimlerle yaşıyorsunuz? (Birden fazla seçebilirsiniz)",
                                                    kimler_opts, default=_ev_default)
 
@@ -762,7 +788,7 @@ if current_role == "student":
 
                     ders_opts = ["Türkçe","Matematik","Fen Bilimleri","İngilizce",
                                  "Sosyal Bilgiler / İnkılap Tarihi","Din Kültürü"]
-                    _zor_default = _json_form.loads(existing.get("zor_dersler","[]") or "[]") if existing else []
+                    _zor_default = [x for x in safe_parse_list(existing.get("zor_dersler")) if x in ders_listesi] if existing else []
                     zor_dersler  = st.multiselect("5.3 Hangi dersler en zor geliyor? (Birden fazla seçebilirsiniz)",
                                                   ders_opts, default=_zor_default)
 
@@ -803,7 +829,7 @@ if current_role == "student":
                                                index=internet_opts.index(existing.get("internet_erisim","Evet, evde var")) if existing.get("internet_erisim") in internet_opts else 0)
 
                     tekno_opts = ["Tablet / Bilgisayar", "Akıllı telefon", "Akıllı saat / tablet", "Hiçbiri"]
-                    _tekno_default = _json_form.loads(existing.get("teknoloji_aleti","[]") or "[]") if existing and isinstance(existing.get("teknoloji_aleti",""), str) and existing.get("teknoloji_aleti","").startswith("[") else ([existing.get("teknoloji_aleti")] if existing.get("teknoloji_aleti") and existing.get("teknoloji_aleti") in tekno_opts else [])
+                    _tekno_default = [x for x in safe_parse_list(existing.get("teknoloji_aleti")) if x in tekno_opts] if existing else []
                     teknoloji_aleti = st.multiselect("6.4 Kendinize ait teknolojik aletleriniz neler? (Birden fazla seçebilirsiniz)",
                                                      tekno_opts, default=_tekno_default)
 
@@ -812,7 +838,7 @@ if current_role == "student":
                     st.markdown("### 🎨 Bölüm 7 — İlgi ve Hobiler")
                     hobi_opts = ["Spor / Hareket", "Müzik / Sanat / Resim",
                                  "Kitap okumak", "Teknoloji / Oyun", "Doğa / Gezi", "Diğer"]
-                    _hobi_default = _json_form.loads(existing.get("hobiler","[]") or "[]") if existing else []
+                    _hobi_default = safe_parse_list(existing.get("hobiler")) if existing else []
                     hobiler = st.multiselect("7.1 Ne yapmaktan hoşlanırsınız? (Birden fazla seçebilirsiniz)",
                                              hobi_opts, default=_hobi_default)
 
@@ -828,7 +854,7 @@ if current_role == "student":
 
                     akademik_destek_opts = ["Hayır, almıyorum", "Okul kursu (ücretsiz)", "Dershane / Etüt merkezi",
                                             "Özel ders (bireysel)", "Online kurs / platform (Eba, YouTube vb.)"]
-                    _akad_default = _json_form.loads(existing.get("akademik_destek","[]") or "[]") if existing and isinstance(existing.get("akademik_destek",""), str) and existing.get("akademik_destek","").startswith("[") else ([existing.get("akademik_destek")] if existing.get("akademik_destek") and existing.get("akademik_destek") in akademik_destek_opts else [])
+                    _akad_default = [x for x in safe_parse_list(existing.get("akademik_destek")) if x in akademik_destek_opts] if existing else []
                     akademik_destek = st.multiselect(
                         "7.3 Okul dışında akademik destek alıyor musunuz? (Birden fazla seçebilirsiniz)",
                         akademik_destek_opts, default=_akad_default)
@@ -1638,7 +1664,7 @@ with tab_risk:
                                    "Büyükanne / büyükbabam", "Diğer akrabalarım (hala, amca, dayı vb.)",
                                    "Abim / ablam / kardeşlerim", "Diğer"]
                     import json as _json
-                    _ev_default = _json.loads(existing.get("evde_kimseler", "[]") or "[]") if existing else []
+                    _ev_default = [x for x in safe_parse_list(existing.get("evde_kimseler")) if x in kimler_opts] if existing else []
                     evde_kimseler = st.multiselect("2.1 Evde kimlerle yaşıyorsunuz? (Birden fazla seçebilirsiniz)",
                                                    kimler_opts, default=_ev_default)
 
@@ -1738,7 +1764,7 @@ with tab_risk:
 
                     ders_opts = ["Türkçe","Matematik","Fen Bilimleri","İngilizce",
                                  "Sosyal Bilgiler / İnkılap Tarihi","Din Kültürü"]
-                    _zor_default = _json.loads(existing.get("zor_dersler","[]") or "[]") if existing else []
+                    _zor_default = [x for x in safe_parse_list(existing.get("zor_dersler")) if x in ders_listesi] if existing else []
                     zor_dersler  = st.multiselect("5.3 Hangi dersler en zor geliyor? (Birden fazla seçebilirsiniz)",
                                                   ders_opts, default=_zor_default)
 
@@ -1779,7 +1805,7 @@ with tab_risk:
                                                index=internet_opts.index(existing.get("internet_erisim","Evet, evde var")) if existing.get("internet_erisim") in internet_opts else 0)
 
                     tekno_opts = ["Tablet / Bilgisayar", "Akıllı telefon", "Akıllı saat / tablet", "Hiçbiri"]
-                    _tekno_default = _json_form.loads(existing.get("teknoloji_aleti","[]") or "[]") if existing and isinstance(existing.get("teknoloji_aleti",""), str) and existing.get("teknoloji_aleti","").startswith("[") else ([existing.get("teknoloji_aleti")] if existing.get("teknoloji_aleti") and existing.get("teknoloji_aleti") in tekno_opts else [])
+                    _tekno_default = [x for x in safe_parse_list(existing.get("teknoloji_aleti")) if x in tekno_opts] if existing else []
                     teknoloji_aleti = st.multiselect("6.4 Kendinize ait teknolojik aletleriniz neler? (Birden fazla seçebilirsiniz)",
                                                      tekno_opts, default=_tekno_default)
 
@@ -1788,7 +1814,7 @@ with tab_risk:
                     st.markdown("### 🎨 Bölüm 7 — İlgi ve Hobiler")
                     hobi_opts = ["Spor / Hareket", "Müzik / Sanat / Resim",
                                  "Kitap okumak", "Teknoloji / Oyun", "Doğa / Gezi", "Diğer"]
-                    _hobi_default = _json.loads(existing.get("hobiler","[]") or "[]") if existing else []
+                    _hobi_default = safe_parse_list(existing.get("hobiler")) if existing else []
                     hobiler = st.multiselect("7.1 Ne yapmaktan hoşlanırsınız? (Birden fazla seçebilirsiniz)",
                                              hobi_opts, default=_hobi_default)
 
@@ -1804,7 +1830,7 @@ with tab_risk:
 
                     akademik_destek_opts = ["Hayır, almıyorum", "Okul kursu (ücretsiz)", "Dershane / Etüt merkezi",
                                             "Özel ders (bireysel)", "Online kurs / platform (Eba, YouTube vb.)"]
-                    _akad_default = _json_form.loads(existing.get("akademik_destek","[]") or "[]") if existing and isinstance(existing.get("akademik_destek",""), str) and existing.get("akademik_destek","").startswith("[") else ([existing.get("akademik_destek")] if existing.get("akademik_destek") and existing.get("akademik_destek") in akademik_destek_opts else [])
+                    _akad_default = [x for x in safe_parse_list(existing.get("akademik_destek")) if x in akademik_destek_opts] if existing else []
                     akademik_destek = st.multiselect(
                         "7.3 Okul dışında akademik destek alıyor musunuz? (Birden fazla seçebilirsiniz)",
                         akademik_destek_opts, default=_akad_default)
@@ -2342,9 +2368,9 @@ with tab_risk:
                 # Özet tablo
                 summary_rows = []
                 for p in all_profiles:
-                    akad_str = ", ".join(_pjson.loads(p.get("akademik_destek","[]") or "[]")) if p.get("akademik_destek") else "-"
+                    akad_str = safe_format_list(p.get("akademik_destek"))
                     tek_raw = p.get("teknoloji_aleti", "")
-                    tek_str = ", ".join(_pjson.loads(tek_raw or "[]")) if tek_raw.startswith("[") else (tek_raw or "-")
+                    tek_str = safe_format_list(tek_raw)
                     summary_rows.append({
                         "Okul No":          p.get("school_no", ""),
                         "Adı Soyadı":       p.get("name", ""),
@@ -2394,7 +2420,7 @@ with tab_risk:
 - Cep Telefonu: {sel_prof_data.get('cep_telefon','-')}
 
 **🏠 Aile Yapısı**
-- Evde kimseler: {', '.join(_pjson.loads(sel_prof_data.get('evde_kimseler','[]') or '[]'))}
+- Evde kimseler: {safe_format_list(sel_prof_data.get('evde_kimseler'))}
 - Anne: {sel_prof_data.get('anne_adi','-')} | Sağ: {sel_prof_data.get('anne_sag','-')} | Eğitim: {sel_prof_data.get('anne_egitim','-')} | Meslek: {sel_prof_data.get('anne_meslek','-')}
 - Baba: {sel_prof_data.get('baba_adi','-')} | Sağ: {sel_prof_data.get('baba_sag','-')} | Eğitim: {sel_prof_data.get('baba_egitim','-')} | Meslek: {sel_prof_data.get('baba_meslek','-')}
 - Ebeveyn birlikte: {sel_prof_data.get('ebeveyn_birlikte','-')}
@@ -2412,13 +2438,13 @@ with tab_risk:
 
 **🎨 Kulüp & Akademik Destek**
 - Kulüp / Spor / Sanat: {sel_prof_data.get('kurs_kulup','-')} {('— Branş: ' + sel_prof_data.get('kurs_brans','')) if sel_prof_data.get('kurs_brans') else ''}
-- Akademik destek: {', '.join(_pjson.loads(sel_prof_data.get('akademik_destek','[]') or '[]')) if sel_prof_data.get('akademik_destek') else '-'}
-- Hobiler: {', '.join(_pjson.loads(sel_prof_data.get('hobiler','[]') or '[]')) if sel_prof_data.get('hobiler') else '-'}
+- Akademik destek: {safe_format_list(sel_prof_data.get('akademik_destek'))}
+- Hobiler: {safe_format_list(sel_prof_data.get('hobiler'))}
 
 **🏫 Okul Hayatı**
 - Devamsızlık: {sel_prof_data.get('devamsizlik_gun','-')}
 - Ders zorluğu: {sel_prof_data.get('ders_zorluk','-')}
-- Zor dersler: {', '.join(_pjson.loads(sel_prof_data.get('zor_dersler','[]') or '[]'))}
+- Zor dersler: {safe_format_list(sel_prof_data.get('zor_dersler'))}
 - Okul değiştirdi: {sel_prof_data.get('okul_degistirdi','-')}
 - Arkadaş edinme: {sel_prof_data.get('arkadas_edinme','-')}
 
@@ -2426,7 +2452,7 @@ with tab_risk:
 - Çalışma durumu: {sel_prof_data.get('calisma_durumu','-')}
 - Ders ortamı: {sel_prof_data.get('ders_ortami','-')}
 - İnternet erişimi: {sel_prof_data.get('internet_erisim','-')}
-- Teknolojik aletler: {', '.join(_pjson.loads(sel_prof_data.get('teknoloji_aleti','[]') or '[]')) if sel_prof_data.get('teknoloji_aleti','').startswith('[') else (sel_prof_data.get('teknoloji_aleti') or '-') }
+- Teknolojik aletler: {safe_format_list(sel_prof_data.get('teknoloji_aleti'))}
 
 **💬 Kendini Anlat**
 - Genel his: {sel_prof_data.get('genel_his','-')}
@@ -2452,7 +2478,7 @@ with tab_risk:
                             val_j = pr_copy.get(col_j, "")
                             if isinstance(val_j, str) and val_j.startswith("["):
                                 try:
-                                    pr_copy[col_j] = ", ".join(_pjson.loads(val_j))
+                                    pr_copy[col_j] = safe_format_list(val_j)
                                 except Exception:
                                     pass
                         clean_profiles.append(pr_copy)
