@@ -148,10 +148,9 @@ if st.session_state.role is None:
 
         if role_choice == "Öğrenci":
             st.info("🎒 **Öğrenci Girişi:** Size verilen **4 haneli giriş kodunuzu** (büyük harf + rakam) girerek sisteme erişebilirsiniz.\n"
-                    "Karnenizi ve gelişim grafiklerinizi inceleyebilir, **ŞÖK Öğrenci Veri Toplama Anketini** doldurabilirsiniz.\n\n"
-                    "💡 *Giriş kodu örneği:* **`RBMU`** *(Egehan Hardal)*")
+                    "Karnenizi ve gelişim grafiklerinizi inceleyebilir, **ŞÖK Öğrenci Veri Toplama Anketini** doldurabilirsiniz.")
             with st.form("form_student_login"):
-                pin_input = st.text_input("Öğrenci Giriş Kodunuz (4 hane):", placeholder="Örn: RBMU",
+                pin_input = st.text_input("Öğrenci Giriş Kodunuz (4 hane):", placeholder="4 haneli kodunuzu giriniz",
                                           help="Öğretmeninizden aldığınız 4 karakterli kodu giriniz.")
                 submit_student = st.form_submit_button("🎒 Öğrenci Olarak Giriş Yap", use_container_width=True)
                 if submit_student:
