@@ -148,8 +148,8 @@ if st.session_state.role is None:
 
         if role_choice == "Öğrenci":
             st.info("🎒 **Öğrenci Girişi:** Size verilen **4 haneli giriş kodunuzu** (büyük harf + rakam) girerek sisteme erişebilirsiniz.\n"
-                    "Yalnızca **kendi karnenizi** ve **sınıf ortalamalarını** görebilirsiniz.\n\n"
-                    "💡 *ŞÖK Formunu incelemek için örnek öğrenci kodu:* **`RBMU`** *(Egehan Hardal)*")
+                    "Karnenizi ve gelişim grafiklerinizi inceleyebilir, **ŞÖK Öğrenci Veri Toplama Anketini** doldurabilirsiniz.\n\n"
+                    "💡 *Giriş kodu örneği:* **`RBMU`** *(Egehan Hardal)*")
             with st.form("form_student_login"):
                 pin_input = st.text_input("Öğrenci Giriş Kodunuz (4 hane):", placeholder="Örn: RBMU",
                                           help="Öğretmeninizden aldığınız 4 karakterli kodu giriniz.")
@@ -401,11 +401,10 @@ if current_role == 'student':
         st.session_state.student_view_mode = 'dashboard'
         st.rerun()
 
-    if is_egehan:
-        if st.sidebar.button('📝 ŞÖK Veri Toplama Anketi', use_container_width=True, 
-                             type='primary' if cur_mode == 'sok_survey' else 'secondary'):
-            st.session_state.student_view_mode = 'sok_survey'
-            st.rerun()
+    if st.sidebar.button('📝 ŞÖK Veri Toplama Anketi', use_container_width=True, 
+                         type='primary' if cur_mode == 'sok_survey' else 'secondary'):
+        st.session_state.student_view_mode = 'sok_survey'
+        st.rerun()
 
     if not is_prof_complete:
         if st.sidebar.button('📋 Öğrenci Tanıma Formu', use_container_width=True, 
@@ -449,15 +448,15 @@ if current_role == "student":
     # ─────────────────────────────────────────────────────────────────────────
     # MOD 1: ŞÖK ÖĞRENCİ VERİ TOPLAMA ANKETİ (Ayrı, Bağımsız Sayfa)
     # ─────────────────────────────────────────────────────────────────────────
-    if cur_view_mode == "sok_survey" and is_egehan:
-        st.markdown(f"## 🎒 {str(student_name or 'Egehan Hardal').title()} — ŞÖK Veri Toplama Masası")
-        st.info("🔍 **Örnek İnceleme Modu:** ŞÖK Öğrenci Veri Toplama Anketi, incelenmek üzere örnek olarak **Egehan Hardal** sayfasına açılmıştır. Yanıtları doldurup kaydederek ŞÖK evraklarına etkisini gözlemleyebilirsiniz.")
+    if cur_view_mode == "sok_survey":
+        st.markdown(f"## 🎒 {str(student_name or 'Öğrenci').title()} — ŞÖK Veri Toplama Masası")
+        st.info("ℹ️ **Şube Öğretmenler Kurulu (ŞÖK) Öğrenci Anketi:** Bu formdaki yanıtlarınız; öğretmenlerinizin sizi daha yakından tanıması, ihtiyaç duyduğunuz akademik ve rehberlik desteğinin planlanması ve ŞÖK kararlarının sağlıklı alınması amacıyla kullanılacaktır. Tüm yanıtlarınız gizlidir.")
         import importlib
         import core.sok_student_survey_ui as _ss_mod
         importlib.reload(_ss_mod)
-        stu_id_use = int(stu_id_resolved or 193)
-        stu_name_use = str(student_name or "Egehan Hardal")
-        stu_no_use = str(st.session_state.get("student_no", "272"))
+        stu_id_use = int(stu_id_resolved) if stu_id_resolved else None
+        stu_name_use = str(student_name or "")
+        stu_no_use = str(st.session_state.get("student_no", ""))
         _ss_mod.render_sok_student_survey(student_id=stu_id_use, student_name=stu_name_use, student_no=stu_no_use, allow_back_button=True)
         st.stop()
 
@@ -714,15 +713,23 @@ if current_role == "student":
         st.markdown("---")
 
         # Buton Kartları (Formlara geçiş)
-        if is_egehan:
-            c_sok_card1, c_sok_card2 = st.columns([3, 1])
-            with c_sok_card1:
-                st.info("📝 **ŞÖK Öğrenci Veri Toplama Anketi:** İncelemeniz için örnek form sayfanıza açılmıştır.")
-            with c_sok_card2:
-                if st.button("📝 Anketi Aç ve İncele", key="btn_open_sok_survey_dash", type="primary", use_container_width=True):
-                    st.session_state.student_view_mode = "sok_survey"
-                    st.rerun()
-            st.markdown("---")
+        from core.sok_student_survey_ui import get_student_survey_raw
+        _stu_survey_saved = get_student_survey_raw(stu_id_resolved) if stu_id_resolved else {}
+        has_survey_submitted = bool(_stu_survey_saved)
+
+        c_sok_card1, c_sok_card2 = st.columns([3, 1])
+        with c_sok_card1:
+            if has_survey_submitted:
+                st.success("✅ **ŞÖK Öğrenci Anketi:** Formunuz başarıyla kaydedilmiştir. İhtiyaç duyarsanız bilgilerinizi güncelleyebilirsiniz.")
+            else:
+                st.info("📝 **ŞÖK Öğrenci Veri Toplama Anketi:** Öğretmenler Kurulu toplantısında görüş ve ihtiyaçlarınızın değerlendirilmesi için lütfen bu formu doldurunuz.")
+        with c_sok_card2:
+            _sok_btn_label = "📝 Anketi Güncelle" if has_survey_submitted else "📝 Anketi Aç ve Doldur"
+            _sok_btn_type = "secondary" if has_survey_submitted else "primary"
+            if st.button(_sok_btn_label, key="btn_open_sok_survey_dash", type=_sok_btn_type, use_container_width=True):
+                st.session_state.student_view_mode = "sok_survey"
+                st.rerun()
+        st.markdown("---")
 
         if not is_prof_complete:
             c_prof_card1, c_prof_card2 = st.columns([3, 1])

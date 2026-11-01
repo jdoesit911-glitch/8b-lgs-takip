@@ -25,8 +25,8 @@ def _safe_str(val, default=""):
         return default
     return str(val)
 
-def _safe_radio_idx(options, val, default_idx=0):
-    if val in options:
+def _safe_radio_idx(options, val, default_idx=None):
+    if val is not None and val in options:
         try:
             return options.index(val)
         except Exception:
@@ -185,11 +185,28 @@ def build_sok_summary_texts(answers: dict) -> dict:
     }
 
 
-def render_sok_student_survey(student_id=None, student_name="Öğrenci", student_no="272", allow_back_button=True, *args, **kwargs):
+def render_sok_student_survey(student_id=None, student_name="Öğrenci", student_no="", allow_back_button=True, *args, **kwargs):
     """Öğrencinin ekranında ŞÖK Veri Toplama Formunu render eder."""
-    student_id = int(student_id) if student_id else 193
     student_name = _safe_str(student_name, "Öğrenci")
-    student_no = _safe_str(student_no, "272")
+    student_no = _safe_str(student_no, "")
+
+    # Eğer student_id henüz çözülmediyse isim veya numaradan veritabanından bul
+    if not student_id and (student_name or student_no):
+        try:
+            conn = sqlite3.connect(DATABASE_PATH)
+            c = conn.cursor()
+            c.execute("SELECT id, school_no FROM students WHERE UPPER(name) = UPPER(?) OR school_no = ? LIMIT 1",
+                      (student_name.strip(), student_no.strip()))
+            r = c.fetchone()
+            conn.close()
+            if r:
+                student_id = int(r[0])
+                if not student_no and r[1]:
+                    student_no = str(r[1])
+        except Exception:
+            pass
+
+    student_id = int(student_id) if student_id else 0
 
     raw_saved = get_student_survey_raw(student_id)
     if not isinstance(raw_saved, dict):
@@ -202,11 +219,12 @@ def render_sok_student_survey(student_id=None, student_name="Öğrenci", student
             st.session_state.student_view_mode = "dashboard"
             st.rerun()
 
+    no_str = f" (No: {student_no})" if student_no else ""
     st.markdown("""
         <div style='background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%); padding: 18px 22px; border-radius: 12px; color: white; margin-bottom: 20px;'>
             <h2 style='color: white; margin: 0; font-size: 22px;'>📝 8/B Şube Öğretmenler Kurulu (ŞÖK) Öğrenci Veri Toplama Anketi</h2>
             <p style='margin: 8px 0 0 0; font-size: 13.5px; opacity: 0.95;'>
-                Sevgili <b>""" + student_name.title() + """</b> (No: """ + str(student_no) + """), bu formdaki yanıtların; öğretmenlerinin seni daha yakından tanıması, 
+                Sevgili <b>""" + student_name.title() + no_str + """</b>, bu formdaki yanıtların; öğretmenlerinin seni daha yakından tanıması, 
                 ihtiyaç duyduğun akademik ve rehberlik desteğinin planlanması ve ŞÖK kararlarının sağlıklı alınması amacıyla kullanılacaktır. 
                 Yanıtların gizlidir ve yalnızca öğretmenlerin ile okul idaresi tarafından görülecektir.
             </p>
@@ -241,7 +259,7 @@ def render_sok_student_survey(student_id=None, student_name="Öğrenci", student
             "Zaman zaman heyecanlanırım ve hafif sınav kaygısı yaşarım",
             "Yoğun sınav stresi yaşıyorum, bildiklerimi unutmaktan korkuyorum"
         ]
-        q2_idx = _safe_radio_idx(q2_opts, raw_saved.get("kaygi_durumu"), 0)
+        q2_idx = _safe_radio_idx(q2_opts, raw_saved.get("kaygi_durumu"), default_idx=None)
         ans_kaygi = st.radio("1.2. Sınavlar ve ders başarısı konusunda genel duygu durumun nedir?", q2_opts, index=q2_idx)
 
         st.markdown("---")
@@ -279,7 +297,7 @@ def render_sok_student_survey(student_id=None, student_name="Öğrenci", student
             "Bazen yaparım, bazen vakit bulamam",
             "Genellikle kahvaltı yapmadan aç gelirim"
         ]
-        q4_idx = _safe_radio_idx(q4_opts, raw_saved.get("kahvalti"), 0)
+        q4_idx = _safe_radio_idx(q4_opts, raw_saved.get("kahvalti"), default_idx=None)
         ans_kahvalti = st.radio("3.1. Sabahları okula gelmeden önceki kahvaltı düzenin nasıldır?", q4_opts, index=q4_idx)
 
         q5_opts = [
@@ -299,7 +317,7 @@ def render_sok_student_survey(student_id=None, student_name="Öğrenci", student
             "Geç yatarım (23:30 sonrası), sabahları uyanmakta ve derste dinlemekte zorlanırım",
             "Uykum düzensizdir, gece sık sık uyanırım veya uykuya dalmakta zorlanırım"
         ]
-        q6_idx = _safe_radio_idx(q6_opts, raw_saved.get("uyku_durumu"), 0)
+        q6_idx = _safe_radio_idx(q6_opts, raw_saved.get("uyku_durumu"), default_idx=None)
         ans_uyku = st.radio("3.3. Gece uyku düzenin ve sabah uyanma durumun nasıldır?", q6_opts, index=q6_idx)
 
         st.markdown("---")
@@ -314,14 +332,14 @@ def render_sok_student_survey(student_id=None, student_name="Öğrenci", student
             "Günde 3 - 4 saat (Yoğun ekran süresi)",
             "Günde 5 saat ve üzeri (Aşırı yoğun ekran süresi)"
         ]
-        q7_idx = _safe_radio_idx(q7_opts, raw_saved.get("ekran_suresi"), 1)
+        q7_idx = _safe_radio_idx(q7_opts, raw_saved.get("ekran_suresi"), default_idx=None)
         ans_ekran = st.radio("4.1. Okul ve ders dışındaki zamanında günde ortalama kaç saatini telefon, tablet veya bilgisayarda (oyun, sosyal medya, video) geçiriyorsun?", q7_opts, index=q7_idx)
 
         q8_opts = [
             "Telefonu/tableti odamın dışında bırakırım veya yatmadan önce tamamen kapatırım",
             "Yatağa telefonla girerim, uyuyana kadar ekrana bakarım"
         ]
-        q8_idx = _safe_radio_idx(q8_opts, raw_saved.get("gece_telefon"), 0)
+        q8_idx = _safe_radio_idx(q8_opts, raw_saved.get("gece_telefon"), default_idx=None)
         ans_gece_tel = st.radio("4.2. Gece yatarken telefon veya dijital cihaz kullanımın nasıldır?", q8_opts, index=q8_idx)
 
         st.markdown("---")
@@ -366,7 +384,7 @@ def render_sok_student_survey(student_id=None, student_name="Öğrenci", student
             "Üzerimde yoğun bir beklenti, stres ve başarı baskısı hissediyorum",
             "Kendi halime bırakıyorlar, derslerimle pek ilgilenmiyorlar"
         ]
-        q11_idx = _safe_radio_idx(q11_opts, raw_saved.get("aile_yaklasimi"), 0)
+        q11_idx = _safe_radio_idx(q11_opts, raw_saved.get("aile_yaklasimi"), default_idx=None)
         ans_aile = st.radio("6.2. Ailenizin derslerinize, ödevlerinize ve sınavlarınıza olan yaklaşımı nasıldır?", q11_opts, index=q11_idx)
 
         st.markdown("---")
