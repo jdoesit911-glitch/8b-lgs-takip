@@ -2523,7 +2523,7 @@ with tab_sok:
     evals = sok_meta["st_evals"]
 
     st.markdown("## ⚖️ 8/B Şube Öğretmenler Kurulu (ŞÖK) Yönetim ve Karar Masası")
-    st.caption("MEB Okul Öncesi Eğitim ve İlköğretim Kurumları Yönetmeliği (Md. 36) ve MEB Eğitim Kurulları ve Zümreleri Yönergesi (Md. 10 & 11) Standartlarında")
+    st.caption("MEB Okul Öncesi Eğitim ve İlköğretim Kurumları Yönetmeliği (Md. 36) Standartlarında | Toplantı Başkanı: Dilek SANCAK (Müdür Yrd.) | Onay: Emin BAYKARA (Okul Müdürü) | Sınıf Rehber Öğrt: Serkan BAYTAN")
 
     # Üst İstatistik ve Bilgi Kartları
     c_sk1, c_sk2, c_sk3, c_sk4 = st.columns(4)
@@ -2533,6 +2533,29 @@ with tab_sok:
     c_sk4.metric("⚠️ Öncelikli Akademik Destek", f"{len(sok_meta['needs_support'])} Öğrenci", "Bireysel Telafi & DYK")
 
     st.markdown("---")
+
+    # Kurul Üyeleri ve İdare Bilgi Kartı
+    with st.expander("👥 8/B ŞÖK Kurulu Yönetimi ve Branş Öğretmenleri Listesi", expanded=False):
+        c_adm1, c_adm2, c_adm3 = st.columns(3)
+        c_adm1.info("**👑 Toplantı Başkanı:**\n\n**Dilek SANCAK** (Müdür Yardımcısı)")
+        c_adm2.success("**🏫 Onay Makamı:**\n\n**Emin BAYKARA** (Okul Müdürü)")
+        c_adm3.warning("**🎯 Sınıf Rehber Öğretmeni:**\n\n**Serkan BAYTAN** (Fen Bilimleri)")
+        
+        st.markdown("##### 📚 8/B Şubesi Ders Öğretmenleri Kadrosu:")
+        df_teachers = pd.DataFrame([
+            {"Sıra": 1, "Ders / Görev": "Türkçe", "Öğretmen Adı": "MENEKŞE KUSEYRİ"},
+            {"Sıra": 2, "Ders / Görev": "Matematik ve Seçmeli Görgü Kuralları ve Nezaket", "Öğretmen Adı": "Elveda SÖNMEZ"},
+            {"Sıra": 3, "Ders / Görev": "Fen Bilimleri ve Seçmeli Çevre Bilinci ve İklim Değişikliği", "Öğretmen Adı": "Serkan BAYTAN"},
+            {"Sıra": 4, "Ders / Görev": "T.C. İnkılap Tarihi ve Atatürkçülük ve Seçmeli Ahlak ve Yurttaşlık Eğitimi", "Öğretmen Adı": "MUHARREM BÜYÜKÖKSÜZ"},
+            {"Sıra": 5, "Ders / Görev": "Beden Eğitimi ve Spor", "Öğretmen Adı": "ALİ EKBER ERDAL"},
+            {"Sıra": 6, "Ders / Görev": "Din Kültürü ve Ahlak Bilgisi", "Öğretmen Adı": "RUKİYE GÖLÜKÇÜ"},
+            {"Sıra": 7, "Ders / Görev": "İngilizce (Yabancı Dil)", "Öğretmen Adı": "HİLAL YAĞCILAR"},
+            {"Sıra": 8, "Ders / Görev": "Müzik", "Öğretmen Adı": "GAMZE GÜN BAYRAM"},
+            {"Sıra": 9, "Ders / Görev": "Teknoloji ve Tasarım", "Öğretmen Adı": "REYHAN TOPALOĞLU"},
+            {"Sıra": 10, "Ders / Görev": "Teknoloji ve Tasarım", "Öğretmen Adı": "TÜLAY KAYA"},
+            {"Sıra": 11, "Ders / Görev": "Rehberlik ve Kariyer Planlama", "Öğretmen Adı": "Serkan BAYTAN"},
+        ])
+        st.dataframe(df_teachers, use_container_width=True, hide_index=True)
 
     subtab_m11, subtab_gozlem, subtab_tutanak, subtab_kararlar, subtab_indir = st.tabs([
         "👥 Madde 11: Bireysel Değerlendirme Tablosu",
@@ -2622,25 +2645,27 @@ with tab_sok:
                 st.markdown("#### 1. Kişilik ve Sınıf Dinamikleri")
                 st.markdown("""
                 - **Devamsızlık Durumu:** 84 Kuzey Yusuf Uruklu (Mazeretli), 258 Meryem Bozdemir (Ailevi izinli), 327 Melek Rana Kesici (Sağlık kontrolleri). Kronik devamsız öğrenci bulunmamaktadır.
-                - **Sorumluluklarını Aksatanlar:** 224 Cengizhan Yılmaz, 227 Derin Yılmaz, 379 Çınar Efe Girgin (Zaman zaman ders araç-gereç ve ödev takibinde desteklenmeli).
-                - **Ders Düzeni:** Genel sınıf düzeni olumlu olup öğretmenlerine karşı saygılıdır; dersi sabote eden veya disiplin problemi yaratan öğrenci yoktur.
-                - **Kaynaştırma:** Resmi RAM raporlu kaynaştırma öğrencisi bulunmamaktadır.
+                - **Sorumluluklarını Aksatanlar:** 224 Cengizhan Yılmaz, 227 Derin Yılmaz, 379 Çınar Efe Girgin (Zaman zaman ödev ve ders araç-gereç takibinde aksaklıklar yaşanmakta, veli desteği talep edilmiştir).
+                - **Ders Düzeni ve Odaklanma:** Genel düzen olumludur; ancak **272 Egehan Hardal**'ın dürtüsel sorunları ve hareketliliği nedeniyle derse odaklanmakta güçlük çektiği gözlemlenmiş olup bireysel tedbirler alınmaktadır.
+                - **Özel Takip Edilenler:** Sosyal çekiniklik gösteren **227 Derin Yılmaz** ve dürtüsellik sebebiyle derse odaklanamayan **272 Egehan Hardal** için bireysel rehberlik izleme planı yürütülmektedir.
+                - **Kaynaştırma:** Sınıfta resmi RAM raporlu kaynaştırma öğrencisi bulunmamaktadır.
                 """)
 
             with st.container(border=True):
                 st.markdown("#### 2. Beslenme ve Sağlık Durumu")
                 st.markdown("""
-                - **Kenan Emir Yaman [230]:** Astım rahatsızlığı mevcuttur; gerektiğinde Ventolin inhaler sprey kullanmaktadır. Tozlu ortamlardan korunmalıdır.
+                - **Kenan Emir Yaman [230]:** Astım tanısı mevcuttur; gerektiğinde Ventolin inhaler sprey kullanmaktadır. Tozlu ve havasız ortamlardan korunmalıdır.
                 - **Tuna Koç [245]:** Dikkat eksikliği ve odaklanma takibi mevcuttur; hekim kontrolünde Medikinet kullanmaktadır. Ön sıralarda oturtulması faydalıdır.
                 - **Beren Koç [256]:** Tiroit takibi mevcut olup düzenli hekim gözetimindedir; genel durumu iyidir.
                 - **Beslenme Alışkanlıkları:** Sınıf genelinde beslenme normaldir; sabah kahvaltısını atlayan öğrencilerin aileleriyle görüşülmüştür.
+                - **📌 Açıklama:** Şube genelinde öğrencilerin fiziksel gelişimleri ve sağlık durumları düzenli takip edilmektedir. Kronik rahatsızlığı bulunan öğrencilerin medikal durumları ve acil durum tedbirleri nöbetçi öğretmenler ile okul idaresine bildirilmiştir. Beslenme konusunda sabah kahvaltısının zihinsel odaklanma ve bilişsel performansa doğrudan etkisi veli toplantılarında önemle vurgulanmış; ev yapımı dengeli besinlerin ve yeterli su tüketiminin artırılması yönünde sınıf rehber öğretmeni ve ders öğretmenlerince öğrenciler düzenli olarak teşvik edilmektedir.
                 """)
 
             with st.container(border=True):
                 st.markdown("#### 3. Sosyal İlişkiler ve Akran Uyumu")
                 st.markdown("""
-                - **Açıklama:** Sınıf içinde akran ilişkileri oldukça canlı ve yapıcıdır. Akran zorbalığı veya gruplaşma tespit edilmemiştir.
-                - **Öneri:** Sınav stresini hafifletmek ve iş birliğini artırmak adına takım sporları, kütüphane etütleri ve münazara etkinlikleri desteklenmelidir.
+                - **📌 Açıklama:** Sınıf genelinde akran iletişimi, yardımlaşma, saygı ve nezaket olumlu düzeydedir; şube iklimi yapıcı ve dayanışmaya açıktır. Ancak öğrencilerimizden **227 Derin Yılmaz**'ın sosyal iletişim kurmada çok çekingen davrandığı, teneffüslerde ve grup çalışmalarında arkadaşlarıyla çok fazla iletişim kurmayıp içine kapandığı gözlemlenmiştir. **272 Egehan Hardal**'ın ise dürtüsel sorunları ve hareketliliği nedeniyle derse odaklanamadığı, dikkat süresinin kısalığı sebebiyle ders akışında desteğe ihtiyaç duyduğu tespit edilmiştir.
+                - **🎯 Öneri:** Sınıf içi sosyal uyumu ve bireysel gelişimi güçlendirmek adına; Derin Yılmaz'ın sosyal kabuğunu kırması ve arkadaşlık ilişkilerini geliştirmesi için ikili akran çalışmaları, sosyal kulüp ve sınıf içi aktif sorumluluklar verilmelidir. Egehan Hardal'ın dürtüsellik ve odaklanma sürecini desteklemek amacıyla ders esnasında ön sıraya oturtulması, dikkat süresine uygun kısa süreli görevlerle derse dahil edilmesi ve Rehberlik Servisi iş birliğiyle odaklanma-özdenetim çalışmalarının yürütülmesi kararlaştırılmıştır.
                 """)
 
         with col_g2:
@@ -2668,15 +2693,15 @@ with tab_sok:
     # ─────────────────────────────────────────────────────────────────────────
     with subtab_tutanak:
         st.subheader("📑 1. Dönem ŞÖK Toplantı Tutanağı ve Gündem Görüşmeleri")
-        st.caption("24 Ekim 2026 tarihinde Okul Kütüphanesinde Okul Müdürü Emin BAYKARA başkanlığında icra edilen toplantı tutanağı:")
+        st.caption("24 Ekim 2026 tarihinde Okul Kütüphanesinde Müdür Yardımcısı Dilek SANCAK başkanlığında icra edilen toplantı tutanağı (Onay: Okul Müdürü Emin BAYKARA):")
 
         for title, body in [
-            ("1. Açılış, yoklama ve mevzuat dayanağı", "Toplantı Okul Müdürü Emin BAYKARA başkanlığında, 8/B sınıfında derse giren tüm branş öğretmenleri, müdür yardımcısı ve rehberlik öğretmeninin katılımıyla açıldı. MEB Okul Öncesi Eğitim ve İlköğretim Kurumları Yönetmeliği Md. 36 ve MEB Eğitim Kurulları Yönergesi Md. 10-11 doğrultusunda gündem maddelerinin görüşülmesine geçildi."),
+            ("1. Açılış, yoklama ve mevzuat dayanağı", "Toplantı Müdür Yardımcısı Dilek SANCAK başkanlığında, 8/B sınıfında derse giren tüm branş öğretmenleri ve sınıf rehber öğretmeninin katılımıyla açıldı. MEB Okul Öncesi Eğitim ve İlköğretim Kurumları Yönetmeliği Md. 36 ve MEB Eğitim Kurulları Yönergesi Md. 10-11 doğrultusunda gündem maddelerinin görüşülmesine geçildi."),
             ("2. Şubenin genel öğrenci profili ve sınıf iklimi", "Sınıf mevcudu 29 (15 Erkek, 14 Kız). Sınıf içi uyum, derse devamlılık ve öğretmenlere karşı saygılı tutum son derece olumludur."),
             ("3. Yeni gelen ve uyum güçlüğü yaşayan öğrenciler", "Dönem başında nakil gelen öğrencilerin tamamının oryantasyon süreci başarıyla tamamlanmış, dışlanma veya uyumsuzluk vakasına rastlanmamıştır."),
             ("4. Devam-devamsızlık verileri", "Kuzey Yusuf Uruklu, Meryem Bozdemir ve Melek Rana Kesici'nin mazeretli izinleri haricinde sınıf genelinde devamsızlık oranı düşüktür."),
             ("5. Akademik başarı ve gelişim süreçlerinin değerlendirilmesi", "Sınıfın dönem başından bu yana uygulanan kazanım ve akademik değerlendirmeleri incelendi; şube genelinde belirgin ve olumlu bir akademik gelişim trendi kaydedildiği tespit edildi. Orhan Efe Çelikdemir, Zeynep Ece Çelikdemir ve Erdem Yarar'ın tüm derslerde üstün akademik başarı gösterdiği; sınıf geneline örnek teşkil ettikleri belirtildi."),
-            ("6. Sosyal-duygusal gelişim ve davranış gözlemleri", "Öğrencilerin akran iletişimi yapıcıdır; akran zorbalığı yaşanmamaktadır. Sınav kaygısı olan öğrencilere rehberlik desteği planlandı."),
+            ("6. Sosyal-duygusal gelişim ve davranış gözlemleri", "Sınıf genelinde akran ilişkileri olumlu ve yapıcıdır. Ancak 227 Derin Yılmaz'ın arkadaşlarıyla çok fazla iletişim kurmayarak içine kapandığı, 272 Egehan Hardal'ın ise dürtüsel sorunları nedeniyle derse odaklanamadığı belirtildi. Her iki öğrenci için sınıf rehber öğretmeni Serkan BAYTAN ve rehberlik servisinin velilerle koordineli bireysel destek programı yürütmesi kararlaştırıldı."),
             ("7. Risk haritası ve akademik destek ihtiyacı", "MEB S.İ.4.a risk haritası kapsamında akademik desteğe ve konu tekrarına ihtiyaç duyan öğrencilere (Egehan Hardal, Derin Yılmaz, Çınar Efe Girgin, Cengizhan Yılmaz, Mustafa Gülseven) bireysel gelişim planı, telafi çalışmaları ve DYK yönlendirmesi tanımlandı."),
             ("8. Özel eğitim ve kaynaştırma süreçleri", "Sınıfta kaynaştırma öğrencisi bulunmamaktadır. Dikkat odaklanması takipli Tuna Koç ders içi ilgiyle desteklenmektedir."),
             ("9. İlgi, yetenekler ve sosyal etkinlikler", "Öğrencilerin spor, satranç, teknoloji ve müzik etkinlikleriyle zihinsel dinlenmeleri sağlanmaktadır."),
@@ -2685,7 +2710,7 @@ with tab_sok:
             ("12. Ölçme-değerlendirme ve ders çalışma alışkanlıkları", "Düzenli ders tekrarı, eksik kazanım giderme ve 'Hata Analiz Defteri' uygulaması tüm branşlarda titizlikle takip edilmek üzere karara bağlandı."),
             ("13. Dijital güvenlik ve bağımlılıkla mücadele", "Akıllı telefon ve ekran süresi sınırlandırması için velilerle iş birliği yapılması kararlaştırıldı."),
             ("14. Alınan kararların izleme takvimi", "Kararların kasım ayı ara tatiline kadar haftalık zümrelerde izlenmesi karara bağlandı."),
-            ("15. Dilek, temenniler ve kapanış", "Okul Müdürü Emin BAYKARA öğretmenlere özverili çalışmalarından ötürü teşekkür etti ve toplantı sonlandırıldı.")
+            ("15. Dilek, temenniler ve kapanış", "Toplantı Başkanı Müdür Yardımcısı Dilek SANCAK tüm branş öğretmenlerine teşekkür etti ve toplantıyı sonlandırdı. Alınan kararlar Okul Müdürü Emin BAYKARA'nın onayına sunuldu.")
         ]:
             with st.expander(f"📌 Gündem Maddesi: {title}", expanded=False):
                 st.markdown(body)
@@ -2704,7 +2729,7 @@ with tab_sok:
             ("Bireysel Destek ve Telafi Programı", "Akademik desteğe öncelikli ihtiyaç duyan öğrencilere (Egehan Hardal, Derin Yılmaz, Çınar Efe Girgin, Cengizhan Yılmaz, Mustafa Gülseven) birebir eksik kazanım telafisi ve rehberlik desteği verilecektir."),
             ("Üst Düzey Başarı Koçluğu", "Üstün ve yüksek akademik başarı gösteren öğrencilere zaman yönetimi, odaklanma ve ileri düzey beceri temelli sorular üzerine akademik koçluk yapılacaktır."),
             ("Medikal Takip ve Sağlık Tedbirleri", "Astım hastası Kenan Emir Yaman'ın tozdan korunması; Medikinet kullanan Tuna Koç'un ders içi odaklanması; Beren Koç'un tiroit takibi nöbetçi öğretmenlerce gözetilecektir."),
-            ("Sınav Kaygısı Yönetimi", "Rehberlik Servisi tarafından sınav stresine yönelik grup rehberliği ve bireysel psikolojik danışmanlık seansları yürütülecektir."),
+            ("Özel Rehberlik Tedbirleri (Derin Yılmaz & Egehan Hardal)", "Dürtüsel sorunları sebebiyle derse odaklanamayan Egehan Hardal için ders içi ön sıra yerleşimi ve odaklanma desteği; arkadaşlarıyla iletişim kurmakta çekinen Derin Yılmaz için ise ikili akran çalışmaları ve sosyal kulüp görevleri verilmesi rehberlik servisi koordinasyonunda kararlaştırıldı."),
             ("Devamsızlık Erken Uyarı Sistemi", "İlk derslere geç kalan veya devamsızlık yapan öğrencilerin velileri e-Okul üzerinden anlık bilgilendirilecektir."),
             ("Ekran Bağımlılığı Kısıtlaması", "Velilere ders çalışma saatlerinde telefon ve bilgisayar kısıtlaması yapmaları yönünde rehberlik bülteni ulaştırılacaktır."),
             ("Sağlıklı Beslenme Teşviki", "Öğrencilerin sabah kahvaltısı alışkanlığı desteklenecek, kantin yerine ev beslenmesi özendirilecektir."),
