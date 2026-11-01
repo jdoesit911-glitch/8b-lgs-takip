@@ -2528,9 +2528,9 @@ with tab_sok:
     # Üst İstatistik ve Bilgi Kartları
     c_sk1, c_sk2, c_sk3, c_sk4 = st.columns(4)
     c_sk1.metric("👥 Şube Mevcudu", f"{len(evals)} Öğrenci", "8/B (15 Erkek / 14 Kız)")
-    c_sk2.metric("🎓 Sınıf LGS Net Ort.", "44.80 Net", "+7.37 İlerleme Trendi")
-    c_sk3.metric("🌟 Şampiyonlar Grubu", f"{len(sok_meta['leaders'])} Öğrenci", "70+ Net Bandı")
-    c_sk4.metric("⚠️ F33 Akademik Destek", f"{len(sok_meta['needs_support'])} Öğrenci", "<25 Net Bireysel Telafi")
+    c_sk2.metric("🎓 Genel Akademik Başarı", "Orta / Gelişen", "Olumlu İlerleme Trendi")
+    c_sk3.metric("🌟 Üstün Akademik Düzey", f"{len(sok_meta['leaders'])} Öğrenci", "İleri Seviye Kazanım")
+    c_sk4.metric("⚠️ Öncelikli Akademik Destek", f"{len(sok_meta['needs_support'])} Öğrenci", "Bireysel Telafi & DYK")
 
     st.markdown("---")
 
@@ -2555,8 +2555,8 @@ with tab_sok:
         with col_f2:
             filter_cat = st.selectbox("🎯 Durum Filtresi:", [
                 "Tümü (29 Öğrenci)",
-                "🌟 Şampiyonlar (65+ Net)",
-                "⚠️ F33 Akademik Destek (<25 Net)",
+                "🌟 Üstün / Yüksek Akademik Başarı",
+                "⚠️ Destek ve Telafiye İhtiyaç Duyanlar",
                 "💊 Sağlık / İlaç Takibi Olanlar"
             ], key="sok_cat_filter")
 
@@ -2564,10 +2564,10 @@ with tab_sok:
         if search_st:
             filtered_evals = [e for e in filtered_evals if search_st.lower() in e['name'].lower() or search_st in str(e['school_no'])]
 
-        if filter_cat == "🌟 Şampiyonlar (65+ Net)":
-            filtered_evals = [e for e in filtered_evals if e['avg_net'] >= 65]
-        elif filter_cat == "⚠️ F33 Akademik Destek (<25 Net)":
-            filtered_evals = [e for e in filtered_evals if e['avg_net'] < 25]
+        if filter_cat == "🌟 Üstün / Yüksek Akademik Başarı":
+            filtered_evals = [e for e in filtered_evals if e['avg_net'] >= 60]
+        elif filter_cat == "⚠️ Destek ve Telafiye İhtiyaç Duyanlar":
+            filtered_evals = [e for e in filtered_evals if e['avg_net'] < 30]
         elif filter_cat == "💊 Sağlık / İlaç Takibi Olanlar":
             filtered_evals = [e for e in filtered_evals if str(e['school_no']) in ["230", "245", "256"] or "ilaç" in e['saglik'].lower() or "tanı" in e['saglik'].lower()]
 
@@ -2583,7 +2583,7 @@ with tab_sok:
             "Sağlık Durumu": e["saglik"],
             "Sosyal İlişkiler": e["sosyal"],
             "Ekonomik": e["ekonomik"],
-            "LGS Başarı Durumu": e["basari"],
+            "Akademik Başarı Durumu": e["basari"],
             "Problemin Çözümü İçin Yapılacaklar": e["cozum"],
             "Görevli Personel / Birim": e["gorevli"]
         } for e in filtered_evals])
@@ -2599,7 +2599,7 @@ with tab_sok:
             k1, k2 = st.columns(2)
             with k1:
                 st.markdown(f"### 👤 {c_data['school_no']} — {c_data['name']}")
-                st.info(f"**🏆 LGS Başarı Durumu:** {c_data['basari']}")
+                st.info(f"**🏆 Akademik Başarı Durumu:** {c_data['basari']}")
                 st.markdown(f"**🧠 Kişilik ve Karakter:** {c_data['kisilik']}")
                 st.markdown(f"**🤝 Sosyal İlişkiler ve Uyum:** {c_data['sosyal']}")
                 st.markdown(f"**💰 Sosyo-Ekonomik Durum:** {c_data['ekonomik']}")
@@ -2640,19 +2640,19 @@ with tab_sok:
                 st.markdown("#### 3. Sosyal İlişkiler ve Akran Uyumu")
                 st.markdown("""
                 - **Açıklama:** Sınıf içinde akran ilişkileri oldukça canlı ve yapıcıdır. Akran zorbalığı veya gruplaşma tespit edilmemiştir.
-                - **Öneri:** LGS stresini hafifletmek ve iş birliğini artırmak adına takım sporları, kütüphane etütleri ve münazara etkinlikleri desteklenmelidir.
+                - **Öneri:** Sınav stresini hafifletmek ve iş birliğini artırmak adına takım sporları, kütüphane etütleri ve münazara etkinlikleri desteklenmelidir.
                 """)
 
         with col_g2:
             with st.container(border=True):
-                st.markdown("#### 4. Dersler Bazında Başarı Durumu (LGS Analizleri)")
+                st.markdown("#### 4. Dersler Bazında Akademik Başarı Durumu")
                 st.markdown("""
-                - **📖 Türkçe (12.37 Net - %61.8):** Paragrafta anlam ve sözcükte anlam güçlü; dil bilgisi (fiilimsiler) ve sözel mantık soru çözümü artırılmalı.
-                - **📐 Matematik (6.45 Net - %32.2):** Çarpanlar ve Katlar kazanımları yerleşti; Üslü İfadeler ve yeni nesil çok adımlı problem çözümlerinde DYK takviyesi şart.
-                - **🔬 Fen Bilimleri (10.82 Net - %54.1):** Mevsimler ve İklim kazanımı tam; DNA ve Genetik Kod ünitesinde deney ve grafik yorumlama pratikleri yapılmalı.
-                - **🏛️ İnkılap Tarihi (7.15 Net - %71.5):** Bir Kahraman Doğuyor ünitesi kavrandı; kronolojik düşünme becerileri başarılı.
-                - **🕌 Din Kültürü (7.48 Net - %74.8):** Kaza ve Kader ünitesi tam; sınıfın en yüksek başarı yüzdesine sahip branşı.
-                - **🌍 İngilizce (5.24 Net - %52.4):** Friendship ve Teen Life kelime hazinesi iyi; okuma-anlama ve soru köklerindeki kalıplar tekrarlanmalı.
+                - **📖 Türkçe (Akademik Başarı: %62):** Okuduğunu anlama, ana fikir ve yorumlama becerileri çok güçlü; sözel mantık ve dil bilgisi çalışmalarına ağırlık verilmelidir.
+                - **📐 Matematik (Akademik Başarı: %32):** Temel işlem becerileri iyi düzeydedir; çok adımlı problem çözme, analitik akıl yürütme ve zaman yönetiminde destekleyici çalışmalara ihtiyaç duyulmaktadır.
+                - **🔬 Fen Bilimleri (Akademik Başarı: %54):** Mevsimler ve İklim ile DNA üniteleri başarıyla kavranmış; bilimsel muhakeme ve grafik yorumlama soruları pekiştirilmelidir.
+                - **🏛️ İnkılap Tarihi (Akademik Başarı: %72):** Tarihsel kavramlar, neden-sonuç ilişkisi ve kronolojik düşünme becerileri oldukça başarılıdır.
+                - **🕌 Din Kültürü (Akademik Başarı: %75):** Kaza ve kader ünitesi kazanımları tam olup sınıfın en güçlü akademik alanlarından biridir.
+                - **🌍 İngilizce (Akademik Başarı: %52):** Friendship ve Teen Life üniteleri kelime bilgisi ve okuma-anlama pratikleriyle düzenli tekrar edilmelidir.
                 """)
 
             with st.container(border=True):
@@ -2675,14 +2675,14 @@ with tab_sok:
             ("2. Şubenin genel öğrenci profili ve sınıf iklimi", "Sınıf mevcudu 29 (15 Erkek, 14 Kız). Sınıf içi uyum, derse devamlılık ve öğretmenlere karşı saygılı tutum son derece olumludur."),
             ("3. Yeni gelen ve uyum güçlüğü yaşayan öğrenciler", "Dönem başında nakil gelen öğrencilerin tamamının oryantasyon süreci başarıyla tamamlanmış, dışlanma veya uyumsuzluk vakasına rastlanmamıştır."),
             ("4. Devam-devamsızlık verileri", "Kuzey Yusuf Uruklu, Meryem Bozdemir ve Melek Rana Kesici'nin mazeretli izinleri haricinde sınıf genelinde devamsızlık oranı düşüktür."),
-            ("5. Akademik başarı ve LGS deneme analizleri", "PARAF 1 (37.43 net) ile NARTEST 1 (44.80 net) denemeleri incelendi. +7.37 netlik güçlü bir sınıf artışı kaydedildi. Orhan Efe Çelikdemir (83.67 net), Zeynep Ece Çelikdemir (75.50 net) ve Erdem Yarar (71.18 net) üstün başarı gösterdi."),
+            ("5. Akademik başarı ve gelişim süreçlerinin değerlendirilmesi", "Sınıfın dönem başından bu yana uygulanan kazanım ve akademik değerlendirmeleri incelendi; şube genelinde belirgin ve olumlu bir akademik gelişim trendi kaydedildiği tespit edildi. Orhan Efe Çelikdemir, Zeynep Ece Çelikdemir ve Erdem Yarar'ın tüm derslerde üstün akademik başarı gösterdiği; sınıf geneline örnek teşkil ettikleri belirtildi."),
             ("6. Sosyal-duygusal gelişim ve davranış gözlemleri", "Öğrencilerin akran iletişimi yapıcıdır; akran zorbalığı yaşanmamaktadır. Sınav kaygısı olan öğrencilere rehberlik desteği planlandı."),
-            ("7. Risk haritası ve F33 akademik destek", "MEB S.İ.4.a risk haritasında akademik neti 20'nin altında kalan 5 öğrenciye bireysel destek planı ve etüt tanımlandı."),
+            ("7. Risk haritası ve akademik destek ihtiyacı", "MEB S.İ.4.a risk haritası kapsamında akademik desteğe ve konu tekrarına ihtiyaç duyan öğrencilere (Egehan Hardal, Derin Yılmaz, Çınar Efe Girgin, Cengizhan Yılmaz, Mustafa Gülseven) bireysel gelişim planı, telafi çalışmaları ve DYK yönlendirmesi tanımlandı."),
             ("8. Özel eğitim ve kaynaştırma süreçleri", "Sınıfta kaynaştırma öğrencisi bulunmamaktadır. Dikkat odaklanması takipli Tuna Koç ders içi ilgiyle desteklenmektedir."),
             ("9. İlgi, yetenekler ve sosyal etkinlikler", "Öğrencilerin spor, satranç, teknoloji ve müzik etkinlikleriyle zihinsel dinlenmeleri sağlanmaktadır."),
             ("10. Veli iş birliği ve rehberlik", "Akademik takip ve sınav kaygısı yaşayan öğrencilerin velileri ile bireysel görüşmeler planlandı."),
             ("11. Bireysel öğrenci durumları (Madde 11)", "Tüm öğrencilerin sağlık, kişilik, beslenme ve başarı durumu tek tek görüşüldü; Bireysel Değerlendirme Tablosu onaylandı."),
-            ("12. Sınav, ölçme ve ders çalışma alışkanlıkları", "Haftalık 200-350 soru kotası ve 'Yanlış Defteri' uygulaması tüm branşlarda zorunlu hale getirildi."),
+            ("12. Ölçme-değerlendirme ve ders çalışma alışkanlıkları", "Düzenli ders tekrarı, eksik kazanım giderme ve 'Hata Analiz Defteri' uygulaması tüm branşlarda titizlikle takip edilmek üzere karara bağlandı."),
             ("13. Dijital güvenlik ve bağımlılıkla mücadele", "Akıllı telefon ve ekran süresi sınırlandırması için velilerle iş birliği yapılması kararlaştırıldı."),
             ("14. Alınan kararların izleme takvimi", "Kararların kasım ayı ara tatiline kadar haftalık zümrelerde izlenmesi karara bağlandı."),
             ("15. Dilek, temenniler ve kapanış", "Okul Müdürü Emin BAYKARA öğretmenlere özverili çalışmalarından ötürü teşekkür etti ve toplantı sonlandırıldı.")
@@ -2698,18 +2698,18 @@ with tab_sok:
         st.caption("Toplantı sonucunda oy birliğiyle alınan 14 somut karar:")
 
         kararlar_list = [
-            ("LGS Soru Kotası", "Öğrencilere seviyelerine göre haftalık 200 ile 350 soru kotası tanımlanacak; sınıf rehber öğretmeni ve branş öğretmenlerince haftalık çizelgeler kontrol edilecektir."),
-            ("Yanlış Defteri Uygulaması", "Deneme sınavlarında yapılan hataların kalıcı öğrenmeye dönüşmesi amacıyla tüm öğrencilerde 'Yanlış Defteri / Hata Analiz Defteri' zorunlu tutulacaktır."),
-            ("Matematik Yeni Nesil Etütleri", "Matematik dersinde yeni nesil soru analizlerine ve akıl yürütme becerilerine ağırlık verilecek; DYK kurslarıyla pekiştirilecektir."),
-            ("F33 Bireysel Telafi Programı", "Deneme ortalaması 20 net altında kalan öğrencilere (Egehan Hardal, Derin Yılmaz, Çınar Efe Girgin, Cengizhan Yılmaz, Mustafa Gülseven) birebir eksik kazanım desteği verilecektir."),
-            ("Zirve Koçluğu (70+ Net)", "Zirve grupta yer alan öğrencilere zaman yönetimi, odaklanma ve Türkiye geneli deneme stratejileri üzerine koçluk yapılacaktır."),
+            ("Haftalık Hedef Planlaması", "Öğrencilere akademik seviyelerine ve eksik kazanımlarına uygun haftalık çalışma ve pekiştirme hedefleri tanımlanacak; sınıf rehber öğretmeni ve branş öğretmenlerince düzenli kontrol edilecektir."),
+            ("Hata Analiz Defteri Uygulaması", "Uygulanan sınavlarda yapılamayan veya yanlış yapılan soruların kalıcı öğrenmeye dönüşmesi amacıyla tüm öğrencilerde 'Hata Analiz / Öğrenme Defteri' zorunlu tutulacaktır."),
+            ("Matematik Analitik Düşünme Çalışmaları", "Matematik dersinde çok adımlı problem çözme ve analitik akıl yürütme becerilerine ağırlık verilecek; DYK kurslarıyla pekiştirilecektir."),
+            ("Bireysel Destek ve Telafi Programı", "Akademik desteğe öncelikli ihtiyaç duyan öğrencilere (Egehan Hardal, Derin Yılmaz, Çınar Efe Girgin, Cengizhan Yılmaz, Mustafa Gülseven) birebir eksik kazanım telafisi ve rehberlik desteği verilecektir."),
+            ("Üst Düzey Başarı Koçluğu", "Üstün ve yüksek akademik başarı gösteren öğrencilere zaman yönetimi, odaklanma ve ileri düzey beceri temelli sorular üzerine akademik koçluk yapılacaktır."),
             ("Medikal Takip ve Sağlık Tedbirleri", "Astım hastası Kenan Emir Yaman'ın tozdan korunması; Medikinet kullanan Tuna Koç'un ders içi odaklanması; Beren Koç'un tiroit takibi nöbetçi öğretmenlerce gözetilecektir."),
             ("Sınav Kaygısı Yönetimi", "Rehberlik Servisi tarafından sınav stresine yönelik grup rehberliği ve bireysel psikolojik danışmanlık seansları yürütülecektir."),
             ("Devamsızlık Erken Uyarı Sistemi", "İlk derslere geç kalan veya devamsızlık yapan öğrencilerin velileri e-Okul üzerinden anlık bilgilendirilecektir."),
             ("Ekran Bağımlılığı Kısıtlaması", "Velilere ders çalışma saatlerinde telefon ve bilgisayar kısıtlaması yapmaları yönünde rehberlik bülteni ulaştırılacaktır."),
             ("Sağlıklı Beslenme Teşviki", "Öğrencilerin sabah kahvaltısı alışkanlığı desteklenecek, kantin yerine ev beslenmesi özendirilecektir."),
-            ("Kütüphane Etüt Odası", "Okul kütüphanesinin ders bitiminde 8. sınıf LGS sessiz etüt alanı olarak aktif kullanımı sürdürülecektir."),
-            ("Kazanım Telafi Dersleri", "Deneme sınavlarında başarı oranı %50'nin altında kalan kazanımlar branş öğretmenlerince sınıfta yeniden işlenecektir."),
+            ("Kütüphane Etüt Odası", "Okul kütüphanesinin ders bitiminde 8. sınıf öğrencileri için sessiz etüt ve çalışma alanı olarak aktif kullanımı sürdürülecektir."),
+            ("Kazanım Telafi Dersleri", "Yapılan ölçme ve değerlendirmelerde kavranma oranı %50'nin altında kalan kazanımlar branş öğretmenlerince sınıfta yeniden işlenecektir."),
             ("Ücretsiz Kaynak Kitap Desteği", "İhtiyaç sahibi olduğu belirlenen öğrencilere okul-aile birliği ve zümre öğretmenlerince ücretsiz soru bankaları sağlanacaktır."),
             ("Kararların Aylık İzlenmesi", "Alınan kararların etki düzeyi her ay düzenlenecek şube zümre toplantılarında takip edilecektir.")
         ]
@@ -2740,7 +2740,7 @@ with tab_sok:
 
         with d_col1:
             st.markdown("#### 📄 ŞÖK Madde 11 Tablosu")
-            st.caption("29 öğrencinin kişilik, beslenme, sağlık, sosyal, ekonomik, LGS başarı ve eylem planı tablosu.")
+            st.caption("29 öğrencinin kişilik, beslenme, sağlık, sosyal, ekonomik, akademik başarı durumu ve eylem planı tablosu.")
             if os.path.exists(m11_fpath):
                 with open(m11_fpath, "rb") as f_m11:
                     m11_bytes = f_m11.read()

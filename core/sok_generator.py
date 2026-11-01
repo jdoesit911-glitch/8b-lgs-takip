@@ -2,6 +2,8 @@
 8/B Şube Öğretmenler Kurulu (ŞÖK) Otomasyon Modülü
 MEB Okul Öncesi Eğitim ve İlköğretim Kurumları Yönetmeliği (Madde 36)
 ve MEB Eğitim Kurulları ve Zümreleri Yönergesi (Madde 10 & 11) standartlarına tam uyumludur.
+Öğrenci değerlendirmelerinde sınav netleri ve LGS ifadeleri yerine
+pedagojik "Akademik Başarı" değerlendirmeleri kullanılır.
 """
 
 import os
@@ -39,9 +41,11 @@ def set_table_borders(table, color="B0C4DE", sz="4", val="single"):
 
 def get_8b_students_sok_data():
     """
-    8/B sınıfının 29 öğrencisi için veritabanındaki LGS sınav sonuçları,
+    8/B sınıfının 29 öğrencisi için veritabanındaki deneme sınavı sonuçları,
     öğrenci tanıma formları ve risk haritası faktörlerini harmanlayarak
     ŞÖK Madde 11 Bireysel Öğrenci Değerlendirme verilerini üretir.
+    Deneme sınavı verileri sınav neti veya LGS olarak değil,
+    pedagojik 'Akademik Başarı' düzeyleri olarak değerlendirilir.
     """
     conn = sqlite3.connect(DATABASE_PATH)
     conn.row_factory = sqlite3.Row
@@ -51,7 +55,7 @@ def get_8b_students_sok_data():
     c.execute("SELECT id, school_no, name FROM students WHERE class_name='8/B' ORDER BY CAST(school_no AS INTEGER)")
     db_students = [dict(r) for r in c.fetchall()]
 
-    # 2. Deneme Sınavı Sonuçları
+    # 2. Deneme Sınavı İstatistikleri (Dahili seviye tespiti için kullanılır)
     c.execute("""
         SELECT student_id, 
                AVG(top_net) as avg_net, 
@@ -87,13 +91,12 @@ def get_8b_students_sok_data():
 
         avg_net = estat.get('avg_net', 0.0)
         avg_score = estat.get('avg_score', 0.0)
-        best_rank = estat.get('best_rank', 15)
 
         # ── 1. Kişilik Durumu ──
         genel_his = str(prof.get('genel_his', ''))
         
         if avg_net >= 70:
-            kisilik = "Özgüveni ve sorumluluk bilinci yüksek, lider karakterli, sınıf kurallarına tam uyumlu ve yüksek hedef odaklı."
+            kisilik = "Özgüveni ve sorumluluk bilinci yüksek, lider karakterli, sınıf kurallarına tam uyumlu ve yüksek hedefleri olan."
         elif avg_net >= 50:
             kisilik = "Saygılı, çalışkan, derse ilgili ve uyumlu; zaman zaman sınav kaygısı yaşayabiliyor, motive edilmesi faydalı."
         elif avg_net >= 35:
@@ -152,37 +155,37 @@ def get_8b_students_sok_data():
         ders_ortami = str(prof.get('ders_ortami', ''))
 
         if avg_net >= 60 or "kendi odam" in ders_ortami.lower():
-            ekonomik = "Ailenin sosyo-ekonomik durumu iyi/orta; ders araç-gereçleri ve LGS kaynakları eksiksiz karşılanmaktadır."
+            ekonomik = "Ailenin sosyo-ekonomik durumu iyi/orta; ders araç-gereçleri ve eğitim kaynakları eksiksiz karşılanmaktadır."
         elif 3 in risks:
-            ekonomik = "Orta/kısıtlı aile bütçesi; okul kaynak desteği ve deneme sınavı materyalleri yönünden takip edilmekte."
+            ekonomik = "Orta/kısıtlı aile bütçesi; okul kaynak desteği ve eğitsel materyaller yönünden takip edilmekte."
         else:
             ekonomik = "Orta düzeyde; temel eğitim ihtiyaçları karşılanıyor, ders çalışma ortamı mevcut."
 
-        # ── 6. Başarı Durumu ──
+        # ── 6. Başarı Durumu (Sınav neti ve LGS adı geçmez; pedagojik akademik başarı düzeyi) ──
         if avg_net >= 75:
-            basari = f"LGS denemelerinde {avg_net:.2f} net ortalaması ile sınıf zirvesinde ({best_rank}. sıra). Üstün başarı, hedef Fen Lisesi."
+            basari = "Üstün akademik başarı düzeyinde; tüm derslerde kazanımları eksiksiz kavramış, öğrenme motivasyonu ve ders başarısı çok yüksek."
         elif avg_net >= 60:
-            basari = f"LGS denemelerinde {avg_net:.2f} net ortalaması ile nitelikli liseler bandında. Sözel ve sayısal dengesi başarılı."
+            basari = "Yüksek akademik başarı düzeyinde; sözel ve sayısal ders dengesi kuvvetli, hedeflerine yönelik düzenli ve disiplinli çalışan bir öğrenci."
         elif avg_net >= 45:
-            basari = f"LGS denemelerinde {avg_net:.2f} net ortalaması ile sınıf ortalamasının üzerinde. Matematik ve Fen gelişim potansiyeli yüksek."
+            basari = "Sınıf ortalamasının üzerinde başarılı bir akademik düzeye sahip; gayretli, fen ve matematik kazanımlarını pekiştirme sürecinde."
         elif avg_net >= 30:
-            basari = f"LGS denemelerinde {avg_net:.2f} net ortalaması ile orta düzeyde. Türkçe ve İnkılap iyi; Matematik net artışı hedeflenmeli."
+            basari = "Orta düzeyde akademik başarıya sahip; temel kavramları kavramış olup özellikle sözel derslerde başarılı, sayısal derslerde gelişim potansiyeli yüksek."
         elif avg_net >= 15:
-            basari = f"LGS denemelerinde {avg_net:.2f} net ortalaması ile desteğe ihtiyaç duyuyor. Temel kazanım eksiklikleri bulunuyor."
+            basari = "Akademik desteğe ve takviyeye ihtiyaç duyan bir düzeyde; temel ders kazanımlarında eksiklikleri bulunmakta, planlı çalışmayla ilerleme sağlayabilir."
         else:
-            basari = f"LGS denemelerinde {avg_net:.2f} net ortalaması ile kritik akademik risk (F33). Yoğun bireysel destek programı gereklidir."
+            basari = "Öncelikli akademik destek ihtiyacı olan düzeyde; temel kavram eksiklikleri mevcut olup bireysel telafi eğitimine ve yakın rehberlik takibine muhtaç."
 
         # ── 7. Problemin Çözümü İçin Ne Yapılacağı ──
         if avg_net >= 70:
-            cozum = "Zaman yönetimi ve LGS soru stratejileri koçluğu; 'Yanlış Defteri' ile sıfır hata hedefi; üst düzey denemelerle desteklenmeli."
+            cozum = "Zaman yönetimi ve üst düzey muhakeme becerilerinin desteklenmesi; 'Hata Analiz Defteri' ile sıfır hata takibi; akademik liderliğini sürdürücü yönlendirme."
         elif avg_net >= 50:
-            cozum = "Haftalık 350 soru kotası takibi; Matematik ve Fen yeni nesil soru analizleri; sınav kaygısı yönetimi semineri."
+            cozum = "Düzenli ders çalışma ve soru çözme planının takibi; Matematik ve Fen derslerinde akıl yürütme pratiklerinin artırılması; akademik motivasyon desteği."
         elif avg_net >= 35:
-            cozum = "Haftalık ders çalışma programı hazırlanması; DYK kurslarına düzenli devamı; eksik kazanımlara yönelik MEB konu testleri."
+            cozum = "Haftalık ders çalışma programı hazırlanması; DYK kurslarına düzenli devamın sağlanması; eksik kazanımlara yönelik konu pekiştirme testleri."
         elif avg_net >= 20:
-            cozum = "Temel kavram tekrarları; haftalık soru hedefi (200 soru); veli görüşmesi yapılarak evde çalışma ortamı ve süreklilik sağlanması."
+            cozum = "Temel kavram tekrarları; haftalık soru ve konu hedefleri belirlenmesi; veli görüşmesi yapılarak evde düzenli çalışma disiplininin desteklenmesi."
         else:
-            cozum = "F33 Akademik Destek Programı; birebir öğretmen etütleri; temel ders çalışma disiplini kazandırılması; Rehberlik Servisi takibi."
+            cozum = "Bireysel akademik telafi programı; ders öğretmenlerince birebir kazanım desteği; temel ders çalışma alışkanlığı kazandırılması; Rehberlik Servisi takibi."
 
         # ── 8. Görevli Personel, Birimi ──
         if avg_net < 20 or no in ["230", "245", "327"]:
@@ -212,24 +215,22 @@ def get_8b_sok_gundem_and_observation_data():
     """
     ŞÖK Gündem Maddelerinin Görüşülmesi, Alınan Kararlar ve Sınıf Gözlem Formu
     için 8/B sınıfının gerçek verilerine dayalı tam metinleri döndürür.
+    Sınav neti ve LGS kelimeleri yerine 'Akademik Başarı' ifadeleri kullanılır.
     """
     st_evals = get_8b_students_sok_data()
     
-    # Devamsızlık yapanlar
     devamsiz_list = [
         "84 Kuzey Yusuf Uruklu (Mazeretli izin)",
         "258 Meryem Bozdemir (Ailevi izinli)",
         "327 Melek Rana Kesici (Sağlık kontrolleri)"
     ]
     
-    # Sağlık problemi olanlar
     saglik_list = [
         "230 Kenan Emir Yaman: Astım rahatsızlığı mevcuttur; gerektiğinde Ventolin inhaler sprey kullanmaktadır.",
         "245 Tuna Koç: Dikkat eksikliği ve odaklanma takibi mevcuttur; hekim kontrolünde Medikinet kullanmaktadır.",
         "256 Beren Koç: Tiroit takibi mevcut olup düzenli hekim gözetimindedir; genel durumu iyidir."
     ]
 
-    # Akademik liderler ve desteğe ihtiyaç duyanlar
     leaders = [s for s in st_evals if s['avg_net'] >= 65]
     needs_support = [s for s in st_evals if s['avg_net'] < 25]
 
@@ -259,7 +260,6 @@ def fill_sok_madde_11_docx(template_path, output_path):
     tbl = doc.tables[0]
     
     # Row 1 güncelle (Sınıf ve Tarih)
-    # Cell 0: SINIF / ŞUBE: 8 / B, Cell 6: TOPLANTI TARİHİ: 24 / 10 / 2026
     for cell in tbl.rows[1].cells:
         if "SINIF /" in cell.text:
             cell.text = "SINIF / ŞUBE: 8 / B"
@@ -270,13 +270,8 @@ def fill_sok_madde_11_docx(template_path, output_path):
             cell.paragraphs[0].runs[0].font.bold = True
             cell.paragraphs[0].runs[0].font.size = Pt(9)
 
-    # Öğrenci satırlarını doldur (Row 3'ten başlar)
-    # Gerekirse satır ekle veya fazlalıkları temizle
     needed_rows = len(evaluations) # 29
-    # Mevcut öğrenci satır sayısı: len(tbl.rows) - 3 (Row 0: Başlık, Row 1: Sınıf/Tarih, Row 2: Sütun Başlıkları)
-    existing_st_rows = len(tbl.rows) - 3
 
-    # Doldur
     for i, st in enumerate(evaluations):
         r_idx = 3 + i
         if r_idx < len(tbl.rows):
@@ -298,7 +293,6 @@ def fill_sok_madde_11_docx(template_path, output_path):
             st["gorevli"]
         ]
 
-        # Zebralandırma rengi
         bg_col = "F9FBFD" if i % 2 == 1 else "FFFFFF"
 
         for c_idx, val in enumerate(vals):
@@ -323,7 +317,6 @@ def fill_sok_madde_11_docx(template_path, output_path):
                         run.font.bold = True
                         run.font.color.rgb = RGBColor(0x1F, 0x49, 0x7D)
 
-    # Fazla kalan satırları temizle (eğer 29'dan fazlaysa)
     while len(tbl.rows) > 3 + needed_rows:
         row_to_remove = tbl.rows[-1]
         tr = row_to_remove._tr
@@ -340,6 +333,7 @@ def fill_sok_gundem_ve_gozlem_docx(template_path, output_path):
     2026_Ekim_ŞÖK_Gündem_Maddeleri_ve_Sınıf_Gözlem_Formu.docx belgesini açar,
     Gündem görüşmelerini, alınan kararları ve Sınıf Bilgi Formunu
     8/B sınıfının gerçek verileriyle eksiksiz doldurur ve kaydeder.
+    Sınav neti ve LGS kelimeleri yerine 'Akademik Başarı' ifadeleri kullanılır.
     """
     doc = docx.Document(template_path)
     st_evals = get_8b_students_sok_data()
@@ -378,75 +372,72 @@ def fill_sok_gundem_ve_gozlem_docx(template_path, output_path):
         elif "SINIF BİLGİ FORMU" in t:
             idx_sinif_bilgi = i
 
-    # Gündem Görüşmeleri Metinleri
+    # Gündem Görüşmeleri Metinleri (Akademik Başarı odaklı, net ve LGS ifadesiz)
     gundem_texts = [
         ("1. Açılış, yoklama ve toplantının mevzuat dayanağının belirtilmesi:",
          "Toplantı Okul Müdürü Emin BAYKARA başkanlığında, 8/B sınıfında derse giren tüm branş öğretmenleri, müdür yardımcısı ve rehberlik öğretmeninin katılımıyla açıldı. Yapılan yoklamada kurul üyelerinin eksiksiz hazır bulunduğu tespit edildi. Okul Müdürü, toplantının MEB Okul Öncesi Eğitim ve İlköğretim Kurumları Yönetmeliği Madde 36 ile MEB Eğitim Kurulları ve Zümreleri Yönergesi Madde 10-11 hükümleri çerçevesinde yürütüleceğini belirterek toplantıyı başlattı."),
         
         ("2. Şubenin genel öğrenci profili ve sınıf ikliminin değerlendirilmesi:",
-         "8/B sınıf rehber öğretmeni şubenin genel durumunu aktardı: Sınıf mevcudu 29 olup 15 erkek ve 14 kız öğrenciden oluşmaktadır. Sınıfın genel ders içi uyumu ve öğretmenlerine karşı saygılı tutumu olumludur. Sınıf içi etkileşim genel hatlarıyla yapıcı olmakla birlikte, sınav stresine bağlı zaman zaman dikkat dağınıklığı gözlemlenmektedir."),
+         "8/B sınıf rehber öğretmeni şubenin genel durumunu aktardı: Sınıf mevcudu 29 olup 15 erkek ve 14 kız öğrenciden oluşmaktadır. Sınıfın genel ders içi uyumu ve öğretmenlerine karşı saygılı tutumu olumludur. Sınıf içi etkileşim genel hatlarıyla yapıcı olmakla birlikte, sınav hazırlık sürecine bağlı zaman zaman dikkat dağınıklığı gözlemlenmektedir."),
         
         ("3. Yeni gelen / uyum güçlüğü yaşayan öğrencilerin durumu:",
-         "Dönem başında nakil gelen öğrencilerin sınıf ortamına ve LGS temposuna uyum sağladığı, arkadaş çevrelerinin pozitif şekilde geliştiği ve herhangi bir dışlanma/uyum problemi yaşanmadığı ifade edildi."),
+         "Dönem başında nakil gelen öğrencilerin sınıf ortamına ve akademik çalışma temposuna başarıyla uyum sağladığı, arkadaş çevrelerinin pozitif şekilde geliştiği ve herhangi bir uyum problemi yaşanmadığı ifade edildi."),
         
         ("4. Devam-devamsızlık, geç kalma ve okul bağlılığı verileri:",
          "Sınıf genelinde devam durumu oldukça yüksektir. Kuzey Yusuf Uruklu, Meryem Bozdemir ve Melek Rana Kesici'nin mazeretli ve sağlık kontrollerine bağlı izinleri dışında kronik devamsızlık problemi olan öğrenci bulunmamaktadır. İlk derslere geç kalma alışkanlığı olan birkaç öğrenci velisiyle irtibata geçilmiştir."),
         
-        ("5. Akademik başarı ve LGS deneme sınavlarının değerlendirilmesi:",
-         "Yapılan 2 kurumsal LGS deneme sınavı (PARAF LGS 1 ve NARTEST LGS 1) sonuçları incelendi. Sınıf net ortalamasının 37.43 netten 44.80 nete yükselerek +7.37 netlik güçlü bir ilerleme kaydettiği görüldü. Orhan Efe Çelikdemir (83.67 net, 474.38 puan), Zeynep Ece Çelikdemir (75.50 net), Erdem Yarar (71.18 net), Melek Rana Kesici (69.00 net) ve Halit Eren Hatunoğlu (68.68 net) ile üstün bir başarı sergilemiştir. Türkçe, İnkılap ve Din derslerinde başarı %70'in üzerinde olup Matematik dersinde yeni nesil problem çözme pratiklerinin artırılması kararlaştırıldı."),
+        ("5. Öğrencilerin akademik başarı durumlarının incelenmesi ve başarıyı artırıcı önlemlerin alınması:",
+         "Dönem başından itibaren uygulanan kazanım izleme çalışmaları ve akademik değerlendirmeler incelendi. Şubenin genel akademik başarı düzeyinde belirgin bir yükseliş ve olumlu öğrenme ivmesi kaydedildiği tespit edildi. Orhan Efe Çelikdemir, Zeynep Ece Çelikdemir, Erdem Yarar, Melek Rana Kesici ve Halit Eren Hatunoğlu'nun üstün bir akademik başarı sergilediği görüldü. Türkçe, İnkılap Tarihi ve Din Kültürü derslerinde kazanım kavrama oranlarının çok yüksek olduğu, Matematik ve Fen Bilimleri derslerinde ise problem çözme ve analiz becerilerini güçlendirici çalışmaların sürdürülmesi kararlaştırıldı."),
         
         ("6. Sosyal-duygusal gelişim, akran ilişkileri ve davranış gözlemleri:",
-         "Akran ilişkilerinin genel olarak samimi ve destekleyici olduğu, akran zorbalığı düzeyinde bir vakanın bulunmadığı vurgulandı. Sınav kaygısına bağlı içe kapanma riski taşıyan öğrencilerin rehberlik servisine yönlendirilmesi kararlaştırıldı."),
+         "Akran ilişkilerinin genel olarak samimi ve destekleyici olduğu, akran zorbalığı düzeyinde bir vakanın bulunmadığı vurgulandı. Sınav kaygısına bağlı içe kapanma eğilimi gösteren öğrencilerin rehberlik servisine yönlendirilmesi kararlaştırıldı."),
         
         ("7. Risk altında olduğu değerlendirilen öğrenciler için izlenecek yol:",
-         "MEB S.İ.4.a Sınıf Risk Haritası ve öğrenci tanıma formları doğrultusunda; akademik başarısı 20 netin altında kalan öğrenciler (Egehan Hardal, Derin Yılmaz, Çınar Efe Girgin, Cengizhan Yılmaz, Mustafa Gülseven) için F33 (Akademik Başarısı Düşük) destek planı uygulanması ve bireysel ders takip çizelgeleri verilmesi kararlaştırıldı."),
+         "MEB S.İ.4.a Sınıf Risk Haritası ve öğrenci tanıma formları doğrultusunda; temel ders kazanımlarında eksiklik yaşayan ve akademik desteğe ihtiyaç duyan öğrenciler (Egehan Hardal, Derin Yılmaz, Çınar Efe Girgin, Cengizhan Yılmaz, Mustafa Gülseven) için F33 (Akademik Başarısı Desteklenmesi Gereken) telafi planı uygulanması ve bireysel ders takip çizelgeleri verilmesi kararlaştırıldı."),
         
         ("8. Özel eğitim ihtiyacı / kaynaştırma-bütünleştirme / BEP süreçleri:",
          "Sınıfta RAM raporlu kaynaştırma öğrencisi bulunmamaktadır. Dikkat eksikliği ve hekim takibi bulunan öğrencilerin (Tuna Koç - Medikinet kullanımı) ders esnasında ön sıralara oturtulması ve dikkatinin canlı tutulması sağlandı."),
         
         ("9. Öğrencilerin ilgi-yetenekleri ve sosyal etkinliklere yönlendirilmesi:",
-         "Öğrencilerin spor, müzik, teknoloji ve resim alanlarındaki yetenekleri değerlendirildi. LGS hazırlık sürecinde öğrencilerin zihinsel rahatlamalarını sağlamak amacıyla okul içi satranç, spor turnuvaları ve TÜBİTAK/bilim projelerine katılımları teşvik edilecektir."),
+         "Öğrencilerin spor, müzik, teknoloji ve resim alanlarındaki yetenekleri değerlendirildi. Akademik çalışma sürecinde öğrencilerin zihinsel dinlenmelerini sağlamak amacıyla okul içi satranç, spor turnuvaları ve bilimsel projelere katılımları teşvik edilecektir."),
         
         ("10. Veli iş birliği ve görüşme ihtiyacı bulunan öğrenciler:",
-         "Akademik desteğe ihtiyaç duyan ve sınav kaygısı yaşayan öğrencilerin velileri ile bireysel görüşmeler planlandı. Ayrıca velilere 'LGS Sürecinde Aile İçi İletişim ve Destek' konulu rehberlik bülteni ulaştırılması uygun görüldü."),
+         "Akademik desteğe ihtiyaç duyan ve sınav kaygısı yaşayan öğrencilerin velileri ile bireysel görüşmeler planlandı. Ayrıca velilere 'Öğrencilerimizin Başarı Yolculuğunda Aile İçi İletişim ve Destek' konulu rehberlik bülteni ulaştırılması uygun görüldü."),
         
         ("11. Rehberlik servisiyle yürütülecek sınıf ve öğrenci çalışmaları (Madde 11):",
          "Öğrencilerin kişilik, beslenme, sağlık, ekonomik ve sosyal durumları tek tek ele alındı. Bu kapsamda hazırlanan 'Bireysel Öğrenci Değerlendirme Tablosu' kurula sunuldu ve incelendi. Astım tanısı olan Kenan Emir Yaman'ın nöbetçi öğretmenler tarafından tozlu ortamlardan korunması; tiroit takibi olan Beren Koç'un sağlık izleminin sürdürülmesi kararlaştırıldı."),
         
         ("12. Sınav, ölçme-değerlendirme ve ders çalışma alışkanlıkları:",
-         "Öğrencilere düzenli soru çözme alışkanlığı kazandırmak amacıyla haftalık soru hedefleri (hedef düzeye göre 200-350 soru) belirlendi. 'Yanlış Defteri' uygulamasının tüm branşlarda titizlikle takip edilmesine karar verildi."),
+         "Öğrencilere düzenli ders çalışma ve soru çözme alışkanlığı kazandırmak amacıyla seviyelerine uygun haftalık çalışma planları belirlendi. 'Hata Analiz ve Kazanım Defteri' uygulamasının tüm branşlarda titizlikle takip edilmesine karar verildi."),
         
         ("13. Dijital güvenlik, akran nezaketi ve okul güvenliği:",
-         "Akıllı telefon ve dijital oyun bağımlılığına karşı velilerle koordineli sınırlandırma yapılması; siber zorbalık ve güvenli internet kullanımı hususunda bilişim teknolojileri öğretmenince bilgilendirme yapılması kararlaştırıldı."),
+         "Akıllı telefon ve dijital ekran bağımlılığına karşı velilerle koordineli sınırlandırma yapılması; siber zorbalık ve güvenli internet kullanımı hususunda bilişim teknolojileri öğretmenince bilgilendirme yapılması kararlaştırıldı."),
         
         ("14. Alınan kararların sorumluları, takvimi ve izleme yöntemi:",
-         "Alınan kararların haftalık zümre ve rehberlik toplantılarında değerlendirilmesi, kasım ayı ara tatilinde deneme gelişim raporlarının velilere sunulması karara bağlandı."),
+         "Alınan kararların haftalık zümre ve rehberlik toplantılarında değerlendirilmesi, kasım ayı ara tatilinde akademik gelişim raporlarının velilere sunulması karara bağlandı."),
         
         ("15. Dilek ve temenniler / kapanış:",
          "Okul Müdürü Emin BAYKARA, 8/B şubesinin gösterdiği akademik ivmeden ötürü tüm öğretmenlere teşekkür ederek başarılı ve sağlıklı bir eğitim-öğretim yılı diledi ve toplantıyı sonlandırdı.")
     ]
 
-    # Kararlar Listesi
+    # Kararlar Listesi (Akademik Başarı odaklı, net ve LGS ifadesiz)
     kararlar_texts = [
-        "1. LGS hazırlık sürecinde öğrencilere haftalık soru çözüm kotaları (seviyeye göre 200 - 350 soru) tanımlanacak ve sınıf rehber öğretmeni ile branş öğretmenlerince haftalık takip edilecektir.",
-        "2. Deneme sınavlarında yapılan hataların kalıcı öğrenmeye dönüşmesi için tüm 8/B öğrencilerinde 'Yanlış Defteri / Hata Analiz Defteri' uygulaması zorunlu olarak yürütülecektir.",
-        "3. Matematik dersinde yeni nesil beceri temelli soruların analizine ağırlık verilecek, ders dışı etüt ve DYK kurslarıyla soru çözüm pratikleri artırılacaktır.",
-        "4. LGS denemelerinde 20 netin altında kalan öğrencilere (F33 Akademik Risk) yönelik bireysel eksik kazanım telafi programı uygulanacak ve velileriyle acil eylem görüşmesi yapılacaktır.",
-        "5. Zirve grupta yer alan öğrencilere (70 net üzeri) zaman yönetimi ve üst düzey muhakeme soruları üzerine özel koçluk desteği sağlanacaktır.",
+        "1. Akademik başarıyı artırmak ve çalışma disiplini oluşturmak amacıyla öğrencilere haftalık soru çözüm ve konu tekrar hedefleri tanımlanacak, sınıf rehber öğretmeni ile branş öğretmenlerince haftalık takip edilecektir.",
+        "2. Ölçme ve değerlendirmelerde tespit edilen hataların kalıcı öğrenmeye dönüşmesi amacıyla tüm öğrencilerde 'Hata Analiz ve Kazanım Defteri' uygulaması zorunlu tutulacaktır.",
+        "3. Matematik dersinde çok adımlı problem çözme, analitik düşünme ve muhakeme becerilerinin geliştirilmesine ağırlık verilecek; DYK kurslarıyla pekiştirilecektir.",
+        "4. Akademik desteğe öncelikli ihtiyaç duyan öğrencilere yönelik bireysel eksik kazanım telafi programı uygulanacak ve velileriyle gelişim odaklı görüşmeler yapılacaktır.",
+        "5. Üstün akademik başarı gösteren öğrencilere zaman yönetimi, üst düzey düşünme becerileri ve sınav stratejileri üzerine bireysel danışmanlık sağlanacaktır.",
         "6. Sağlık durumu özel takip gerektiren öğrencilerin (Kenan Emir Yaman - Astım/Ventolin, Tuna Koç - Dikkat odaklanması/Medikinet, Beren Koç - Tiroit) durumları nöbetçi öğretmenler ve okul idaresi koordinasyonunda izlenecektir.",
-        "7. Sınav kaygısı ve stres belirtisi gösteren öğrencilere Rehberlik Servisi tarafından bireysel psikolojik danışmanlık ve kaygı yönetimi seansları uygulanacaktır.",
-        "8. Devamsızlık ve sabah derslerine geç kalma eğilimi gösteren öğrencilerin velileri e-Okul sistemi üzerinden anlık olarak bilgilendirilecek ve devamsızlık mektubu gönderilecektir.",
+        "7. Sınav kaygısı ve stres belirtisi gösteren öğrencilere Rehberlik Servisi tarafından bireysel psikolojik danışmanlık ve kaygı yönetimi çalışmaları yürütülecektir.",
+        "8. Devamsızlık ve ilk derslere geç kalma eğilimi gösteren öğrencilerin velileri e-Okul sistemi üzerinden anlık olarak bilgilendirilecek ve gerekli tedbirler alınacaktır.",
         "9. Dijital oyun ve telefon bağımlılığının önlenmesi için velilerle iş birliği yapılarak evde ders çalışma saatlerinde ekran kısıtlaması uygulanması tavsiye edilecektir.",
         "10. Öğrencilerin beslenme çantası ve sabah kahvaltısı alışkanlıkları sınıf rehber öğretmeni tarafından teşvik edilecek, okul kantininde sağlıklı gıda tüketimine özen gösterilecektir.",
-        "11. Okul kütüphanesinin ders bitiminde 8. sınıf öğrencilerinin sessiz etüt ve soru çözüm alanı olarak aktif kullanımı desteklenecektir.",
-        "12. Her deneme sınavı sonrasında branş öğretmenleri tarafından kazanım bazlı analiz raporları çıkarılacak, sınıf genelinde başarı oranı %50'nin altında kalan kazanımlar derste yeniden işlenecektir.",
-        "13. İhtiyaç sahibi olduğu belirlenen öğrencilere okul-aile birliği ve sosyal yardımlaşma kanallarıyla kaynak kitap ve kırtasiye desteği sağlanacaktır.",
-        "14. Alınan bu kararların uygulanma düzeyi her ay düzenlenecek şube değerlendirme toplantılarında gözden geçirilecektir."
+        "11. Okul kütüphanesinin ders bitiminde öğrencilerin sessiz etüt ve kitap okuma alanı olarak aktif kullanımı sürdürülecektir.",
+        "12. Yapılan her değerlendirme sonrasında branş öğretmenleri tarafından kazanım analizleri çıkarılacak, kavranma oranı düşük olan konular sınıfta pekiştirilecektir.",
+        "13. İhtiyaç sahibi olduğu belirlenen öğrencilere okul-aile birliği ve zümre öğretmenlerince eğitsel kaynak ve kırtasiye desteği sağlanacaktır.",
+        "14. Alınan bu kararların uygulanma düzeyi her ay düzenlenecek şube öğretmenler kurulu ara değerlendirme toplantılarında gözden geçirilecektir."
     ]
 
-    # Belgede ilgili yerlere metinleri yerleştir (Paragraf güncelleme ve ekleme)
-    # Gündem maddelerinin altına ekle
-    # Mevcut boş paragrafları doldur
     p_cur = idx_gundem_gor + 1
     for title, body in gundem_texts:
         if p_cur < idx_kararlar:
@@ -458,7 +449,6 @@ def fill_sok_gundem_ve_gozlem_docx(template_path, output_path):
             p.runs[0].font.size = Pt(9)
             p_cur += 1
 
-    # Kararlar altına ekle
     p_k_cur = idx_kararlar + 1
     for k_item in kararlar_texts:
         if p_k_cur < idx_sinif_bilgi - 3:
@@ -482,7 +472,7 @@ def fill_sok_gundem_ve_gozlem_docx(template_path, output_path):
             p.text = "Dersin düzenini bozan: Sınıf genelinde dersin işlenişini engelleyen kronik bir disiplin problemi yoktur. Zaman zaman ders içi konuşma eğiliminde olan hareketli öğrenciler öğretmenlerce uyarılmaktadır."
             p.runs[0].font.size = Pt(9)
         elif "Problemli öğrencileri isimleri :" in t or "Problemli öğrencilerin isimleri:" in t:
-            p.text = "Problemli öğrencilerin isimleri: Davranışsal boyutta disiplin cezası gerektirecek problemli öğrenci bulunmamaktadır; akademik desteğe muhtaç öğrenciler mevcuttur."
+            p.text = "Problemli öğrencilerin isimleri: Davranışsal boyutta disiplin cezası gerektirecek problemli öğrenci bulunmamaktadır; akademik desteğe ihtiyaç duyan öğrenciler mevcuttur."
             p.runs[0].font.size = Pt(9)
         elif "Kaynaştırma öğrencileri:" in t:
             p.text = "Kaynaştırma öğrencileri: Sınıfımızda resmi RAM raporlu kaynaştırma öğrencisi bulunmamaktadır."
@@ -495,12 +485,12 @@ def fill_sok_gundem_ve_gozlem_docx(template_path, output_path):
             p.runs[0].font.size = Pt(9)
         elif "4- Sınıf başarı ve başarısızlık durumlarını derslere göre değerlendiriniz:" in t:
             p.text = "4- Sınıf başarı ve başarısızlık durumlarını derslere göre değerlendiriniz:\n" \
-                     "• Türkçe: Net ortalaması 12.37 net (%61.8 başarı). Paragrafta anlam güçlü; dil bilgisi ve sözel mantıkta soru pratiği artırılmalı.\n" \
-                     "• Matematik: Net ortalaması 6.45 net (%32.2 başarı). Temel işlem becerileri iyi ancak yeni nesil problem çözme ve zaman yönetiminde desteğe ihtiyaç var.\n" \
-                     "• Fen Bilimleri: Net ortalaması 10.82 net (%54.1 başarı). Mevsimler ve İklim ile DNA üniteleri pekiştirildi; deney ve grafik yorumlama sorularına ağırlık verilmeli.\n" \
-                     "• T.C. İnkılap Tarihi: Net ortalaması 7.15 net (%71.5 başarı). Kavram ve kronoloji bilgisi kuvvetli; sınıf ortalaması yüksek.\n" \
-                     "• Din Kültürü: Net ortalaması 7.48 net (%74.8 başarı). Kaza ve kader ünitesi kazanımları tam; en başarılı olunan derslerden biri.\n" \
-                     "• İngilizce: Net ortalaması 5.24 net (%52.4 başarı). Friendship ve Teen Life ünite kelime hazinesi ve kalıp ifadeler tekrar edilmeli."
+                     "• Türkçe: Akademik başarı yüksek düzeydedir (%62). Okuduğunu anlama, ana fikir ve yorumlama becerileri çok güçlü; sözel mantık ve dil bilgisi çalışmalarına ağırlık verilmelidir.\n" \
+                     "• Matematik: Temel işlem becerileri iyi düzeydedir (%32); çok adımlı problem çözme, analitik akıl yürütme ve zaman yönetiminde destekleyici çalışmalara ihtiyaç duyulmaktadır.\n" \
+                     "• Fen Bilimleri: Akademik başarı iyi düzeydedir (%54). Mevsimler ve İklim ile DNA üniteleri başarıyla kavranmış; bilimsel muhakeme ve grafik yorumlama soruları pekiştirilmelidir.\n" \
+                     "• T.C. İnkılap Tarihi: Akademik başarı çok yüksek düzeydedir (%72). Tarihsel kavramlar, neden-sonuç ilişkisi ve kronolojik düşünme becerileri oldukça başarılıdır.\n" \
+                     "• Din Kültürü: Akademik başarı mükemmel düzeydedir (%75). Kaza ve kader ünitesi kazanımları tam olup sınıfın en güçlü akademik alanlarından biridir.\n" \
+                     "• İngilizce: Akademik başarı dengeli düzeydedir (%52). Friendship ve Teen Life üniteleri kelime bilgisi ve okuma-anlama pratikleriyle düzenli tekrar edilmelidir."
             p.runs[0].font.size = Pt(9)
         elif "Geliri Düşük Olanlar Öğrenciler:" in t or "Geliri Düşük Olan" in t:
             p.text = "Geliri Düşük Olan Öğrenciler: Aile gelir düzeyi kısıtlı olan ve ders materyali desteğine ihtiyaç duyan öğrenciler okul-aile birliği ve rehberlik servisine bildirilmiştir."
@@ -509,7 +499,7 @@ def fill_sok_gundem_ve_gozlem_docx(template_path, output_path):
             p.text = "Geliri İyi Olan Öğrenciler: Sınıfın büyük çoğunluğunun ekonomik durumu orta ve iyi düzeyde olup temel eğitsel ihtiyaçlarını karşılayabilmektedir."
             p.runs[0].font.size = Pt(9)
         elif "Yardımlar İçin Önerilen Öğrenciler:" in t:
-            p.text = "Yardımlar İçin Önerilen Öğrenciler: Kaynak kitap ve kırtasiye ihtiyacı olan öğrencilere okul idaresi ve zümre öğretmenlerince ücretsiz LGS soru bankaları temin edilmiştir."
+            p.text = "Yardımlar İçin Önerilen Öğrenciler: Kaynak kitap ve kırtasiye ihtiyacı olan öğrencilere okul idaresi ve zümre öğretmenlerince ücretsiz soru bankaları temin edilmiştir."
             p.runs[0].font.size = Pt(9)
 
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
