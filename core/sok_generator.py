@@ -119,6 +119,12 @@ def get_8b_students_sok_data():
         f_id = r['factor_id']
         risk_dict.setdefault(s_id, set()).add(f_id)
 
+    # 5. ŞÖK Öğrenci Veri Toplama Formu (Özel Anket / Giriş Verileri)
+    from core.sok_survey import init_sok_survey_table
+    init_sok_survey_table()
+    c.execute("SELECT * FROM sok_student_survey")
+    surveys = {r['student_id']: dict(r) for r in c.fetchall()}
+
     conn.close()
 
     evaluations = []
@@ -240,6 +246,23 @@ def get_8b_students_sok_data():
         else:
             cozum = "Bireysel akademik telafi programı; ders öğretmenlerince birebir kazanım desteği; temel ders çalışma alışkanlığı kazandırılması; Rehberlik Servisi takibi."
 
+        # ── 7.5. ŞÖK Öğrenci Veri Toplama Formu / Özel Giriş Önceliği ──
+        survey = surveys.get(s_id, {})
+        if survey.get('kisilik_ozellikleri'):
+            kisilik = survey['kisilik_ozellikleri'].strip()
+        if survey.get('beslenme_durumu'):
+            beslenme = survey['beslenme_durumu'].strip()
+        if survey.get('saglik_durumu'):
+            saglik = survey['saglik_durumu'].strip()
+        if survey.get('sosyal_iliskiler'):
+            sosyal = survey['sosyal_iliskiler'].strip()
+        if survey.get('calisma_ve_ekonomik'):
+            ekonomik = survey['calisma_ve_ekonomik'].strip()
+        if survey.get('akademik_durum'):
+            basari = survey['akademik_durum'].strip()
+        if survey.get('oneri_ve_tedbir'):
+            cozum = survey['oneri_ve_tedbir'].strip()
+
         # ── 8. Görevli Personel, Birimi ──
         if no in ["227", "272"]:
             gorevli = "Sınıf Rehber Öğretmeni, Branş Öğretmenleri, Okul Rehberlik Servisi, Veli"
@@ -250,6 +273,7 @@ def get_8b_students_sok_data():
 
         evaluations.append({
             "sira": idx,
+            "student_id": s_id,
             "school_no": no,
             "name": name,
             "kisilik": kisilik,

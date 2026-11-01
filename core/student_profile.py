@@ -407,3 +407,42 @@ def profile_to_risk_factors(student_id: int, data: dict):
 
     is_f35 = zorl_risk or onemli.startswith("Evet")
     sf(35, is_f35, note=" | ".join(f35_notlar)[:200] if is_f35 else "")
+
+
+# ─── Profil Tamamlanma Kontrolü ────────────────────────────────────────────────
+def is_student_profile_complete(student_id: int) -> tuple[bool, list[str]]:
+    """
+    Öğrencinin Öğrenci Tanıma Formunu eksiksiz ve geçerli doldurup doldurmadığını denetler.
+    Dönen değer: (tamamlandi_mi: bool, eksik_alanlar: list[str])
+    Eğer tüm zorunlu alanlar doluysa True döner.
+    """
+    init_profile_table()
+    conn = sqlite3.connect(DATABASE_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute("SELECT * FROM student_profile WHERE student_id = ?", (student_id,))
+    row = c.fetchone()
+    conn.close()
+
+    if not row:
+        return False, ["Form henüz hiç doldurulmamış"]
+
+    p = dict(row)
+    missing = []
+    
+    if not p.get("cinsiyet") or str(p.get("cinsiyet")).strip() == "":
+        missing.append("Cinsiyet")
+    if not p.get("dogum_tarihi") or str(p.get("dogum_tarihi")).strip() == "":
+        missing.append("Doğum Tarihi")
+    if not (p.get("anne_adi") or p.get("baba_adi")):
+        missing.append("Anne veya Baba Adı")
+    if not p.get("anne_sag") or str(p.get("anne_sag")).strip() == "":
+        missing.append("Anne Sağ/Vefat Durumu")
+    if not p.get("baba_sag") or str(p.get("baba_sag")).strip() == "":
+        missing.append("Baba Sağ/Vefat Durumu")
+    if not p.get("ders_ortami") or str(p.get("ders_ortami")).strip() == "":
+        missing.append("Ders Çalışma Ortamı")
+    if not p.get("genel_his") or str(p.get("genel_his")).strip() == "":
+        missing.append("Genel Duygu/His Durumu")
+
+    return (len(missing) == 0), missing
