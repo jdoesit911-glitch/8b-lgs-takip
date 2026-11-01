@@ -2942,24 +2942,33 @@ with tab_sok:
 
         if current_role == "admin":
             st.markdown("---")
-            if st.button("🔄 ŞÖK Belgelerini Sistem Verileriyle Yeniden Üret ve Masaüstünü Güncelle", key="btn_regen_sok", type="primary"):
+            if st.button("🔄 ŞÖK Belgelerini Sistem Verileriyle Yeniden Üret ve Güncelle", key="btn_regen_sok", type="primary"):
                 try:
                     desktop_dir = r"C:\Users\ELRA\Desktop\8B sınıfı veriler"
-                    f_m11 = [f for f in os.listdir(desktop_dir) if "Madde 11" in f][0]
-                    f_gnd = [f for f in os.listdir(desktop_dir) if "Gu\u0308ndem" in f or "Gundem" in unicodedata.normalize("NFKD", f)][0]
+                    use_dir = desktop_dir if os.path.exists(desktop_dir) else EXPORTS_DIR
+                    f_m11_cand = [f for f in os.listdir(use_dir) if "Madde 11" in f]
+                    f_gnd_cand = [f for f in os.listdir(use_dir) if "Gu\u0308ndem" in f or "Gundem" in unicodedata.normalize("NFKD", f)]
+
+                    m11_src = os.path.join(use_dir, f_m11_cand[0]) if f_m11_cand else m11_fpath
+                    gnd_src = os.path.join(use_dir, f_gnd_cand[0]) if f_gnd_cand else gundem_fpath
                     
-                    fill_sok_madde_11_docx(os.path.join(desktop_dir, f_m11), os.path.join(desktop_dir, "ŞÖK Madde 11.docx"))
-                    fill_sok_madde_11_docx(os.path.join(desktop_dir, f_m11), m11_fpath)
+                    fill_sok_madde_11_docx(m11_src, m11_fpath)
+                    fill_sok_gundem_ve_gozlem_docx(gnd_src, gundem_fpath)
                     
-                    fill_sok_gundem_ve_gozlem_docx(os.path.join(desktop_dir, f_gnd), os.path.join(desktop_dir, "2026_Ekim_ŞÖK_Gündem_Maddeleri_ve_Sınıf_Gözlem_Formu.docx"))
-                    fill_sok_gundem_ve_gozlem_docx(os.path.join(desktop_dir, f_gnd), gundem_fpath)
+                    if os.path.exists(desktop_dir):
+                        try:
+                            import shutil
+                            shutil.copy2(m11_fpath, os.path.join(desktop_dir, "8B_1_Donem_SOK_Madde_11_Bireysel_Degerlendirme.docx"))
+                            shutil.copy2(gundem_fpath, os.path.join(desktop_dir, "8B_2026_Ekim_SOK_Toplanti_Tutanagi_ve_Sinif_Gozlem_Formu.docx"))
+                        except Exception:
+                            pass
                     
                     import zipfile
                     with zipfile.ZipFile(zip_fpath, 'w', zipfile.ZIP_DEFLATED) as zf:
                         zf.write(m11_fpath, "8B_1_Donem_SOK_Madde_11_Bireysel_Degerlendirme.docx")
                         zf.write(gundem_fpath, "8B_2026_Ekim_SOK_Toplanti_Tutanagi_ve_Sinif_Gozlem_Formu.docx")
                     
-                    st.success("✅ ŞÖK belgeleri en güncel sınav ve profil verileriyle başarıyla yeniden üretildi ve masaüstü güncellendi!")
+                    st.success("✅ ŞÖK belgeleri en güncel öğrenci anketleri ve profil verileriyle başarıyla yeniden üretildi!")
                     st.rerun()
                 except Exception as _e:
                     st.error(f"Hata oluştu: {_e}")
