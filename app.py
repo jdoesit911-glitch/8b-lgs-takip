@@ -104,14 +104,33 @@ st.markdown("""
         transform: translateY(-2px) !important;
         box-shadow: 0 6px 14px rgba(144, 12, 63, 0.6) !important;
     }
+
+    /* ─── Streamlit Geliştirici & Üst Araç Çubuğunu Tamamen Gizle (Sayfa Güvenliği) ─── */
+    #MainMenu {visibility: hidden !important; display: none !important;}
+    header {visibility: hidden !important; display: none !important;}
+    footer {visibility: hidden !important; display: none !important;}
+    .stDeployButton {display: none !important;}
+    [data-testid="stToolbar"] {visibility: hidden !important; display: none !important;}
+    [data-testid="stDecoration"] {visibility: hidden !important; display: none !important;}
+    [data-testid="stStatusWidget"] {visibility: hidden !important; display: none !important;}
+    [data-testid="stHeader"] {visibility: hidden !important; display: none !important;}
+    div[data-testid="collapsedControl"] {top: 10px !important;}
 </style>
 """, unsafe_allow_html=True)
 
 init_db()
 
-# ===================== ROL TANIMLARI =====================
-ADMIN_PIN   = os.environ.get("ADMIN_PIN",   "ADMIN8B2026")
-TEACHER_PIN = os.environ.get("TEACHER_PIN", "8B2026")
+# ===================== ROL TANIMLARI & GÜVENLİK =====================
+def _get_secret(key, default):
+    try:
+        if hasattr(st, "secrets") and key in st.secrets:
+            return str(st.secrets[key])
+    except Exception:
+        pass
+    return os.environ.get(key, default)
+
+ADMIN_PIN   = _get_secret("ADMIN_PIN",   "ADMIN8B2026")
+TEACHER_PIN = _get_secret("TEACHER_PIN", "8B2026")
 
 # Öğrenci şifresi = okul numarası (her öğrenci kendi numarasıyla giriş yapar)
 # Okul numarası <-> isim eşleşmesi veri tabanından alınır
@@ -146,6 +165,16 @@ if st.session_state.role is None:
         )
         st.markdown("---")
 
+        import time as _t_sec
+        _failed_count = st.session_state.get("login_failed_count", 0)
+        _lockout_until = st.session_state.get("login_lockout_until", 0)
+        _now = _t_sec.time()
+
+        if _lockout_until > _now:
+            _rem = int(_lockout_until - _now)
+            st.error(f"⏳ **Güvenlik Koruması:** Çok fazla hatalı deneme yapıldı. Lütfen **{_rem}** saniye bekleyip tekrar deneyiniz.")
+            st.stop()
+
         if role_choice == "Öğrenci":
             st.info("🎒 **Öğrenci Girişi:** Size verilen **4 haneli giriş kodunuzu** (büyük harf + rakam) girerek sisteme erişebilirsiniz.\n"
                     "Karnenizi ve gelişim grafiklerinizi inceleyebilir, **ŞÖK Öğrenci Veri Toplama Anketini** doldurabilirsiniz.")
@@ -158,25 +187,37 @@ if st.session_state.role is None:
                     from config import DATABASE_PATH
                     conn = sqlite3.connect(DATABASE_PATH)
                     c = conn.cursor()
-                    # PIN büyük/küçük harf duyarsız karşılaştırma
                     row = c.execute(
                         "SELECT name, school_no FROM students WHERE UPPER(pin) = UPPER(?)",
                         (pin_input.strip(),)
                     ).fetchone()
                     conn.close()
                     if row:
+                        st.session_state["login_failed_count"] = 0
+                        st.session_state["login_lockout_until"] = 0
                         st.session_state.role = "student"
                         st.session_state.student_name = row[0]
                         st.session_state.student_no = row[1]
-                        # student_id'yi de kaydet (risk haritasi icin)
                         conn2 = sqlite3.connect(DATABASE_PATH)
                         row2 = conn2.execute("SELECT id FROM students WHERE UPPER(pin) = UPPER(?)", (pin_input.strip(),)).fetchone()
                         conn2.close()
                         if row2:
                             st.session_state.student_id = row2[0]
+                            try:
+                                from core.activity_tracker import record_login
+                                record_login(row2[0])
+                            except Exception:
+                                pass
                         st.rerun()
                     else:
-                        st.error("❌ Hatalı giriş kodu! Lütfen öğretmeninizden aldığınız 4 haneli kodu kontrol edin.")
+                        _failed_count += 1
+                        st.session_state["login_failed_count"] = _failed_count
+                        _t_sec.sleep(1)
+                        if _failed_count >= 5:
+                            st.session_state["login_lockout_until"] = _now + 30
+                            st.error("🚨 **Güvenlik Uyarısı:** 5 kez hatalı kod girildi. Sistem 30 saniye süreyle geçici olarak kilitlendi.")
+                        else:
+                            st.error(f"❌ Hatalı giriş kodu! Lütfen öğretmeninizden aldığınız 4 haneli kodu kontrol edin. (Kalan deneme hakkı: {5 - _failed_count})")
 
         elif role_choice == "Öğretmen":
             st.info("👩‍🏫 **Öğretmen Girişi:** Tüm öğrenci verilerini ve raporları görüntüleyebilirsiniz.")
@@ -185,10 +226,19 @@ if st.session_state.role is None:
                 submit_teacher = st.form_submit_button("👩‍🏫 Öğretmen Olarak Giriş Yap", use_container_width=True)
                 if submit_teacher:
                     if pin_input == TEACHER_PIN:
+                        st.session_state["login_failed_count"] = 0
+                        st.session_state["login_lockout_until"] = 0
                         st.session_state.role = "teacher"
                         st.rerun()
                     else:
-                        st.error("❌ Hatalı şifre!")
+                        _failed_count += 1
+                        st.session_state["login_failed_count"] = _failed_count
+                        _t_sec.sleep(1)
+                        if _failed_count >= 5:
+                            st.session_state["login_lockout_until"] = _now + 30
+                            st.error("🚨 **Güvenlik Uyarısı:** 5 kez hatalı şifre girildi. Sistem 30 saniye kilitlendi.")
+                        else:
+                            st.error("❌ Hatalı şifre!")
 
         elif role_choice == "Admin":
             st.info("🔑 **Admin Girişi:** Tüm yetkilere sahipsiniz. Yeni deneme sınavı yükleyebilirsiniz.")
@@ -197,10 +247,19 @@ if st.session_state.role is None:
                 submit_admin = st.form_submit_button("🔑 Admin Olarak Giriş Yap", use_container_width=True)
                 if submit_admin:
                     if pin_input == ADMIN_PIN:
+                        st.session_state["login_failed_count"] = 0
+                        st.session_state["login_lockout_until"] = 0
                         st.session_state.role = "admin"
                         st.rerun()
                     else:
-                        st.error("❌ Hatalı admin şifresi!")
+                        _failed_count += 1
+                        st.session_state["login_failed_count"] = _failed_count
+                        _t_sec.sleep(1)
+                        if _failed_count >= 5:
+                            st.session_state["login_lockout_until"] = _now + 30
+                            st.error("🚨 **Güvenlik Uyarısı:** 5 kez hatalı şifre girildi. Sistem 30 saniye kilitlendi.")
+                        else:
+                            st.error("❌ Hatalı admin şifresi!")
 
         st.markdown("---")
         st.caption("🔒 Bu sistem öğrenci kişisel verilerini korumak için şifre korumalıdır. "
@@ -432,6 +491,12 @@ st.markdown(f"<div class='sub-title'>Aktif Sınav: <b>{selected_exam_name}</b> |
 # ╚══════════════════════════════════════════════════════════╝
 if current_role == "student":
     student_name = st.session_state.student_name
+    try:
+        from core.activity_tracker import update_heartbeat
+        if stu_id_resolved:
+            update_heartbeat(stu_id_resolved)
+    except Exception:
+        pass
     st_data = next((r for r in results if r['name'] == student_name), None)
 
     if not st_data:
@@ -965,9 +1030,10 @@ tabs_list = [
     "📈 Çoklu Deneme Gelişim Takibi",
     "🗺️ Risk Haritası",
     "⚖️ ŞÖK Modülü (Şube Öğretmenler Kurulu)",
+    "📡 Katılım & Aktivite Takibi",
     "⚡ Otomatik Rapor & Karne Üretici"
 ]
-tab1, tab2, tab3, tab_branch, tab4, tab_risk, tab_sok, tab5 = st.tabs(tabs_list)
+tab1, tab2, tab3, tab_branch, tab4, tab_risk, tab_sok, tab_tracking, tab5 = st.tabs(tabs_list)
 
 # ----------------- TAB 1: Sınıf Genel Görünümü -----------------
 with tab1:
@@ -2972,6 +3038,93 @@ with tab_sok:
                     st.rerun()
                 except Exception as _e:
                     st.error(f"Hata oluştu: {_e}")
+
+# ----------------- TAB: Katılım & Aktivite Takibi -----------------
+with tab_tracking:
+    from core.activity_tracker import get_student_tracking_report
+    rep_data = get_student_tracking_report()
+
+    st.markdown("## 📡 8/B Sınıfı Öğrenci Katılım, Aktivite ve Form Takip Masası")
+    st.caption("Öğrencilerin sisteme giriş sayıları, aktif kalma süreleri, ŞÖK Anketini ve Öğrenci Tanıma Formunu doldurma durumları anlık takip edilir.")
+
+    # İstatistik Kartları
+    c_sok_done = sum(1 for r in rep_data if r["has_sok"])
+    c_prof_done = sum(1 for r in rep_data if r["is_prof_complete"])
+    c_login_done = sum(1 for r in rep_data if r["login_count"] > 0)
+    total_minutes = sum(r["duration_minutes"] for r in rep_data)
+
+    m_c1, m_c2, m_c3, m_c4 = st.columns(4)
+    m_c1.metric("📝 ŞÖK Anketi Dolduran", f"{c_sok_done} / {len(rep_data)}", f"%{c_sok_done*100//len(rep_data)} Tamamlandı")
+    m_c2.metric("📋 Tanıma Formu Tamam", f"{c_prof_done} / {len(rep_data)}", f"%{c_prof_done*100//len(rep_data)} Tamamlandı")
+    m_c3.metric("🎒 Giriş Yapan Öğrenci", f"{c_login_done} / {len(rep_data)}", f"%{c_login_done*100//len(rep_data)} Katılım")
+    m_c4.metric("⏱️ Toplam Aktif Süre", f"{total_minutes} dk", f"Ort: {total_minutes//max(1, c_login_done)} dk/öğrenci")
+
+    st.markdown("---")
+
+    # Filtreleme
+    f_c1, f_c2 = st.columns([2, 1])
+    with f_c1:
+        search_kw = st.text_input("🔍 Öğrenci Adı veya Numarası Ara:", "", key="search_track_kw")
+    with f_c2:
+        filter_opt = st.selectbox("🎯 Durum Filtresi:", [
+            "Tümü (29 Öğrenci)",
+            "⏳ ŞÖK Anketini Doldurmayanlar",
+            "✅ ŞÖK Anketini Dolduranlar",
+            "⚠️ Tanıma Formu Eksik Olanlar",
+            "✅ Tanıma Formu Tamamlananlar",
+            "🚫 Sisteme Hiç Giriş Yapmayanlar",
+            "🟢 Sisteme Giriş Yapanlar"
+        ], key="filter_track_opt")
+
+    filtered_rep = rep_data
+    if search_kw:
+        filtered_rep = [r for r in filtered_rep if search_kw.lower() in r["name"].lower() or search_kw in r["school_no"]]
+
+    if filter_opt == "⏳ ŞÖK Anketini Doldurmayanlar":
+        filtered_rep = [r for r in filtered_rep if not r["has_sok"]]
+    elif filter_opt == "✅ ŞÖK Anketini Dolduranlar":
+        filtered_rep = [r for r in filtered_rep if r["has_sok"]]
+    elif filter_opt == "⚠️ Tanıma Formu Eksik Olanlar":
+        filtered_rep = [r for r in filtered_rep if not r["is_prof_complete"]]
+    elif filter_opt == "✅ Tanıma Formu Tamamlananlar":
+        filtered_rep = [r for r in filtered_rep if r["is_prof_complete"]]
+    elif filter_opt == "🚫 Sisteme Hiç Giriş Yapmayanlar":
+        filtered_rep = [r for r in filtered_rep if r["login_count"] == 0]
+    elif filter_opt == "🟢 Sisteme Giriş Yapanlar":
+        filtered_rep = [r for r in filtered_rep if r["login_count"] > 0]
+
+    st.caption(f"Listelenen: **{len(filtered_rep)} / {len(rep_data)} Öğrenci**")
+
+    # Tablo
+    df_track = pd.DataFrame([{
+        "Sıra": r["sira"],
+        "Okul No": r["school_no"],
+        "Adı Soyadı": r["name"],
+        "ŞÖK Anketi": r["sok_status"],
+        "ŞÖK Teslim Tarihi": r["sok_date"],
+        "Tanıma Formu": r["prof_status"],
+        "Tanıma Formu Eksikleri / Not": r["prof_detail"],
+        "Giriş Sayısı": f"{r['login_count']} kez" if r['login_count'] > 0 else "Giriş Yok",
+        "Son Giriş Tarihi": r["last_login"],
+        "Aktif Süre": r["duration_str"]
+    } for r in filtered_rep])
+
+    st.dataframe(df_track, use_container_width=True, height=480, hide_index=True)
+
+    # Excel İndir
+    import io as _io_tr
+    buf_tr = _io_tr.BytesIO()
+    with pd.ExcelWriter(buf_tr, engine="openpyxl") as writer:
+        df_track.to_excel(writer, index=False, sheet_name="Katilim_ve_Aktivite")
+    buf_tr.seek(0)
+    st.download_button(
+        "📥 Katılım ve Aktivite Raporunu Excel Olarak İndir (.xlsx)",
+        data=buf_tr.read(),
+        file_name="8B_Ogrenci_Katilim_ve_Aktivite_Raporu.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        use_container_width=True,
+        key="btn_dl_activity_track_xlsx"
+    )
 
 # ----------------- TAB 5: Rapor & Karne Üretici -----------------
 with tab5:
