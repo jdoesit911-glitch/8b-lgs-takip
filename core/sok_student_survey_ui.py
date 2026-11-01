@@ -153,10 +153,16 @@ def build_sok_summary_texts(answers: dict) -> dict:
     }
 
 
-def render_sok_student_survey(student_id: int, student_name: str, student_no: str):
+def render_sok_student_survey(student_id: int, student_name: str, student_no: str, allow_back_button: bool = True):
     """Öğrencinin ekranında ŞÖK Veri Toplama Formunu render eder."""
     raw_saved = get_student_survey_raw(student_id)
     has_submitted = bool(raw_saved)
+
+    if allow_back_button:
+        c_nav1, c_nav2 = st.columns([1, 4])
+        if c_nav1.button("🏠 Ana Sayfaya Dön", key=f"btn_back_home_top_{student_id}", type="secondary"):
+            st.session_state.student_view_mode = "dashboard"
+            st.rerun()
 
     st.markdown("""
         <div style='background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%); padding: 18px 22px; border-radius: 12px; color: white; margin-bottom: 20px;'>
@@ -384,7 +390,13 @@ def render_sok_student_survey(student_id: int, student_name: str, student_no: st
         )
 
         st.markdown("---")
-        btn_submit = st.form_submit_button("✅ ŞÖK Veri Toplama Anketini Gönder ve Kaydet", use_container_width=True, type="primary")
+        c_sub1, c_sub2 = st.columns([2, 1])
+        btn_submit = c_sub1.form_submit_button("✅ ŞÖK Veri Toplama Anketini Gönder ve Kaydet", use_container_width=True, type="primary")
+        btn_cancel = c_sub2.form_submit_button("🏠 İptal / Ana Sayfaya Dön", use_container_width=True)
+
+        if btn_cancel:
+            st.session_state.student_view_mode = "dashboard"
+            st.rerun()
 
         if btn_submit:
             all_answers = {
@@ -413,6 +425,7 @@ def render_sok_student_survey(student_id: int, student_name: str, student_no: st
             summary_data = build_sok_summary_texts(all_answers)
             save_sok_survey(student_id, summary_data)
 
+            st.session_state.student_view_mode = "dashboard"
             st.success("🎉 ŞÖK Öğrenci Veri Toplama Anketi başarıyla kaydedildi! Yanıtlarınız Şube Öğretmenler Kurulu evraklarına işlendi.")
             st.balloons()
             st.rerun()

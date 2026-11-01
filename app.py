@@ -387,25 +387,26 @@ is_prof_complete, missing_fields = is_student_profile_complete(stu_id_resolved) 
 is_egehan = (st.session_state.get("student_name") == "EGEHAN HARDAL" or str(st.session_state.get("student_no")) == "272")
 
 if current_role == 'student':
+    st.sidebar.markdown('---')
+    st.sidebar.markdown("### 🧭 Menü")
+    cur_mode = st.session_state.get('student_view_mode', 'dashboard')
+
+    if st.sidebar.button('🏠 Ana Sayfa / Başarı Paneli', use_container_width=True, 
+                         type='primary' if cur_mode == 'dashboard' else 'secondary'):
+        st.session_state.student_view_mode = 'dashboard'
+        st.rerun()
+
     if is_egehan:
-        st.sidebar.markdown('---')
-        _sok_open = st.session_state.get('show_sok_survey', True)
-        _sok_btn = '📋 ŞÖK Anketini Kapat ✖' if _sok_open else '📝 ŞÖK Veri Toplama Anketi'
-        if st.sidebar.button(_sok_btn, use_container_width=True, type='primary'):
-            st.session_state['show_sok_survey'] = not _sok_open
+        if st.sidebar.button('📝 ŞÖK Veri Toplama Anketi', use_container_width=True, 
+                             type='primary' if cur_mode == 'sok_survey' else 'secondary'):
+            st.session_state.student_view_mode = 'sok_survey'
             st.rerun()
 
     if not is_prof_complete and not is_egehan:
-        st.sidebar.markdown('---')
-        _form_open = st.session_state.get('show_student_form', False)
-        _btn_label = '📋 Formu Kapat ✖' if _form_open else '⚠️ Öğrenci Tanıma Formunu Tamamla (Eksik Veri)'
-        if st.sidebar.button(_btn_label, use_container_width=True, type='primary'):
-            st.session_state['show_student_form'] = not _form_open
+        if st.sidebar.button('📋 Öğrenci Tanıma Formu', use_container_width=True, 
+                             type='primary' if cur_mode == 'profile_form' else 'secondary'):
+            st.session_state.student_view_mode = 'profile_form'
             st.rerun()
-    elif not is_egehan:
-        # Profilini tamamen tamamlamış öğrencilerin sayfasından ve menüsünden form kaldırılır
-        if st.session_state.get('show_student_form', False):
-            st.session_state['show_student_form'] = False
 
 
 # ===================== VERİ YOK KONTROLÜ =====================
@@ -438,28 +439,292 @@ if current_role == "student":
     diag = diagnose_student(st_data, st_kaz)
     stats = analyze_class_performance(results)
 
-    if not st.session_state.get("show_student_form", False):
+    cur_view_mode = st.session_state.get("student_view_mode", "dashboard")
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # MOD 1: ŞÖK ÖĞRENCİ VERİ TOPLAMA ANKETİ (Ayrı, Bağımsız Sayfa)
+    # ─────────────────────────────────────────────────────────────────────────
+    if cur_view_mode == "sok_survey" and is_egehan:
+        st.markdown(f"## 🎒 {student_name.title()} — ŞÖK Veri Toplama Masası")
+        st.info("🔍 **Örnek İnceleme Modu:** ŞÖK Öğrenci Veri Toplama Anketi, incelenmek üzere örnek olarak **Egehan Hardal** sayfasına açılmıştır. Yanıtları doldurup kaydederek ŞÖK evraklarına etkisini gözlemleyebilirsiniz.")
+        from core.sok_student_survey_ui import render_sok_student_survey
+        render_sok_student_survey(stu_id_resolved, student_name, st.session_state.get("student_no", "272"), allow_back_button=True)
+        st.stop()
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # MOD 2: ÖĞRENCİ TANIMA FORMU (Ayrı, Bağımsız Sayfa - Eksik olanlar için)
+    # ─────────────────────────────────────────────────────────────────────────
+    elif cur_view_mode == "profile_form" and not is_prof_complete:
+        c_nav1, c_nav2 = st.columns([1, 4])
+        if c_nav1.button("🏠 Ana Sayfaya Dön", key="btn_back_home_prof_top", type="secondary"):
+            st.session_state.student_view_mode = "dashboard"
+            st.rerun()
+
+        st.markdown("---")
+        st.markdown("## 📋 Öğrenci Tanıma Formu (Eksik Bilgileri Tamamlama)")
+        st.info("📝 Aşağıdaki formda eksik kalan bilgilerinizi tamamlamanız beklenmektedir. Yanıtlarınız gizlidir ve yalnızca rehberlik / sınıf öğretmeniniz tarafından görülecektir.")
+        if missing_fields:
+            st.warning(f"⚠️ **Doldurulması Gereken Eksik Alanlar:** {', '.join(missing_fields)}")
+
+        from core.student_profile import (init_profile_table, save_profile, get_profile,
+                                          profile_exists, profile_to_risk_factors)
+        init_profile_table()
+
+        stu_id_form = stu_id_resolved
+        if not stu_id_form:
+            st.warning("⚠️ Oturum bilgisi eksik. Lütfen çıkış yapıp tekrar giriş yapın.")
+        else:
+            existing = get_profile(stu_id_form) if profile_exists(stu_id_form) else {}
+
+            import json as _json_form
+
+            with st.container():
+                # ── BÖLÜM 1: Öğrenci Bilgileri ──
+                st.markdown("### 👤 Bölüm 1 — Öğrenci Bilgileri")
+                b1c1, b1c2 = st.columns(2)
+                cinsiyet    = b1c1.radio("Cinsiyetiniz", ["Kız", "Erkek"], horizontal=True,
+                                         index=0 if existing.get("cinsiyet") == "Kız" else 1 if existing.get("cinsiyet") == "Erkek" else 0)
+                cep_tel     = b1c2.text_input("Cep Telefonu Numaranız", value=existing.get("cep_telefon", ""), placeholder="05XX XXX XX XX")
+                dogum_yeri  = b1c1.text_input("Doğum Yeriniz", value=existing.get("dogum_yeri", ""))
+                dogum_tarihi= b1c2.text_input("Doğum Tarihiniz (GG.AA.YYYY)", value=existing.get("dogum_tarihi", ""), placeholder="01.01.2010")
+                okul_adi    = b1c1.text_input("Okulunuz", value=existing.get("okul_adi", ""))
+                adres       = b1c2.text_input("Adresiniz", value=existing.get("adres", ""))
+
+                st.markdown("---")
+                # ── BÖLÜM 2: Aile ve Ev Hayatı ──
+                st.markdown("### 🏠 Bölüm 2 — Aile ve Ev Hayatı")
+                kimler_opts = ["Annem ve babam", "Yalnızca annem", "Yalnızca babam",
+                               "Büyükanne / büyükbabam", "Diğer akrabalarım (hala, amca, dayı vb.)",
+                               "Abim / ablam / kardeşlerim", "Diğer"]
+                _ev_default = [x for x in safe_parse_list(existing.get("evde_kimseler")) if x in kimler_opts] if existing else []
+                evde_kimseler = st.multiselect("2.1 Evde kimlerle yaşıyorsunuz? (Birden fazla seçebilirsiniz)", kimler_opts, default=_ev_default)
+
+                st.markdown("**2.2 Anneniz hakkında:**")
+                b2a1, b2a2 = st.columns(2)
+                anne_adi    = b2a1.text_input("Annenizin Adı Soyadı", value=existing.get("anne_adi", ""))
+                anne_sag    = b2a2.radio("Anneniz sağ mı?", ["Evet", "Hayır"], horizontal=True,
+                                         index=0 if existing.get("anne_sag", "Evet") == "Evet" else 1)
+                anne_egitim = b2a1.selectbox("Annenizin en son bitirdiği okul",
+                                             ["Okuryazar değil", "İlkokul", "Ortaokul", "Lise", "Üniversite"],
+                                             index=["Okuryazar değil", "İlkokul", "Ortaokul", "Lise", "Üniversite"].index(existing.get("anne_egitim", "Ortaokul")) if existing.get("anne_egitim") in ["Okuryazar değil", "İlkokul", "Ortaokul", "Lise", "Üniversite"] else 2)
+                anne_meslek = b2a2.text_input("Annenizin Mesleği", value=existing.get("anne_meslek", ""))
+
+                st.markdown("**2.3 Babanız hakkında:**")
+                b2b1, b2b2 = st.columns(2)
+                baba_adi    = b2b1.text_input("Babanızın Adı Soyadı", value=existing.get("baba_adi", ""))
+                baba_sag    = b2b2.radio("Babanız sağ mı?", ["Evet", "Hayır"], horizontal=True,
+                                         index=0 if existing.get("baba_sag", "Evet") == "Evet" else 1)
+                baba_egitim = b2b1.selectbox("Babanızın en son bitirdiği okul",
+                                             ["Okuryazar değil", "İlkokul", "Ortaokul", "Lise", "Üniversite"],
+                                             index=["Okuryazar değil", "İlkokul", "Ortaokul", "Lise", "Üniversite"].index(existing.get("baba_egitim", "Ortaokul")) if existing.get("baba_egitim") in ["Okuryazar değil", "İlkokul", "Ortaokul", "Lise", "Üniversite"] else 2)
+                baba_meslek = b2b2.text_input("Babanızın Mesleği", value=existing.get("baba_meslek", ""))
+
+                birlik_opts = ["Evet, birlikte yaşıyorlar", "Hayır, ayrı yaşıyorlar", "Biri vefat etti"]
+                ebeveyn_birlikte = st.radio("2.4 Anne ve babanız birlikte mi yaşıyor?", birlik_opts,
+                                            index=birlik_opts.index(existing.get("ebeveyn_birlikte", "Evet, birlikte yaşıyorlar")) if existing.get("ebeveyn_birlikte") in birlik_opts else 0)
+
+                isci_opts = ["Hayır", "Evet", "Bazen"]
+                mevsimlik_isci = st.radio("2.5 Aileniz mevsimlik tarım işçiliği yapıyor mu?", isci_opts,
+                                          index=isci_opts.index(existing.get("mevsimlik_isci", "Hayır")) if existing.get("mevsimlik_isci") in isci_opts else 0)
+
+                st.markdown("---")
+                # ── BÖLÜM 3: Kardeşler ──
+                st.markdown("### 👧👦 Bölüm 3 — Kardeşler")
+                b3c1, b3c2, b3c3 = st.columns(3)
+                kardes_sayisi     = b3c1.number_input("Toplam Kardeş Sayınız", min_value=0, max_value=20,
+                                                      value=int(existing.get("kardes_sayisi") or 0))
+                kacinci_cocuk     = b3c2.number_input("Kaçıncı Çocuksunuz?", min_value=1, max_value=20,
+                                                      value=int(existing.get("kacinci_cocuk") or 1))
+                okula_giden_kardes= b3c3.number_input("Okula Giden Kardeş Sayısı", min_value=0, max_value=20,
+                                                      value=int(existing.get("okula_giden_kardes") or 0))
+
+                st.markdown("---")
+                # ── BÖLÜM 4: Sağlık ve Özel Durumlar ──
+                st.markdown("### 🏥 Bölüm 4 — Sağlık ve Özel Durumlar")
+                b4c1, b4c2 = st.columns(2)
+                ilac_kullaniyor = b4c1.radio("4.1 Sürekli kullandığınız bir ilaç var mı?", ["Hayır", "Evet"], horizontal=True,
+                                             index=0 if existing.get("ilac_kullaniyor", "Hayır") == "Hayır" else 1)
+                ilac_adi        = b4c2.text_input("İlacın Adı (Varsa)", value=existing.get("ilac_adi", ""),
+                                                  disabled=(ilac_kullaniyor == "Hayır"))
+
+                tani_var        = b4c1.radio("4.2 Doktor tarafından konulmuş bir teşhis / tanı var mı?", ["Hayır", "Evet"], horizontal=True,
+                                             index=0 if existing.get("tani_var", "Hayır") == "Hayır" else 1)
+                tani_aciklama   = b4c2.text_input("Tanının Açıklaması (Varsa)", value=existing.get("tani_aciklama", ""),
+                                                  disabled=(tani_var == "Hayır"))
+
+                ozel_egitim     = b4c1.radio("4.3 Özel eğitim veya RAM raporunuz var mı?", ["Hayır", "Evet"], horizontal=True,
+                                             index=0 if existing.get("ozel_egitim", "Hayır") == "Hayır" else 1)
+                ailede_hastalik = b4c2.radio("4.4 Ailede sürekli bakıma muhtaç veya kronik hasta var mı?", ["Hayır", "Evet"], horizontal=True,
+                                             index=0 if existing.get("ailede_hastalik", "Hayır") == "Hayır" else 1)
+                ailede_aciklama = st.text_input("Ailedeki Hastalık Açıklaması (Varsa)", value=existing.get("ailede_aciklama", ""),
+                                                disabled=(ailede_hastalik == "Hayır"))
+
+                st.markdown("---")
+                # ── BÖLÜM 5: Okul Hayatı ──
+                st.markdown("### 🎒 Bölüm 5 — Okul Hayatı")
+                devam_opts = ["Hiç gitmedim (0 gün)", "1 - 3 gün", "4 - 9 gün", "10 gün ve üzeri"]
+                devamsizlik_gun = st.selectbox("5.1 Bu yıl toplam kaç gün okula gelemediniz?", devam_opts,
+                                               index=devam_opts.index(existing.get("devamsizlik_gun", "Hiç gitmedim (0 gün)")) if existing.get("devamsizlik_gun") in devam_opts else 0)
+
+                zorluk_opts = ["Hayır, genellikle takip edebiliyorum", "Bazen bazı derslerde zorlanıyorum", "Evet, çoğu derste çok zorlanıyorum"]
+                ders_zorluk = st.radio("5.2 Dersleri takip etmekte zorlanıyor musunuz?", zorluk_opts,
+                                       index=zorluk_opts.index(existing.get("ders_zorluk", "Hayır, genellikle takip edebiliyorum")) if existing.get("ders_zorluk") in zorluk_opts else 0)
+
+                ders_listesi = ["Türkçe", "Matematik", "Fen Bilimleri", "İngilizce", "Sosyal Bilgiler / İnkılap Tarihi", "Din Kültürü"]
+                _zor_default = [x for x in safe_parse_list(existing.get("zor_dersler")) if x in ders_listesi] if existing else []
+                zor_dersler  = st.multiselect("5.3 Hangi dersler en zor geliyor? (Birden fazla seçebilirsiniz)", ders_listesi, default=_zor_default)
+
+                degistirdi_opts = ["Hayır, bu okulda sürekliyim", "Evet, bu yıl okul değiştirdim", "Evet, geçen yıl değiştirdim"]
+                okul_degistirdi = st.radio("5.4 Okula yakın zamanda yeni mi başladınız ya da okul değiştirdiniz mi?", degistirdi_opts,
+                                           index=degistirdi_opts.index(existing.get("okul_degistirdi", "Hayır, bu okulda sürekliyim")) if existing.get("okul_degistirdi") in degistirdi_opts else 0)
+
+                arkadas_opts = ["Kolaylıkla arkadaş edinebiliyorum", "Bazen zorluk çekiyorum", "Genellikle yalnız kalıyorum"]
+                arkadas_edinme = st.radio("5.5 Okulda arkadaş edinmekte nasıl buluyorsunuz kendinizi?", arkadas_opts,
+                                          index=arkadas_opts.index(existing.get("arkadas_edinme", "Kolaylıkla arkadaş edinebiliyorum")) if existing.get("arkadas_edinme") in arkadas_opts else 0)
+
+                st.markdown("---")
+                # ── BÖLÜM 6: Günlük Hayat ──
+                st.markdown("### 🌇 Bölüm 6 — Günlük Hayat")
+                calisma_opts = ["Hayır", "Evet, hafta sonları yardım ediyorum", "Evet, hafta içi düzenli çalışıyorum"]
+                calisma_durumu = st.radio("6.1 Okul dışında bir işte ya da tezgâhta çalışıyor musunuz?", calisma_opts,
+                                          index=calisma_opts.index(existing.get("calisma_durumu", "Hayır")) if existing.get("calisma_durumu") in calisma_opts else 0)
+
+                ortam_opts = ["Evet, rahat bir çalışma yerim var", "Bazen olmuyor", "Hayır, genellikle çalışacak ortam bulamıyorum"]
+                ders_ortami = st.radio("6.2 Ders çalışmak için evde sessiz bir ortamınız var mı?", ortam_opts,
+                                       index=ortam_opts.index(existing.get("ders_ortami", "Evet, rahat bir çalışma yerim var")) if existing.get("ders_ortami") in ortam_opts else 0)
+
+                internet_opts = ["Evet, evde var", "Yalnızca telefonum var", "Hayır, çoğu zaman erişemiyorum"]
+                internet_erisim = st.radio("6.3 İnternete ve bilgisayara erişiminiz var mı?", internet_opts,
+                                           index=internet_opts.index(existing.get("internet_erisim", "Evet, evde var")) if existing.get("internet_erisim") in internet_opts else 0)
+
+                tekno_opts = ["Tablet / Bilgisayar", "Akıllı telefon", "Akıllı saat / tablet", "Hiçbiri"]
+                _tekno_default = [x for x in safe_parse_list(existing.get("teknoloji_aleti")) if x in tekno_opts] if existing else []
+                teknoloji_aleti = st.multiselect("6.4 Kendinize ait teknolojik aletleriniz neler? (Birden fazla seçebilirsiniz)", tekno_opts, default=_tekno_default)
+
+                st.markdown("---")
+                # ── BÖLÜM 7: İlgi ve Hobiler ──
+                st.markdown("### 🎨 Bölüm 7 — İlgi ve Hobiler")
+                hobi_opts = ["Spor / Hareket", "Müzik / Sanat / Resim", "Kitap okumak", "Teknoloji / Oyun", "Doğa / Gezi", "Diğer"]
+                _hobi_default = safe_parse_list(existing.get("hobiler")) if existing else []
+                hobiler = st.multiselect("7.1 Ne yapmaktan hoşlanırsınız? (Birden fazla seçebilirsiniz)", hobi_opts, default=_hobi_default)
+
+                _kurs_c1, _kurs_c2 = st.columns([1, 2])
+                kurs_kulup = _kurs_c1.radio("7.2 Okul dışında katıldığınız bir spor, sanat veya hobi kulübü var mı?", ["Hayır", "Evet"], horizontal=True,
+                                            index=0 if existing.get("kurs_kulup", "Hayır") == "Hayır" else 1)
+                kurs_brans = _kurs_c2.text_input("Hangi branş(lar)?", value=existing.get("kurs_brans", "") if kurs_kulup == "Evet" else "", disabled=(kurs_kulup != "Evet"))
+                kurs_adi = kurs_brans
+
+                akademik_destek_opts = ["Hayır, almıyorum", "Okul kursu (ücretsiz)", "Dershane / Etüt merkezi", "Özel ders (bireysel)", "Online kurs / platform"]
+                _akad_default = [x for x in safe_parse_list(existing.get("akademik_destek")) if x in akademik_destek_opts] if existing else []
+                akademik_destek = st.multiselect("7.3 Okul dışında akademik destek alıyor musunuz? (Birden fazla seçebilirsiniz)", akademik_destek_opts, default=_akad_default)
+
+                st.markdown("---")
+                # ── BÖLÜM 8: Kendini Anlat ──
+                st.markdown("### 💬 Bölüm 8 — Kendini Anlat")
+                his_opts = ["😊 İyi, mutluyum", "😐 Fena değil, idare ediyorum", "😟 Son zamanlarda biraz zorlanıyorum", "😔 Çok zorlanıyorum, destek istiyorum"]
+                genel_his = st.radio("8.1 Kendinizi genel olarak nasıl hissediyorsunuz?", his_opts,
+                                     index=his_opts.index(existing.get("genel_his", "😊 İyi, mutluyum")) if existing.get("genel_his") in his_opts else 0)
+
+                zorlastiran_sey = st.text_area("8.2 Okul hayatında sizi en çok zorlaştıran şey nedir? (İsteğe bağlı)", value=existing.get("zorlastiran_sey", ""))
+
+                destek_opts = ["Hayır, şu an gerek duymuyorum", "Evet, ders konularında destek istiyorum", "Evet, kişisel bir şeyi paylaşmak istiyorum"]
+                destek_istek = st.radio("8.3 Özel destek almak ister misiniz?", destek_opts,
+                                        index=destek_opts.index(existing.get("destek_istek", "Hayır, şu an gerek duymuyorum")) if existing.get("destek_istek") in destek_opts else 0)
+
+                onemli_olay = st.radio("8.4 Hala etkisi altında olduğunuz önemli bir olay yaşadınız mı?", ["Hayır", "Evet (detay vermek zorunda değilsiniz)"], horizontal=True,
+                                       index=0 if existing.get("onemli_olay", "Hayır") == "Hayır" else 1)
+
+                st.markdown("---")
+                # ── BÖLÜM 9: Veli Bilgileri ──
+                st.markdown("### 👨‍👩‍👧 Bölüm 9 — Veli Bilgileri")
+                b9c1, b9c2 = st.columns(2)
+                veli_adi       = b9c1.text_input("Veli Adı Soyadı", value=existing.get("veli_adi", ""))
+                veli_yakin_opts = ["Anne", "Baba", "Büyükanne / Büyükbaba", "Diğer"]
+                veli_yakinligi = b9c2.selectbox("Yakınlığı", veli_yakin_opts, index=veli_yakin_opts.index(existing.get("veli_yakinligi", "Anne")) if existing.get("veli_yakinligi") in veli_yakin_opts else 0)
+                veli_telefon   = b9c1.text_input("Telefon Numarası", value=existing.get("veli_telefon", ""), placeholder="05XX XXX XX XX")
+                veli_egitim_opts = ["Okuryazar değil", "İlkokul", "Ortaokul", "Lise", "Üniversite"]
+                veli_egitim    = b9c2.selectbox("Eğitim Durumu", veli_egitim_opts, index=veli_egitim_opts.index(existing.get("veli_egitim", "Ortaokul")) if existing.get("veli_egitim") in veli_egitim_opts else 2)
+                veli_meslek    = b9c1.text_input("Mesleği", value=existing.get("veli_meslek", ""))
+
+                st.markdown("---")
+                c_sb1, c_sb2 = st.columns([2, 1])
+                submitted_profile = c_sb1.button("✅ Formu Kaydet", use_container_width=True, type="primary", key="btn_submit_prof_main")
+                btn_cancel_p = c_sb2.button("🏠 İptal ve Ana Sayfaya Dön", key="btn_cancel_prof_bot", use_container_width=True)
+
+                if btn_cancel_p:
+                    st.session_state.student_view_mode = "dashboard"
+                    st.rerun()
+
+                if submitted_profile:
+                    profile_data = {
+                        "cinsiyet": cinsiyet, "dogum_yeri": dogum_yeri,
+                        "dogum_tarihi": dogum_tarihi, "okul_adi": okul_adi,
+                        "adres": adres, "cep_telefon": cep_tel,
+                        "evde_kimseler": _json_form.dumps(evde_kimseler, ensure_ascii=False),
+                        "anne_adi": anne_adi, "anne_sag": anne_sag,
+                        "anne_egitim": anne_egitim, "anne_meslek": anne_meslek,
+                        "baba_adi": baba_adi, "baba_sag": baba_sag,
+                        "baba_egitim": baba_egitim, "baba_meslek": baba_meslek,
+                        "ebeveyn_birlikte": ebeveyn_birlikte,
+                        "mevsimlik_isci": mevsimlik_isci,
+                        "kardes_sayisi": kardes_sayisi, "kacinci_cocuk": kacinci_cocuk,
+                        "okula_giden_kardes": okula_giden_kardes,
+                        "ilac_kullaniyor": ilac_kullaniyor, "ilac_adi": ilac_adi,
+                        "tani_var": tani_var, "tani_aciklama": tani_aciklama,
+                        "ozel_egitim": ozel_egitim, "ailede_hastalik": ailede_hastalik, "ailede_aciklama": ailede_aciklama,
+                        "devamsizlik_gun": devamsizlik_gun, "ders_zorluk": ders_zorluk,
+                        "zor_dersler": _json_form.dumps(zor_dersler, ensure_ascii=False),
+                        "okul_degistirdi": okul_degistirdi,
+                        "arkadas_edinme": arkadas_edinme,
+                        "calisma_durumu": calisma_durumu, "ders_ortami": ders_ortami,
+                        "internet_erisim": internet_erisim, "teknoloji_aleti": _json_form.dumps(teknoloji_aleti, ensure_ascii=False),
+                        "hobiler": _json_form.dumps(hobiler, ensure_ascii=False),
+                        "kurs_kulup": kurs_kulup, "kurs_adi": kurs_adi,
+                        "kurs_brans": kurs_brans,
+                        "akademik_destek": _json_form.dumps(akademik_destek, ensure_ascii=False),
+                        "genel_his": genel_his, "zorlastiran_sey": zorlastiran_sey,
+                        "destek_istek": destek_istek, "onemli_olay": onemli_olay,
+                        "veli_adi": veli_adi, "veli_yakinligi": veli_yakinligi,
+                        "veli_telefon": veli_telefon, "veli_egitim": veli_egitim,
+                        "veli_meslek": veli_meslek,
+                    }
+                    save_profile(stu_id_form, profile_data)
+                    profile_to_risk_factors(stu_id_form, profile_data)
+                    st.session_state["edit_profile"] = False
+                    st.session_state["student_view_mode"] = "dashboard"
+                    st.success("✅ Öğrenci Tanıma Formunuz eksiksiz tamamlandı ve kaydedildi!")
+                    st.balloons()
+                    st.rerun()
+        st.stop()
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # MOD 3: ANA SAYFA / AKADEMİK BAŞARI PANELİ (Default Dashboard Görünümü)
+    # ─────────────────────────────────────────────────────────────────────────
+    else:
         # --- Öğrenci KPI ---
         st.markdown(f"## 🎒 Hoş Geldiniz, {student_name.title()}!")
         st.markdown("---")
 
-        if is_egehan and st.session_state.get('show_sok_survey', True):
-            st.info("🔍 **Örnek İnceleme Modu:** ŞÖK Öğrenci Veri Toplama Anketi, incelenmek üzere örnek olarak **Egehan Hardal** sayfasına kullanıma açılmıştır. Soruları inceleyebilir, işaretleyebilir ve test amacıyla kaydedebilirsiniz.")
-            from core.sok_student_survey_ui import render_sok_student_survey
-            render_sok_student_survey(stu_id_resolved, student_name, st.session_state.get("student_no", "272"))
+        # Buton Kartları (Formlara geçiş)
+        if is_egehan:
+            c_sok_card1, c_sok_card2 = st.columns([3, 1])
+            with c_sok_card1:
+                st.info("📝 **ŞÖK Öğrenci Veri Toplama Anketi:** İncelemeniz için örnek form sayfanıza açılmıştır.")
+            with c_sok_card2:
+                if st.button("📝 Anketi Aç ve İncele", key="btn_open_sok_survey_dash", type="primary", use_container_width=True):
+                    st.session_state.student_view_mode = "sok_survey"
+                    st.rerun()
             st.markdown("---")
 
-        if not is_prof_complete:
-            st.warning(
-                f"⚠️ **Öğrenci Tanıma Formu Hatırlatması:**\n\n"
-                f"Sayın **{student_name.title()}**, rehberlik ve akademik takip kayıtlarınızda profilinizin henüz tamamlanmadığı tespit edilmiştir.\n\n"
-                f"📌 **Doldurulması Gereken Eksik Alanlar:** `{', '.join(missing_fields)}`"
-            )
-            if st.button("📝 Eksik Bilgileri Tamamlamak İçin Formu Aç", key="btn_open_missing_prof_top", type="primary"):
-                st.session_state['show_student_form'] = True
-                st.rerun()
+        if not is_prof_complete and not is_egehan:
+            c_prof_card1, c_prof_card2 = st.columns([3, 1])
+            with c_prof_card1:
+                st.warning(f"⚠️ **Öğrenci Tanıma Formu:** Eksik bilgiler bulunmaktadır (`{', '.join(missing_fields)}`).")
+            with c_prof_card2:
+                if st.button("📋 Formu Aç ve Tamamla", key="btn_open_missing_prof_top", type="primary", use_container_width=True):
+                    st.session_state.student_view_mode = "profile_form"
+                    st.rerun()
             st.markdown("---")
-
         # İki Deneme Arası Karşılaştırmalı Gelişim Kartı
         try:
             from core.comparative_analyzer import get_multi_exam_comparison
@@ -669,309 +934,9 @@ if current_role == "student":
             ax_h.grid(True, linestyle='--', alpha=0.5)
             st.pyplot(fig_h)
 
-        # ─────────────────────────────────────────────────────────────────────────
-    if st.session_state.get("show_student_form", False) and not is_prof_complete:
-        # ÖĞRENCİ TANIMA FORMU — Sadece eksik veya doldurulmamış olan öğrencilerde göster
-        # ─────────────────────────────────────────────────────────────────────────
-        st.markdown("---")
-        st.markdown("## 📋 Öğrenci Tanıma Formu (Eksik Bilgileri Tamamlama)")
-        st.info("📝 Aşağıdaki formda eksik kalan bilgilerinizi tamamlamanız beklenmektedir. Yanıtlarınız gizlidir ve yalnızca rehberlik / sınıf öğretmeniniz tarafından görülecektir.")
-        if missing_fields:
-            st.warning(f"⚠️ **Doldurulması Gereken Eksik Alanlar:** {', '.join(missing_fields)}")
 
-        from core.student_profile import (init_profile_table, save_profile, get_profile,
-                                          profile_exists, profile_to_risk_factors)
-        init_profile_table()
+        st.stop()  # Öğrenci görünümü burada biter
 
-        stu_id_form = stu_id_resolved
-        if not stu_id_form:
-            st.warning("⚠️ Oturum bilgisi eksik. Lütfen çıkış yapıp tekrar giriş yapın.")
-        else:
-            existing = get_profile(stu_id_form) if profile_exists(stu_id_form) else {}
-
-            import json as _json_form
-
-            with st.container():
-
-                # ── BÖLÜM 1: Öğrenci Bilgileri ──────────────────────────────────
-                st.markdown("### 👤 Bölüm 1 — Öğrenci Bilgileri")
-                b1c1, b1c2 = st.columns(2)
-                cinsiyet    = b1c1.radio("Cinsiyetiniz", ["Kız", "Erkek"], horizontal=True,
-                                         index=0 if existing.get("cinsiyet") == "Kız" else 1 if existing.get("cinsiyet") == "Erkek" else 0)
-                cep_tel     = b1c2.text_input("Cep Telefonu Numaranız", value=existing.get("cep_telefon", ""),
-                                              placeholder="05XX XXX XX XX")
-                dogum_yeri  = b1c1.text_input("Doğum Yeriniz", value=existing.get("dogum_yeri", ""))
-                dogum_tarihi= b1c2.text_input("Doğum Tarihiniz (GG.AA.YYYY)", value=existing.get("dogum_tarihi", ""),
-                                              placeholder="01.01.2010")
-                okul_adi    = b1c1.text_input("Okulunuz", value=existing.get("okul_adi", ""))
-                adres       = b1c2.text_input("Adresiniz", value=existing.get("adres", ""))
-
-                st.markdown("---")
-                # ── BÖLÜM 2: Aile ve Ev Hayatı ──────────────────────────────────
-                st.markdown("### 🏠 Bölüm 2 — Aile ve Ev Hayatı")
-
-                kimler_opts = ["Annem ve babam", "Yalnızca annem", "Yalnızca babam",
-                               "Büyükanne / büyükbabam", "Diğer akrabalarım (hala, amca, dayı vb.)",
-                               "Abim / ablam / kardeşlerim", "Diğer"]
-                _ev_default = [x for x in safe_parse_list(existing.get("evde_kimseler")) if x in kimler_opts] if existing else []
-                evde_kimseler = st.multiselect("2.1 Evde kimlerle yaşıyorsunuz? (Birden fazla seçebilirsiniz)",
-                                               kimler_opts, default=_ev_default)
-
-                st.markdown("**2.2 Anneniz hakkında:**")
-                b2a1, b2a2 = st.columns(2)
-                anne_adi    = b2a1.text_input("Annenizin Adı Soyadı", value=existing.get("anne_adi", ""))
-                anne_sag    = b2a2.radio("Anneniz sağ mı?", ["Evet", "Hayır"], horizontal=True,
-                                         index=0 if existing.get("anne_sag", "Evet") == "Evet" else 1)
-                anne_egitim = b2a1.selectbox("Annenizin en son bitirdiği okul",
-                                             ["Okuryazar değil", "İlkokul", "Ortaokul", "Lise", "Üniversite"],
-                                             index=["Okuryazar değil","İlkokul","Ortaokul","Lise","Üniversite"].index(existing.get("anne_egitim","Ortaokul")) if existing.get("anne_egitim") in ["Okuryazar değil","İlkokul","Ortaokul","Lise","Üniversite"] else 2)
-                anne_meslek = b2a2.text_input("Annenizin Mesleği", value=existing.get("anne_meslek", ""),
-                                              placeholder="Çalışmıyor / Öğretmen / vb.")
-
-                st.markdown("**2.3 Babanız hakkında:**")
-                b2b1, b2b2 = st.columns(2)
-                baba_adi    = b2b1.text_input("Babanızın Adı Soyadı", value=existing.get("baba_adi", ""))
-                baba_sag    = b2b2.radio("Babanız sağ mı?", ["Evet", "Hayır"], horizontal=True,
-                                         index=0 if existing.get("baba_sag", "Evet") == "Evet" else 1)
-                baba_egitim = b2b1.selectbox("Babanızın en son bitirdiği okul",
-                                             ["Okuryazar değil", "İlkokul", "Ortaokul", "Lise", "Üniversite"],
-                                             index=["Okuryazar değil","İlkokul","Ortaokul","Lise","Üniversite"].index(existing.get("baba_egitim","Ortaokul")) if existing.get("baba_egitim") in ["Okuryazar değil","İlkokul","Ortaokul","Lise","Üniversite"] else 2)
-                baba_meslek = b2b2.text_input("Babanızın Mesleği", value=existing.get("baba_meslek", ""),
-                                              placeholder="Çalışmıyor / Müteahhit / vb.")
-
-                ebeveyn_opts = ["Evet, birlikte yaşıyorlar", "Hayır, ayrı yaşıyorlar"]
-                ebeveyn_birlikte = st.radio("2.4 Anne ve babanız birlikte mi yaşıyor?",
-                                            ebeveyn_opts, horizontal=True,
-                                            index=0 if existing.get("ebeveyn_birlikte","Evet, birlikte yaşıyorlar") == "Evet, birlikte yaşıyorlar" else 1)
-
-                mevsimlik_opts = ["Hayır", "Evet", "Bazen"]
-                mevsimlik_isci = st.radio("2.5 Aile olarak son 1 yılda mevsimlik/geçici bir işte başka şehirlere gittiniz mi?",
-                                          mevsimlik_opts, horizontal=True,
-                                          index=mevsimlik_opts.index(existing.get("mevsimlik_isci","Hayır")) if existing.get("mevsimlik_isci") in mevsimlik_opts else 0)
-
-                st.markdown("---")
-                # ── BÖLÜM 3: Kardeşler ──────────────────────────────────────────
-                st.markdown("### 👨‍👩‍👧‍👦 Bölüm 3 — Kardeşler")
-                b3c1, b3c2, b3c3 = st.columns(3)
-                kardes_sayisi       = b3c1.number_input("Kaç kardeşiniz var?", min_value=0, max_value=20,
-                                                        value=int(existing.get("kardes_sayisi") or 0))
-                kacinci_cocuk       = b3c2.number_input("Ailenizin kaçıncı çocuğusunuz?", min_value=1, max_value=20,
-                                                        value=int(existing.get("kacinci_cocuk") or 1))
-                okula_giden_kardes  = b3c3.number_input("Okula giden kardeş sayınız", min_value=0, max_value=20,
-                                                        value=int(existing.get("okula_giden_kardes") or 0))
-
-                st.markdown("---")
-                # ── BÖLÜM 4: Sağlık ─────────────────────────────────────────────
-                st.markdown("### 🏥 Bölüm 4 — Sağlık Bilgileri")
-                _ilac_c1, _ilac_c2 = st.columns([1, 2])
-                ilac_kullaniyor = _ilac_c1.radio("4.1 Sürekli kullandığınız bir ilaç veya tıbbi cihazınız var mı?",
-                                                ["Hayır", "Evet"], horizontal=True,
-                                                index=0 if existing.get("ilac_kullaniyor","Hayır") == "Hayır" else 1)
-                ilac_adi = _ilac_c2.text_input("İlaç / cihaz adı",
-                                               value=existing.get("ilac_adi","") if ilac_kullaniyor == "Evet" else "",
-                                               disabled=(ilac_kullaniyor != "Evet"),
-                                               placeholder="İlaç veya cihaz adını yazınız..." if ilac_kullaniyor == "Evet" else "('Evet' seçilince aktif olur)")
-
-                _tani_c1, _tani_c2 = st.columns([1, 2])
-                tani_var = _tani_c1.radio("4.2 Tanısı konulmuş bir hastalığınız ya da engel durumunuz var mı?",
-                                         ["Hayır", "Evet"], horizontal=True,
-                                         index=0 if existing.get("tani_var","Hayır") == "Hayır" else 1)
-                tani_aciklama = _tani_c2.text_input("Tanısı nedir?",
-                                                    value=existing.get("tani_aciklama","") if tani_var == "Evet" else "",
-                                                    disabled=(tani_var != "Evet"),
-                                                    placeholder="Örn: DEHB, Astım, Görme engeli..." if tani_var == "Evet" else "('Evet' seçilince aktif olur)")
-
-                ozel_egitim_opts = ["Hayır", "Evet, özel eğitim alıyorum",
-                                    "Evet, kaynaştırma öğrencisiyim", "Evet, destek eğitimi alıyorum"]
-                ozel_egitim = st.radio("4.3 Özel eğitim, kaynaştırma veya destek eğitimi alıyor musunuz?",
-                                       ozel_egitim_opts,
-                                       index=ozel_egitim_opts.index(existing.get("ozel_egitim","Hayır")) if existing.get("ozel_egitim") in ozel_egitim_opts else 0)
-
-                _aile_c1, _aile_c2 = st.columns([1, 2])
-                ailede_hastalik = _aile_c1.radio("4.4 Ailenizde uzun süreli bir hastalığı ya da engel durumu olan biri var mı?",
-                                                 ["Hayır", "Evet"], horizontal=True,
-                                                 index=0 if existing.get("ailede_hastalik","Hayır") == "Hayır" else 1)
-                ailede_aciklama = _aile_c2.text_input("Kim, ne hastalığı?",
-                                                      value=existing.get("ailede_aciklama","") if ailede_hastalik == "Evet" else "",
-                                                      disabled=(ailede_hastalik != "Evet"),
-                                                      placeholder="Örn: Annem - şeker hastalığı / Babam - kalp..." if ailede_hastalik == "Evet" else "('Evet' seçilince aktif olur)")
-
-                st.markdown("---")
-                # ── BÖLÜM 5: Okul Hayatı ────────────────────────────────────────
-                st.markdown("### 🏫 Bölüm 5 — Okul Hayatı")
-                devamsizlik_opts = ["Hiç gitmedim (0 gün)", "1–3 gün", "4–9 gün", "10 gün ve üzeri"]
-                devamsizlik_gun  = st.radio("5.1 Bu dönem yaklaşık kaç gün okula gidemediniz?",
-                                            devamsizlik_opts,
-                                            index=devamsizlik_opts.index(existing.get("devamsizlik_gun","Hiç gitmedim (0 gün)")) if existing.get("devamsizlik_gun") in devamsizlik_opts else 0)
-
-                zorluk_opts = ["Hayır, genellikle takip edebiliyorum",
-                               "Bazı derslerde zorlanıyorum",
-                               "Evet, çoğu derste ciddi zorluk çekiyorum"]
-                ders_zorluk = st.radio("5.2 Dersleri takip etmekte zorlanıyor musunuz?",
-                                       zorluk_opts,
-                                       index=zorluk_opts.index(existing.get("ders_zorluk","Hayır, genellikle takip edebiliyorum")) if existing.get("ders_zorluk") in zorluk_opts else 0)
-
-                ders_opts = ["Türkçe","Matematik","Fen Bilimleri","İngilizce",
-                             "Sosyal Bilgiler / İnkılap Tarihi","Din Kültürü"]
-                _zor_default = [x for x in safe_parse_list(existing.get("zor_dersler")) if x in ders_listesi] if existing else []
-                zor_dersler  = st.multiselect("5.3 Hangi dersler en zor geliyor? (Birden fazla seçebilirsiniz)",
-                                              ders_opts, default=_zor_default)
-
-                degistirdi_opts = ["Hayır, bu okulda sürekliyim",
-                                   "Evet, bu yıl okul değiştirdim",
-                                   "Evet, geçen yıl değiştirdim"]
-                okul_degistirdi = st.radio("5.4 Okula yakın zamanda yeni mi başladınız ya da okul değiştirdiniz mi?",
-                                           degistirdi_opts,
-                                           index=degistirdi_opts.index(existing.get("okul_degistirdi","Hayır, bu okulda sürekliyim")) if existing.get("okul_degistirdi") in degistirdi_opts else 0)
-
-                arkadas_opts = ["Kolaylıkla arkadaş edinebiliyorum",
-                                "Bazen zorluk çekiyorum",
-                                "Genellikle yalnız kalıyorum"]
-                arkadas_edinme = st.radio("5.5 Okulda arkadaş edinmekte nasıl buluyorsunuz kendinizi?",
-                                          arkadas_opts,
-                                          index=arkadas_opts.index(existing.get("arkadas_edinme","Kolaylıkla arkadaş edinebiliyorum")) if existing.get("arkadas_edinme") in arkadas_opts else 0)
-
-                st.markdown("---")
-                # ── BÖLÜM 6: Günlük Hayat ───────────────────────────────────────
-                st.markdown("### 🌇 Bölüm 6 — Günlük Hayat")
-                calisma_opts = ["Hayır", "Evet, hafta sonları yardım ediyorum",
-                                "Evet, hafta içi düzenli çalışıyorum"]
-                calisma_durumu = st.radio("6.1 Okul dışında bir işte ya da tezgâhta çalışıyor musunuz?",
-                                          calisma_opts,
-                                          index=calisma_opts.index(existing.get("calisma_durumu","Hayır")) if existing.get("calisma_durumu") in calisma_opts else 0)
-
-                ortam_opts = ["Evet, rahat bir çalışma yerim var",
-                              "Bazen olmuyor",
-                              "Hayır, genellikle çalışacak ortam bulamıyorum"]
-                ders_ortami = st.radio("6.2 Ders çalışmak için evde sessiz bir ortamınız var mı?",
-                                       ortam_opts,
-                                       index=ortam_opts.index(existing.get("ders_ortami","Evet, rahat bir çalışma yerim var")) if existing.get("ders_ortami") in ortam_opts else 0)
-
-                internet_opts = ["Evet, evde var", "Yalnızca telefonum var",
-                                 "Hayır, çoğu zaman erişemiyorum"]
-                internet_erisim = st.radio("6.3 İnternete ve bilgisayara erişiminiz var mı?",
-                                           internet_opts,
-                                           index=internet_opts.index(existing.get("internet_erisim","Evet, evde var")) if existing.get("internet_erisim") in internet_opts else 0)
-
-                tekno_opts = ["Tablet / Bilgisayar", "Akıllı telefon", "Akıllı saat / tablet", "Hiçbiri"]
-                _tekno_default = [x for x in safe_parse_list(existing.get("teknoloji_aleti")) if x in tekno_opts] if existing else []
-                teknoloji_aleti = st.multiselect("6.4 Kendinize ait teknolojik aletleriniz neler? (Birden fazla seçebilirsiniz)",
-                                                 tekno_opts, default=_tekno_default)
-
-                st.markdown("---")
-                # ── BÖLÜM 7: İlgi ve Hobiler ───────────────────────────────────
-                st.markdown("### 🎨 Bölüm 7 — İlgi ve Hobiler")
-                hobi_opts = ["Spor / Hareket", "Müzik / Sanat / Resim",
-                             "Kitap okumak", "Teknoloji / Oyun", "Doğa / Gezi", "Diğer"]
-                _hobi_default = safe_parse_list(existing.get("hobiler")) if existing else []
-                hobiler = st.multiselect("7.1 Ne yapmaktan hoşlanırsınız? (Birden fazla seçebilirsiniz)",
-                                         hobi_opts, default=_hobi_default)
-
-                _kurs_c1, _kurs_c2 = st.columns([1, 2])
-                kurs_kulup = _kurs_c1.radio("7.2 Okul dışında katıldığınız bir spor, sanat veya hobi kulübü var mı?",
-                                            ["Hayır", "Evet"], horizontal=True,
-                                            index=0 if existing.get("kurs_kulup","Hayır") == "Hayır" else 1)
-                kurs_brans = _kurs_c2.text_input("Hangi branş(lar)? (Birden fazlaysa araya tire '-' koyun)",
-                                                 value=existing.get("kurs_brans","") if kurs_kulup == "Evet" else "",
-                                                 disabled=(kurs_kulup != "Evet"),
-                                                 placeholder="Örn: Yüzme - Basketbol (Tire ile ayırınız)" if kurs_kulup == "Evet" else "('Evet' seçilince aktif olur)")
-                kurs_adi = kurs_brans
-
-                akademik_destek_opts = ["Hayır, almıyorum", "Okul kursu (ücretsiz)", "Dershane / Etüt merkezi",
-                                        "Özel ders (bireysel)", "Online kurs / platform (Eba, YouTube vb.)"]
-                _akad_default = [x for x in safe_parse_list(existing.get("akademik_destek")) if x in akademik_destek_opts] if existing else []
-                akademik_destek = st.multiselect(
-                    "7.3 Okul dışında akademik destek alıyor musunuz? (Birden fazla seçebilirsiniz)",
-                    akademik_destek_opts, default=_akad_default)
-
-                st.markdown("---")
-                # ── BÖLÜM 8: Kendini Anlat ─────────────────────────────────────
-                st.markdown("### 💬 Bölüm 8 — Kendini Anlat")
-                his_opts = ["😊 İyi, mutluyum", "😐 Fena değil, idare ediyorum",
-                            "😟 Son zamanlarda biraz zorlanıyorum",
-                            "😔 Çok zorlanıyorum, destek istiyorum"]
-                genel_his = st.radio("8.1 Kendinizi genel olarak nasıl hissediyorsunuz? (Okul hayatı açısından)",
-                                     his_opts,
-                                     index=his_opts.index(existing.get("genel_his","😊 İyi, mutluyum")) if existing.get("genel_his") in his_opts else 0)
-
-                zorlastiran_sey = st.text_area("8.2 Okul hayatında sizi en çok zorlaştıran şey nedir? (İsteğe bağlı)",
-                                               value=existing.get("zorlastiran_sey",""),
-                                               placeholder="Örn: ulaşım, ders çalışma ortamı, sosyal ilişkiler...")
-
-                destek_opts = ["Hayır, şu an gerek duymuyorum",
-                               "Evet, ders konularında destek istiyorum",
-                               "Evet, kişisel bir şeyi paylaşmak istiyorum"]
-                destek_istek = st.radio("8.3 Öğretmenlerinizden ya da okul rehberinden özel destek almak ister misiniz?",
-                                        destek_opts,
-                                        index=destek_opts.index(existing.get("destek_istek","Hayır, şu an gerek duymuyorum")) if existing.get("destek_istek") in destek_opts else 0)
-
-                onemli_olay = st.radio("8.4 Hala etkisi altında olduğunuz önemli bir olay ya da değişiklik yaşadınız mı?",
-                                       ["Hayır", "Evet (detay vermek zorunda değilsiniz)"],
-                                       horizontal=True,
-                                       index=0 if existing.get("onemli_olay","Hayır") == "Hayır" else 1)
-
-                st.markdown("---")
-                # ── BÖLÜM 9: Veli Bilgileri ────────────────────────────────────
-                st.markdown("### 👨‍👩‍👧 Bölüm 9 — Veli Bilgileri")
-                st.caption("Bu bölümü mümkünse veliye doldurun ya da sonradan güncelleyin.")
-                b9c1, b9c2 = st.columns(2)
-                veli_adi       = b9c1.text_input("Veli Adı Soyadı", value=existing.get("veli_adi",""))
-                veli_yakin_opts = ["Anne", "Baba", "Büyükanne / Büyükbaba", "Diğer"]
-                veli_yakinligi = b9c2.selectbox("Yakınlığı",
-                                                veli_yakin_opts,
-                                                index=veli_yakin_opts.index(existing.get("veli_yakinligi","Anne")) if existing.get("veli_yakinligi") in veli_yakin_opts else 0)
-                veli_telefon   = b9c1.text_input("Telefon Numarası", value=existing.get("veli_telefon",""),
-                                                 placeholder="05XX XXX XX XX")
-                veli_egitim_opts = ["Okuryazar değil","İlkokul","Ortaokul","Lise","Üniversite"]
-                veli_egitim    = b9c2.selectbox("Eğitim Durumu", veli_egitim_opts,
-                                                index=veli_egitim_opts.index(existing.get("veli_egitim","Ortaokul")) if existing.get("veli_egitim") in veli_egitim_opts else 2)
-                veli_meslek    = b9c1.text_input("Mesleği", value=existing.get("veli_meslek",""))
-
-                st.markdown("---")
-                submitted_profile = st.button("✅ Formu Kaydet", use_container_width=True, type="primary", key="btn_submit_prof_main")
-
-                if submitted_profile:
-                    profile_data = {
-                        "cinsiyet": cinsiyet, "dogum_yeri": dogum_yeri,
-                        "dogum_tarihi": dogum_tarihi, "okul_adi": okul_adi,
-                        "adres": adres, "cep_telefon": cep_tel,
-                        "evde_kimseler": _json_form.dumps(evde_kimseler, ensure_ascii=False),
-                        "anne_adi": anne_adi, "anne_sag": anne_sag,
-                        "anne_egitim": anne_egitim, "anne_meslek": anne_meslek,
-                        "baba_adi": baba_adi, "baba_sag": baba_sag,
-                        "baba_egitim": baba_egitim, "baba_meslek": baba_meslek,
-                        "ebeveyn_birlikte": ebeveyn_birlikte,
-                        "mevsimlik_isci": mevsimlik_isci,
-                        "kardes_sayisi": kardes_sayisi, "kacinci_cocuk": kacinci_cocuk,
-                        "okula_giden_kardes": okula_giden_kardes,
-                        "ilac_kullaniyor": ilac_kullaniyor, "ilac_adi": ilac_adi,
-                        "tani_var": tani_var, "tani_aciklama": tani_aciklama,
-                        "ozel_egitim": ozel_egitim, "ailede_hastalik": ailede_hastalik, "ailede_aciklama": ailede_aciklama,
-                        "devamsizlik_gun": devamsizlik_gun, "ders_zorluk": ders_zorluk,
-                        "zor_dersler": _json_form.dumps(zor_dersler, ensure_ascii=False),
-                        "okul_degistirdi": okul_degistirdi,
-                        "arkadas_edinme": arkadas_edinme,
-                        "calisma_durumu": calisma_durumu, "ders_ortami": ders_ortami,
-                        "internet_erisim": internet_erisim, "teknoloji_aleti": _json_form.dumps(teknoloji_aleti, ensure_ascii=False),
-                        "hobiler": _json_form.dumps(hobiler, ensure_ascii=False),
-                        "kurs_kulup": kurs_kulup, "kurs_adi": kurs_adi,
-                        "kurs_brans": kurs_brans,
-                        "akademik_destek": _json_form.dumps(akademik_destek, ensure_ascii=False),
-                        "genel_his": genel_his, "zorlastiran_sey": zorlastiran_sey,
-                        "destek_istek": destek_istek, "onemli_olay": onemli_olay,
-                        "veli_adi": veli_adi, "veli_yakinligi": veli_yakinligi,
-                        "veli_telefon": veli_telefon, "veli_egitim": veli_egitim,
-                        "veli_meslek": veli_meslek,
-                    }
-                    save_profile(stu_id_form, profile_data)
-                    profile_to_risk_factors(stu_id_form, profile_data)
-                    st.session_state["edit_profile"] = False
-                    st.session_state["show_student_form"] = False
-                    st.success("✅ Öğrenci Tanıma Formunuz eksiksiz tamamlandı ve kaydedildi! Form sayfanızdan kaldırılmıştır.")
-                    st.balloons()
-                    st.rerun()
-
-    st.stop()  # Öğrenci görünümü burada biter
 
 
 # ╔══════════════════════════════════════════════════════════╗
