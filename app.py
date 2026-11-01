@@ -959,9 +959,10 @@ tabs_list = [
     "📚 Branş Öğretmen Raporları",
     "📈 Çoklu Deneme Gelişim Takibi",
     "🗺️ Risk Haritası",
+    "⚖️ ŞÖK Modülü (Şube Öğretmenler Kurulu)",
     "⚡ Otomatik Rapor & Karne Üretici"
 ]
-tab1, tab2, tab3, tab_branch, tab4, tab_risk, tab5 = st.tabs(tabs_list)
+tab1, tab2, tab3, tab_branch, tab4, tab_risk, tab_sok, tab5 = st.tabs(tabs_list)
 
 # ----------------- TAB 1: Sınıf Genel Görünümü -----------------
 with tab1:
@@ -2507,6 +2508,309 @@ with tab_risk:
                     )
 
 
+
+
+# ----------------- TAB SOK: Sube Ogretmenler Kurulu Modulu -----------------
+with tab_sok:
+    import unicodedata
+    from core.sok_generator import (
+        get_8b_students_sok_data, 
+        get_8b_sok_gundem_and_observation_data,
+        fill_sok_madde_11_docx,
+        fill_sok_gundem_ve_gozlem_docx
+    )
+    sok_meta = get_8b_sok_gundem_and_observation_data()
+    evals = sok_meta["st_evals"]
+
+    st.markdown("## ⚖️ 8/B Şube Öğretmenler Kurulu (ŞÖK) Yönetim ve Karar Masası")
+    st.caption("MEB Okul Öncesi Eğitim ve İlköğretim Kurumları Yönetmeliği (Md. 36) ve MEB Eğitim Kurulları ve Zümreleri Yönergesi (Md. 10 & 11) Standartlarında")
+
+    # Üst İstatistik ve Bilgi Kartları
+    c_sk1, c_sk2, c_sk3, c_sk4 = st.columns(4)
+    c_sk1.metric("👥 Şube Mevcudu", f"{len(evals)} Öğrenci", "8/B (15 Erkek / 14 Kız)")
+    c_sk2.metric("🎓 Sınıf LGS Net Ort.", "44.80 Net", "+7.37 İlerleme Trendi")
+    c_sk3.metric("🌟 Şampiyonlar Grubu", f"{len(sok_meta['leaders'])} Öğrenci", "70+ Net Bandı")
+    c_sk4.metric("⚠️ F33 Akademik Destek", f"{len(sok_meta['needs_support'])} Öğrenci", "<25 Net Bireysel Telafi")
+
+    st.markdown("---")
+
+    subtab_m11, subtab_gozlem, subtab_tutanak, subtab_kararlar, subtab_indir = st.tabs([
+        "👥 Madde 11: Bireysel Değerlendirme Tablosu",
+        "📝 8/B Sınıf Gözlem Formu",
+        "📑 ŞÖK Toplantı Tutanağı & Gündem",
+        "⚖️ Alınan Kurul Kararları",
+        "📥 Resmi ŞÖK Belgelerini İndir (.docx)"
+    ])
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # SUBTAB 1: Madde 11 Bireysel Öğrenci Değerlendirme Tablosu
+    # ─────────────────────────────────────────────────────────────────────────
+    with subtab_m11:
+        st.subheader("📋 Madde 11: Öğrencilerin Kişilik, Beslenme, Sağlık ve Sosyal İlişkilerinin Geliştirilmesi")
+        st.caption("MEB Yönetmelik Madde 36 uyarınca her öğrencinin bireysel durum, problem çözümü ve görevli birim değerlendirmesi:")
+
+        col_f1, col_f2 = st.columns([2, 1])
+        with col_f1:
+            search_st = st.text_input("🔍 Öğrenci Adı veya Numarası ile Filtrele:", "", key="sok_st_search")
+        with col_f2:
+            filter_cat = st.selectbox("🎯 Durum Filtresi:", [
+                "Tümü (29 Öğrenci)",
+                "🌟 Şampiyonlar (65+ Net)",
+                "⚠️ F33 Akademik Destek (<25 Net)",
+                "💊 Sağlık / İlaç Takibi Olanlar"
+            ], key="sok_cat_filter")
+
+        filtered_evals = evals
+        if search_st:
+            filtered_evals = [e for e in filtered_evals if search_st.lower() in e['name'].lower() or search_st in str(e['school_no'])]
+
+        if filter_cat == "🌟 Şampiyonlar (65+ Net)":
+            filtered_evals = [e for e in filtered_evals if e['avg_net'] >= 65]
+        elif filter_cat == "⚠️ F33 Akademik Destek (<25 Net)":
+            filtered_evals = [e for e in filtered_evals if e['avg_net'] < 25]
+        elif filter_cat == "💊 Sağlık / İlaç Takibi Olanlar":
+            filtered_evals = [e for e in filtered_evals if str(e['school_no']) in ["230", "245", "256"] or "ilaç" in e['saglik'].lower() or "tanı" in e['saglik'].lower()]
+
+        st.caption(f"Gösterilen Kayıt Sayısı: **{len(filtered_evals)} / {len(evals)} Öğrenci**")
+
+        # Tablo Görünümü
+        df_m11_view = pd.DataFrame([{
+            "Sıra": e["sira"],
+            "No": e["school_no"],
+            "Öğrenci Adı Soyadı": e["name"],
+            "Kişilik Durumu": e["kisilik"],
+            "Beslenme": e["beslenme"],
+            "Sağlık Durumu": e["saglik"],
+            "Sosyal İlişkiler": e["sosyal"],
+            "Ekonomik": e["ekonomik"],
+            "LGS Başarı Durumu": e["basari"],
+            "Problemin Çözümü İçin Yapılacaklar": e["cozum"],
+            "Görevli Personel / Birim": e["gorevli"]
+        } for e in filtered_evals])
+
+        st.dataframe(df_m11_view, use_container_width=True, height=450, hide_index=True)
+
+        # Öğrenci Bazlı Ayrıntılı Kart Görünümü
+        with st.expander("🔍 Tek Bir Öğrencinin Bireysel ŞÖK Profilini Kart Olarak İncele", expanded=False):
+            st_names = [f"{e['school_no']} - {e['name']}" for e in evals]
+            chosen_st_idx = st.selectbox("Öğrenci Seçin:", range(len(st_names)), format_func=lambda i: st_names[i], key="sel_sok_card")
+            c_data = evals[chosen_st_idx]
+
+            k1, k2 = st.columns(2)
+            with k1:
+                st.markdown(f"### 👤 {c_data['school_no']} — {c_data['name']}")
+                st.info(f"**🏆 LGS Başarı Durumu:** {c_data['basari']}")
+                st.markdown(f"**🧠 Kişilik ve Karakter:** {c_data['kisilik']}")
+                st.markdown(f"**🤝 Sosyal İlişkiler ve Uyum:** {c_data['sosyal']}")
+                st.markdown(f"**💰 Sosyo-Ekonomik Durum:** {c_data['ekonomik']}")
+            with k2:
+                st.warning(f"**🎯 Problemin Çözümü İçin Eylem Planı:**\n\n{c_data['cozum']}")
+                st.markdown(f"**🏥 Sağlık ve Medikal Durum:** {c_data['saglik']}")
+                st.markdown(f"**🥗 Beslenme Alışkanlığı:** {c_data['beslenme']}")
+                st.caption(f"**📌 Sorumlu ve Görevli Birim:** {c_data['gorevli']}")
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # SUBTAB 2: Sınıf Gözlem Formu
+    # ─────────────────────────────────────────────────────────────────────────
+    with subtab_gozlem:
+        st.subheader("📝 8/B Sınıf Bilgi ve Gözlem Formu")
+        st.caption("Ders öğretmenlerinin ve sınıf rehber öğretmeninin sınıf geneline dair bütüncül gözlemleri:")
+
+        col_g1, col_g2 = st.columns(2)
+        with col_g1:
+            with st.container(border=True):
+                st.markdown("#### 1. Kişilik ve Sınıf Dinamikleri")
+                st.markdown("""
+                - **Devamsızlık Durumu:** 84 Kuzey Yusuf Uruklu (Mazeretli), 258 Meryem Bozdemir (Ailevi izinli), 327 Melek Rana Kesici (Sağlık kontrolleri). Kronik devamsız öğrenci bulunmamaktadır.
+                - **Sorumluluklarını Aksatanlar:** 224 Cengizhan Yılmaz, 227 Derin Yılmaz, 379 Çınar Efe Girgin (Zaman zaman ders araç-gereç ve ödev takibinde desteklenmeli).
+                - **Ders Düzeni:** Genel sınıf düzeni olumlu olup öğretmenlerine karşı saygılıdır; dersi sabote eden veya disiplin problemi yaratan öğrenci yoktur.
+                - **Kaynaştırma:** Resmi RAM raporlu kaynaştırma öğrencisi bulunmamaktadır.
+                """)
+
+            with st.container(border=True):
+                st.markdown("#### 2. Beslenme ve Sağlık Durumu")
+                st.markdown("""
+                - **Kenan Emir Yaman [230]:** Astım rahatsızlığı mevcuttur; gerektiğinde Ventolin inhaler sprey kullanmaktadır. Tozlu ortamlardan korunmalıdır.
+                - **Tuna Koç [245]:** Dikkat eksikliği ve odaklanma takibi mevcuttur; hekim kontrolünde Medikinet kullanmaktadır. Ön sıralarda oturtulması faydalıdır.
+                - **Beren Koç [256]:** Tiroit takibi mevcut olup düzenli hekim gözetimindedir; genel durumu iyidir.
+                - **Beslenme Alışkanlıkları:** Sınıf genelinde beslenme normaldir; sabah kahvaltısını atlayan öğrencilerin aileleriyle görüşülmüştür.
+                """)
+
+            with st.container(border=True):
+                st.markdown("#### 3. Sosyal İlişkiler ve Akran Uyumu")
+                st.markdown("""
+                - **Açıklama:** Sınıf içinde akran ilişkileri oldukça canlı ve yapıcıdır. Akran zorbalığı veya gruplaşma tespit edilmemiştir.
+                - **Öneri:** LGS stresini hafifletmek ve iş birliğini artırmak adına takım sporları, kütüphane etütleri ve münazara etkinlikleri desteklenmelidir.
+                """)
+
+        with col_g2:
+            with st.container(border=True):
+                st.markdown("#### 4. Dersler Bazında Başarı Durumu (LGS Analizleri)")
+                st.markdown("""
+                - **📖 Türkçe (12.37 Net - %61.8):** Paragrafta anlam ve sözcükte anlam güçlü; dil bilgisi (fiilimsiler) ve sözel mantık soru çözümü artırılmalı.
+                - **📐 Matematik (6.45 Net - %32.2):** Çarpanlar ve Katlar kazanımları yerleşti; Üslü İfadeler ve yeni nesil çok adımlı problem çözümlerinde DYK takviyesi şart.
+                - **🔬 Fen Bilimleri (10.82 Net - %54.1):** Mevsimler ve İklim kazanımı tam; DNA ve Genetik Kod ünitesinde deney ve grafik yorumlama pratikleri yapılmalı.
+                - **🏛️ İnkılap Tarihi (7.15 Net - %71.5):** Bir Kahraman Doğuyor ünitesi kavrandı; kronolojik düşünme becerileri başarılı.
+                - **🕌 Din Kültürü (7.48 Net - %74.8):** Kaza ve Kader ünitesi tam; sınıfın en yüksek başarı yüzdesine sahip branşı.
+                - **🌍 İngilizce (5.24 Net - %52.4):** Friendship ve Teen Life kelime hazinesi iyi; okuma-anlama ve soru köklerindeki kalıplar tekrarlanmalı.
+                """)
+
+            with st.container(border=True):
+                st.markdown("#### 5. Ailelerin Sosyo-Ekonomik Durumu")
+                st.markdown("""
+                - **Genel Durum:** Sınıf veli profilinin büyük bölümü orta gelir düzeyinde olup öğrencilerin temel eğitim materyallerini temin edebilmektedir.
+                - **Kaynak Desteği:** Ders kitabı ve soru bankası ihtiyacı olan öğrencilerimize okul idaresi ve zümre öğretmenlerince ücretsiz kaynak desteği sağlanmıştır.
+                - **Önerilen Önlemler:** Velilere yönelik okul-aile iş birliğini artırıcı bireysel toplantılar sürdürülecektir.
+                """)
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # SUBTAB 3: Toplantı Tutanağı ve Gündem
+    # ─────────────────────────────────────────────────────────────────────────
+    with subtab_tutanak:
+        st.subheader("📑 1. Dönem ŞÖK Toplantı Tutanağı ve Gündem Görüşmeleri")
+        st.caption("24 Ekim 2026 tarihinde Okul Kütüphanesinde Okul Müdürü Emin BAYKARA başkanlığında icra edilen toplantı tutanağı:")
+
+        for title, body in [
+            ("1. Açılış, yoklama ve mevzuat dayanağı", "Toplantı Okul Müdürü Emin BAYKARA başkanlığında, 8/B sınıfında derse giren tüm branş öğretmenleri, müdür yardımcısı ve rehberlik öğretmeninin katılımıyla açıldı. MEB Okul Öncesi Eğitim ve İlköğretim Kurumları Yönetmeliği Md. 36 ve MEB Eğitim Kurulları Yönergesi Md. 10-11 doğrultusunda gündem maddelerinin görüşülmesine geçildi."),
+            ("2. Şubenin genel öğrenci profili ve sınıf iklimi", "Sınıf mevcudu 29 (15 Erkek, 14 Kız). Sınıf içi uyum, derse devamlılık ve öğretmenlere karşı saygılı tutum son derece olumludur."),
+            ("3. Yeni gelen ve uyum güçlüğü yaşayan öğrenciler", "Dönem başında nakil gelen öğrencilerin tamamının oryantasyon süreci başarıyla tamamlanmış, dışlanma veya uyumsuzluk vakasına rastlanmamıştır."),
+            ("4. Devam-devamsızlık verileri", "Kuzey Yusuf Uruklu, Meryem Bozdemir ve Melek Rana Kesici'nin mazeretli izinleri haricinde sınıf genelinde devamsızlık oranı düşüktür."),
+            ("5. Akademik başarı ve LGS deneme analizleri", "PARAF 1 (37.43 net) ile NARTEST 1 (44.80 net) denemeleri incelendi. +7.37 netlik güçlü bir sınıf artışı kaydedildi. Orhan Efe Çelikdemir (83.67 net), Zeynep Ece Çelikdemir (75.50 net) ve Erdem Yarar (71.18 net) üstün başarı gösterdi."),
+            ("6. Sosyal-duygusal gelişim ve davranış gözlemleri", "Öğrencilerin akran iletişimi yapıcıdır; akran zorbalığı yaşanmamaktadır. Sınav kaygısı olan öğrencilere rehberlik desteği planlandı."),
+            ("7. Risk haritası ve F33 akademik destek", "MEB S.İ.4.a risk haritasında akademik neti 20'nin altında kalan 5 öğrenciye bireysel destek planı ve etüt tanımlandı."),
+            ("8. Özel eğitim ve kaynaştırma süreçleri", "Sınıfta kaynaştırma öğrencisi bulunmamaktadır. Dikkat odaklanması takipli Tuna Koç ders içi ilgiyle desteklenmektedir."),
+            ("9. İlgi, yetenekler ve sosyal etkinlikler", "Öğrencilerin spor, satranç, teknoloji ve müzik etkinlikleriyle zihinsel dinlenmeleri sağlanmaktadır."),
+            ("10. Veli iş birliği ve rehberlik", "Akademik takip ve sınav kaygısı yaşayan öğrencilerin velileri ile bireysel görüşmeler planlandı."),
+            ("11. Bireysel öğrenci durumları (Madde 11)", "Tüm öğrencilerin sağlık, kişilik, beslenme ve başarı durumu tek tek görüşüldü; Bireysel Değerlendirme Tablosu onaylandı."),
+            ("12. Sınav, ölçme ve ders çalışma alışkanlıkları", "Haftalık 200-350 soru kotası ve 'Yanlış Defteri' uygulaması tüm branşlarda zorunlu hale getirildi."),
+            ("13. Dijital güvenlik ve bağımlılıkla mücadele", "Akıllı telefon ve ekran süresi sınırlandırması için velilerle iş birliği yapılması kararlaştırıldı."),
+            ("14. Alınan kararların izleme takvimi", "Kararların kasım ayı ara tatiline kadar haftalık zümrelerde izlenmesi karara bağlandı."),
+            ("15. Dilek, temenniler ve kapanış", "Okul Müdürü Emin BAYKARA öğretmenlere özverili çalışmalarından ötürü teşekkür etti ve toplantı sonlandırıldı.")
+        ]:
+            with st.expander(f"📌 Gündem Maddesi: {title}", expanded=False):
+                st.markdown(body)
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # SUBTAB 4: Alınan Kararlar
+    # ─────────────────────────────────────────────────────────────────────────
+    with subtab_kararlar:
+        st.subheader("⚖️ 8/B 1. Dönem ŞÖK Kurulunda Alınan Resmi Kararlar")
+        st.caption("Toplantı sonucunda oy birliğiyle alınan 14 somut karar:")
+
+        kararlar_list = [
+            ("LGS Soru Kotası", "Öğrencilere seviyelerine göre haftalık 200 ile 350 soru kotası tanımlanacak; sınıf rehber öğretmeni ve branş öğretmenlerince haftalık çizelgeler kontrol edilecektir."),
+            ("Yanlış Defteri Uygulaması", "Deneme sınavlarında yapılan hataların kalıcı öğrenmeye dönüşmesi amacıyla tüm öğrencilerde 'Yanlış Defteri / Hata Analiz Defteri' zorunlu tutulacaktır."),
+            ("Matematik Yeni Nesil Etütleri", "Matematik dersinde yeni nesil soru analizlerine ve akıl yürütme becerilerine ağırlık verilecek; DYK kurslarıyla pekiştirilecektir."),
+            ("F33 Bireysel Telafi Programı", "Deneme ortalaması 20 net altında kalan öğrencilere (Egehan Hardal, Derin Yılmaz, Çınar Efe Girgin, Cengizhan Yılmaz, Mustafa Gülseven) birebir eksik kazanım desteği verilecektir."),
+            ("Zirve Koçluğu (70+ Net)", "Zirve grupta yer alan öğrencilere zaman yönetimi, odaklanma ve Türkiye geneli deneme stratejileri üzerine koçluk yapılacaktır."),
+            ("Medikal Takip ve Sağlık Tedbirleri", "Astım hastası Kenan Emir Yaman'ın tozdan korunması; Medikinet kullanan Tuna Koç'un ders içi odaklanması; Beren Koç'un tiroit takibi nöbetçi öğretmenlerce gözetilecektir."),
+            ("Sınav Kaygısı Yönetimi", "Rehberlik Servisi tarafından sınav stresine yönelik grup rehberliği ve bireysel psikolojik danışmanlık seansları yürütülecektir."),
+            ("Devamsızlık Erken Uyarı Sistemi", "İlk derslere geç kalan veya devamsızlık yapan öğrencilerin velileri e-Okul üzerinden anlık bilgilendirilecektir."),
+            ("Ekran Bağımlılığı Kısıtlaması", "Velilere ders çalışma saatlerinde telefon ve bilgisayar kısıtlaması yapmaları yönünde rehberlik bülteni ulaştırılacaktır."),
+            ("Sağlıklı Beslenme Teşviki", "Öğrencilerin sabah kahvaltısı alışkanlığı desteklenecek, kantin yerine ev beslenmesi özendirilecektir."),
+            ("Kütüphane Etüt Odası", "Okul kütüphanesinin ders bitiminde 8. sınıf LGS sessiz etüt alanı olarak aktif kullanımı sürdürülecektir."),
+            ("Kazanım Telafi Dersleri", "Deneme sınavlarında başarı oranı %50'nin altında kalan kazanımlar branş öğretmenlerince sınıfta yeniden işlenecektir."),
+            ("Ücretsiz Kaynak Kitap Desteği", "İhtiyaç sahibi olduğu belirlenen öğrencilere okul-aile birliği ve zümre öğretmenlerince ücretsiz soru bankaları sağlanacaktır."),
+            ("Kararların Aylık İzlenmesi", "Alınan kararların etki düzeyi her ay düzenlenecek şube zümre toplantılarında takip edilecektir.")
+        ]
+
+        for k_idx, (k_head, k_desc) in enumerate(kararlar_list, 1):
+            st.markdown(f"**{k_idx}. {k_head}:** {k_desc}")
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # SUBTAB 5: Resmi ŞÖK Belgelerini İndir
+    # ─────────────────────────────────────────────────────────────────────────
+    with subtab_indir:
+        st.subheader("📥 Resmi ŞÖK Belgeleri İndirme Merkezi")
+        st.caption("MEB resmi evrak standartlarında hazırlanmış, 8/B sınıfının 29 öğrencisinin tüm verilerini içeren baskıya hazır Word (.docx) belgeleri:")
+
+        m11_fpath = os.path.join(EXPORTS_DIR, "8B_1_Donem_SOK_Madde_11_Bireysel_Degerlendirme.docx")
+        if not os.path.exists(m11_fpath):
+            m11_fpath = os.path.join(r"C:\Users\ELRA\Desktop\8B sınıfı veriler", "8B_1_Donem_SOK_Madde_11_Bireysel_Degerlendirme.docx")
+
+        gundem_fpath = os.path.join(EXPORTS_DIR, "8B_2026_Ekim_SOK_Toplanti_Tutanagi_ve_Sinif_Gozlem_Formu.docx")
+        if not os.path.exists(gundem_fpath):
+            gundem_fpath = os.path.join(r"C:\Users\ELRA\Desktop\8B sınıfı veriler", "8B_2026_Ekim_SOK_Toplanti_Tutanagi_ve_Sinif_Gozlem_Formu.docx")
+
+        zip_fpath = os.path.join(EXPORTS_DIR, "8B_SOK_Resmi_Evraklari_Paketi.zip")
+        if not os.path.exists(zip_fpath):
+            zip_fpath = os.path.join(r"C:\Users\ELRA\Desktop\8B sınıfı veriler", "8B_SOK_Resmi_Evraklari_Paketi.zip")
+
+        d_col1, d_col2, d_col3 = st.columns(3)
+
+        with d_col1:
+            st.markdown("#### 📄 ŞÖK Madde 11 Tablosu")
+            st.caption("29 öğrencinin kişilik, beslenme, sağlık, sosyal, ekonomik, LGS başarı ve eylem planı tablosu.")
+            if os.path.exists(m11_fpath):
+                with open(m11_fpath, "rb") as f_m11:
+                    m11_bytes = f_m11.read()
+                st.download_button(
+                    "📄 Madde 11 Tablosunu İndir (.docx)",
+                    data=m11_bytes,
+                    file_name="8B_1_Donem_SOK_Madde_11_Bireysel_Degerlendirme.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    use_container_width=True,
+                    key="dl_sok_m11_btn"
+                )
+            else:
+                st.warning("Dosya bulunamadı, lütfen sayfayı yenileyin.")
+
+        with d_col2:
+            st.markdown("#### 📑 ŞÖK Tutanağı & Gözlem")
+            st.caption("15 gündem maddesi görüşmeleri, 14 kurul kararı ve Sınıf Bilgi Formu.")
+            if os.path.exists(gundem_fpath):
+                with open(gundem_fpath, "rb") as f_gnd:
+                    gnd_bytes = f_gnd.read()
+                st.download_button(
+                    "📑 ŞÖK Tutanağı ve Formu İndir (.docx)",
+                    data=gnd_bytes,
+                    file_name="8B_2026_Ekim_SOK_Toplanti_Tutanagi_ve_Sinif_Gozlem_Formu.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    use_container_width=True,
+                    key="dl_sok_gnd_btn"
+                )
+            else:
+                st.warning("Dosya bulunamadı, lütfen sayfayı yenileyin.")
+
+        with d_col3:
+            st.markdown("#### 📦 Toplu ŞÖK Paketi (ZIP)")
+            st.caption("Her iki resmi Word belgesini içeren tek tıkla arşiv paketi.")
+            if os.path.exists(zip_fpath):
+                with open(zip_fpath, "rb") as f_zip:
+                    zip_bytes = f_zip.read()
+                st.download_button(
+                    "📦 Tüm ŞÖK Belgelerini İndir (ZIP)",
+                    data=zip_bytes,
+                    file_name="8B_SOK_Resmi_Evraklari_Paketi.zip",
+                    mime="application/zip",
+                    use_container_width=True,
+                    key="dl_sok_zip_btn"
+                )
+
+        if current_role == "admin":
+            st.markdown("---")
+            if st.button("🔄 ŞÖK Belgelerini Sistem Verileriyle Yeniden Üret ve Masaüstünü Güncelle", key="btn_regen_sok", type="primary"):
+                try:
+                    desktop_dir = r"C:\Users\ELRA\Desktop\8B sınıfı veriler"
+                    f_m11 = [f for f in os.listdir(desktop_dir) if "Madde 11" in f][0]
+                    f_gnd = [f for f in os.listdir(desktop_dir) if "Gu\u0308ndem" in f or "Gundem" in unicodedata.normalize("NFKD", f)][0]
+                    
+                    fill_sok_madde_11_docx(os.path.join(desktop_dir, f_m11), os.path.join(desktop_dir, "ŞÖK Madde 11.docx"))
+                    fill_sok_madde_11_docx(os.path.join(desktop_dir, f_m11), m11_fpath)
+                    
+                    fill_sok_gundem_ve_gozlem_docx(os.path.join(desktop_dir, f_gnd), os.path.join(desktop_dir, "2026_Ekim_ŞÖK_Gündem_Maddeleri_ve_Sınıf_Gözlem_Formu.docx"))
+                    fill_sok_gundem_ve_gozlem_docx(os.path.join(desktop_dir, f_gnd), gundem_fpath)
+                    
+                    import zipfile
+                    with zipfile.ZipFile(zip_fpath, 'w', zipfile.ZIP_DEFLATED) as zf:
+                        zf.write(m11_fpath, "8B_1_Donem_SOK_Madde_11_Bireysel_Degerlendirme.docx")
+                        zf.write(gundem_fpath, "8B_2026_Ekim_SOK_Toplanti_Tutanagi_ve_Sinif_Gozlem_Formu.docx")
+                    
+                    st.success("✅ ŞÖK belgeleri en güncel sınav ve profil verileriyle başarıyla yeniden üretildi ve masaüstü güncellendi!")
+                    st.rerun()
+                except Exception as _e:
+                    st.error(f"Hata oluştu: {_e}")
+
 # ----------------- TAB 5: Rapor & Karne Üretici -----------------
 with tab5:
     st.subheader("⚡ Tek Tıkla Rapor ve Karne Üretim & İndirme Merkezi")
@@ -2602,6 +2906,50 @@ with tab5:
         except Exception as _e_zb:
             st.warning(f"Branş raporları hazırlanırken: {_e_zb}")
 
+
+    # --- ŞÖK EVRAKLARI İNDİRME BÖLÜMÜ ---
+    st.markdown("---")
+    st.markdown("#### ⚖️ 8/B Şube Öğretmenler Kurulu (ŞÖK) Resmi Evrakları")
+    st.caption("MEB Yönetmelik Md. 36 ve Yönerge Md. 10-11 standartlarında doldurulmuş resmi kurul evrakları:")
+
+    sok_m11_p = os.path.join(EXPORTS_DIR, "8B_1_Donem_SOK_Madde_11_Bireysel_Degerlendirme.docx")
+    sok_gnd_p = os.path.join(EXPORTS_DIR, "8B_2026_Ekim_SOK_Toplanti_Tutanagi_ve_Sinif_Gozlem_Formu.docx")
+    sok_zip_p = os.path.join(EXPORTS_DIR, "8B_SOK_Resmi_Evraklari_Paketi.zip")
+
+    c_skb1, c_skb2, c_skb3 = st.columns(3)
+    with c_skb1:
+        if os.path.exists(sok_m11_p):
+            with open(sok_m11_p, "rb") as f_m11:
+                st.download_button(
+                    "📄 ŞÖK Madde 11 Tablosu (.docx)",
+                    data=f_m11.read(),
+                    file_name="8B_1_Donem_SOK_Madde_11_Bireysel_Degerlendirme.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    use_container_width=True,
+                    key="tab5_dl_sok_m11"
+                )
+    with c_skb2:
+        if os.path.exists(sok_gnd_p):
+            with open(sok_gnd_p, "rb") as f_gnd:
+                st.download_button(
+                    "📑 ŞÖK Tutanağı & Formu (.docx)",
+                    data=f_gnd.read(),
+                    file_name="8B_2026_Ekim_SOK_Toplanti_Tutanagi_ve_Sinif_Gozlem_Formu.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    use_container_width=True,
+                    key="tab5_dl_sok_gnd"
+                )
+    with c_skb3:
+        if os.path.exists(sok_zip_p):
+            with open(sok_zip_p, "rb") as f_zp:
+                st.download_button(
+                    "📦 Tüm ŞÖK Belgeleri (ZIP)",
+                    data=f_zp.read(),
+                    file_name="8B_SOK_Resmi_Evraklari_Paketi.zip",
+                    mime="application/zip",
+                    use_container_width=True,
+                    key="tab5_dl_sok_zip"
+                )
 
     # --- PIN LİSTESİ (Sadece Öğretmen ve Admin görür) ---
     st.markdown("---")
