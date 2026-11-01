@@ -148,9 +148,10 @@ if st.session_state.role is None:
 
         if role_choice == "Öğrenci":
             st.info("🎒 **Öğrenci Girişi:** Size verilen **4 haneli giriş kodunuzu** (büyük harf + rakam) girerek sisteme erişebilirsiniz.\n"
-                    "Yalnızca **kendi karnenizi** ve **sınıf ortalamalarını** görebilirsiniz.")
+                    "Yalnızca **kendi karnenizi** ve **sınıf ortalamalarını** görebilirsiniz.\n\n"
+                    "💡 *ŞÖK Formunu incelemek için örnek öğrenci kodu:* **`RBMU`** *(Egehan Hardal)*")
             with st.form("form_student_login"):
-                pin_input = st.text_input("Öğrenci Giriş Kodunuz (4 hane):", placeholder="Örn: AB1C",
+                pin_input = st.text_input("Öğrenci Giriş Kodunuz (4 hane):", placeholder="Örn: RBMU",
                                           help="Öğretmeninizden aldığınız 4 karakterli kodu giriniz.")
                 submit_student = st.form_submit_button("🎒 Öğrenci Olarak Giriş Yap", use_container_width=True)
                 if submit_student:
@@ -383,15 +384,25 @@ if not stu_id_resolved and st.session_state.get("student_name"):
 from core.student_profile import is_student_profile_complete
 is_prof_complete, missing_fields = is_student_profile_complete(stu_id_resolved) if stu_id_resolved else (False, ["Öğrenci kaydı bulunamadı"])
 
+is_egehan = (st.session_state.get("student_name") == "EGEHAN HARDAL" or str(st.session_state.get("student_no")) == "272")
+
 if current_role == 'student':
-    if not is_prof_complete:
+    if is_egehan:
+        st.sidebar.markdown('---')
+        _sok_open = st.session_state.get('show_sok_survey', True)
+        _sok_btn = '📋 ŞÖK Anketini Kapat ✖' if _sok_open else '📝 ŞÖK Veri Toplama Anketi'
+        if st.sidebar.button(_sok_btn, use_container_width=True, type='primary'):
+            st.session_state['show_sok_survey'] = not _sok_open
+            st.rerun()
+
+    if not is_prof_complete and not is_egehan:
         st.sidebar.markdown('---')
         _form_open = st.session_state.get('show_student_form', False)
         _btn_label = '📋 Formu Kapat ✖' if _form_open else '⚠️ Öğrenci Tanıma Formunu Tamamla (Eksik Veri)'
         if st.sidebar.button(_btn_label, use_container_width=True, type='primary'):
             st.session_state['show_student_form'] = not _form_open
             st.rerun()
-    else:
+    elif not is_egehan:
         # Profilini tamamen tamamlamış öğrencilerin sayfasından ve menüsünden form kaldırılır
         if st.session_state.get('show_student_form', False):
             st.session_state['show_student_form'] = False
@@ -431,6 +442,12 @@ if current_role == "student":
         # --- Öğrenci KPI ---
         st.markdown(f"## 🎒 Hoş Geldiniz, {student_name.title()}!")
         st.markdown("---")
+
+        if is_egehan and st.session_state.get('show_sok_survey', True):
+            st.info("🔍 **Örnek İnceleme Modu:** ŞÖK Öğrenci Veri Toplama Anketi, incelenmek üzere örnek olarak **Egehan Hardal** sayfasına kullanıma açılmıştır. Soruları inceleyebilir, işaretleyebilir ve test amacıyla kaydedebilirsiniz.")
+            from core.sok_student_survey_ui import render_sok_student_survey
+            render_sok_student_survey(stu_id_resolved, student_name, st.session_state.get("student_no", "272"))
+            st.markdown("---")
 
         if not is_prof_complete:
             st.warning(
@@ -2671,6 +2688,11 @@ with tab_sok:
                 save_sok_survey(cur_sid, save_data)
                 st.success(f"✅ {cur_e['school_no']} - {cur_e['name']} için ŞÖK verileri başarıyla kaydedildi! Tablolar ve resmi Word evrakları güncellendi.")
                 st.rerun()
+
+        with st.expander("👁️ Öğrenci Ekranı Canlı Önizlemesi (Egehan Hardal Örneği)", expanded=False):
+            st.info("Öğrencilerin kendi sayfalarında gördüğü ŞÖK Veri Toplama Anketinin Egehan Hardal için canlı görünümü aşağıdadır:")
+            from core.sok_student_survey_ui import render_sok_student_survey
+            render_sok_student_survey(193, "EGEHAN HARDAL", "272")
 
         st.markdown("---")
         st.markdown("#### 📊 8/B Sınıfı ŞÖK Veri Toplama Listesi ve Toplu Görünüm")
