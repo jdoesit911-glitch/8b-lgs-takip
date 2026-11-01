@@ -208,6 +208,46 @@ def get_8b_students_sok_data():
 
     return evaluations
 
+def get_8b_sok_gundem_and_observation_data():
+    """
+    ŞÖK Gündem Maddelerinin Görüşülmesi, Alınan Kararlar ve Sınıf Gözlem Formu
+    için 8/B sınıfının gerçek verilerine dayalı tam metinleri döndürür.
+    """
+    st_evals = get_8b_students_sok_data()
+    
+    # Devamsızlık yapanlar
+    devamsiz_list = [
+        "84 Kuzey Yusuf Uruklu (Mazeretli izin)",
+        "258 Meryem Bozdemir (Ailevi izinli)",
+        "327 Melek Rana Kesici (Sağlık kontrolleri)"
+    ]
+    
+    # Sağlık problemi olanlar
+    saglik_list = [
+        "230 Kenan Emir Yaman: Astım rahatsızlığı mevcuttur; gerektiğinde Ventolin inhaler sprey kullanmaktadır.",
+        "245 Tuna Koç: Dikkat eksikliği ve odaklanma takibi mevcuttur; hekim kontrolünde Medikinet kullanmaktadır.",
+        "256 Beren Koç: Tiroit takibi mevcut olup düzenli hekim gözetimindedir; genel durumu iyidir."
+    ]
+
+    # Akademik liderler ve desteğe ihtiyaç duyanlar
+    leaders = [s for s in st_evals if s['avg_net'] >= 65]
+    needs_support = [s for s in st_evals if s['avg_net'] < 25]
+
+    return {
+        "okul_adi": "ALTUNİZADE HAFİZE ÖZAL ORTAOKULU",
+        "sinif": "8 / B",
+        "toplanti_tarihi": "24 / 10 / 2026",
+        "toplanti_no": "1 (1. Dönem ŞÖK)",
+        "mudur": "Emin BAYKARA",
+        "mudur_unvan": "Okul Müdürü",
+        "ogrenci_sayisi": len(st_evals),
+        "st_evals": st_evals,
+        "devamsiz_list": devamsiz_list,
+        "saglik_list": saglik_list,
+        "leaders": leaders,
+        "needs_support": needs_support
+    }
+
 def fill_sok_madde_11_docx(template_path, output_path):
     """
     ŞÖK Madde 11.docx şablonunu açar, 8/B sınıfının 29 öğrencisinin
