@@ -371,11 +371,16 @@ if current_role in ("admin", "teacher"):
 
 # Ogrenci Tanima Formu butonu (sinav secicinin altinda)
 stu_id_resolved = st.session_state.get("student_id")
-if not stu_id_resolved and st.session_state.get("student_name"):
+if not stu_id_resolved:
     import sqlite3 as _sq_sid
     from config import DATABASE_PATH as _DB_SID
     _conn_sid = _sq_sid.connect(_DB_SID)
-    _row_sid = _conn_sid.execute("SELECT id FROM students WHERE name = ?", (st.session_state.student_name,)).fetchone()
+    _sname = str(st.session_state.get("student_name") or "")
+    _sno = str(st.session_state.get("student_no") or "")
+    _row_sid = _conn_sid.execute(
+        "SELECT id FROM students WHERE UPPER(name) = UPPER(?) OR school_no = ? LIMIT 1",
+        (_sname, _sno)
+    ).fetchone()
     _conn_sid.close()
     if _row_sid:
         st.session_state.student_id = _row_sid[0]
@@ -384,7 +389,7 @@ if not stu_id_resolved and st.session_state.get("student_name"):
 from core.student_profile import is_student_profile_complete
 is_prof_complete, missing_fields = is_student_profile_complete(stu_id_resolved) if stu_id_resolved else (False, ["Öğrenci kaydı bulunamadı"])
 
-is_egehan = (st.session_state.get("student_name") == "EGEHAN HARDAL" or str(st.session_state.get("student_no")) == "272")
+is_egehan = (str(st.session_state.get("student_name", "")).upper() == "EGEHAN HARDAL" or str(st.session_state.get("student_no", "")) == "272")
 
 if current_role == 'student':
     st.sidebar.markdown('---')
@@ -402,7 +407,7 @@ if current_role == 'student':
             st.session_state.student_view_mode = 'sok_survey'
             st.rerun()
 
-    if not is_prof_complete and not is_egehan:
+    if not is_prof_complete:
         if st.sidebar.button('📋 Öğrenci Tanıma Formu', use_container_width=True, 
                              type='primary' if cur_mode == 'profile_form' else 'secondary'):
             st.session_state.student_view_mode = 'profile_form'
@@ -445,10 +450,15 @@ if current_role == "student":
     # MOD 1: ŞÖK ÖĞRENCİ VERİ TOPLAMA ANKETİ (Ayrı, Bağımsız Sayfa)
     # ─────────────────────────────────────────────────────────────────────────
     if cur_view_mode == "sok_survey" and is_egehan:
-        st.markdown(f"## 🎒 {student_name.title()} — ŞÖK Veri Toplama Masası")
+        st.markdown(f"## 🎒 {str(student_name or 'Egehan Hardal').title()} — ŞÖK Veri Toplama Masası")
         st.info("🔍 **Örnek İnceleme Modu:** ŞÖK Öğrenci Veri Toplama Anketi, incelenmek üzere örnek olarak **Egehan Hardal** sayfasına açılmıştır. Yanıtları doldurup kaydederek ŞÖK evraklarına etkisini gözlemleyebilirsiniz.")
-        from core.sok_student_survey_ui import render_sok_student_survey
-        render_sok_student_survey(stu_id_resolved, student_name, st.session_state.get("student_no", "272"), allow_back_button=True)
+        import importlib
+        import core.sok_student_survey_ui as _ss_mod
+        importlib.reload(_ss_mod)
+        stu_id_use = int(stu_id_resolved or 193)
+        stu_name_use = str(student_name or "Egehan Hardal")
+        stu_no_use = str(st.session_state.get("student_no", "272"))
+        _ss_mod.render_sok_student_survey(student_id=stu_id_use, student_name=stu_name_use, student_no=stu_no_use, allow_back_button=True)
         st.stop()
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -470,11 +480,9 @@ if current_role == "student":
                                           profile_exists, profile_to_risk_factors)
         init_profile_table()
 
-        stu_id_form = stu_id_resolved
-        if not stu_id_form:
-            st.warning("⚠️ Oturum bilgisi eksik. Lütfen çıkış yapıp tekrar giriş yapın.")
-        else:
-            existing = get_profile(stu_id_form) if profile_exists(stu_id_form) else {}
+        stu_id_form = int(stu_id_resolved or 193)
+        existing = get_profile(stu_id_form) if profile_exists(stu_id_form) else {}
+        if True:
 
             import json as _json_form
 
@@ -716,7 +724,7 @@ if current_role == "student":
                     st.rerun()
             st.markdown("---")
 
-        if not is_prof_complete and not is_egehan:
+        if not is_prof_complete:
             c_prof_card1, c_prof_card2 = st.columns([3, 1])
             with c_prof_card1:
                 st.warning(f"⚠️ **Öğrenci Tanıma Formu:** Eksik bilgiler bulunmaktadır (`{', '.join(missing_fields)}`).")
